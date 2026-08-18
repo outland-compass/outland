@@ -4,5 +4,6 @@ dist/
 .env
 .env.*
 !.env.example
+apps/compass/web/src/environments/environment.local.ts
 supabase/.temp/
 _input/

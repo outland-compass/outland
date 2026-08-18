@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { PlaceholderPageComponent } from '../placeholder-page.component';
-
-@Component({ imports: [PlaceholderPageComponent], template: '<app-placeholder-page title="Due Diligence" />' })
-export default class DueDiligencePage {}
+import { DatePipe } from '@angular/common';
+import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { CompassRepository } from '../../core/compass/compass.repository';
+@Component({imports:[DatePipe,RouterLink],template:`<section class="page"><header class="page-header"><div><p class="eyebrow">PORTFOLIO CONTROL</p><h1>DUE DILIGENCE</h1><p>Open evidence, gates, and decision-critical tasks.</p></div></header>@if(error()){<div class="state error">{{error()}}</div>}@else if(items().length){<div class="dd-table"><div class="dd-head"><span>CANDIDATE</span><span>CATEGORY / TASK</span><span>SEVERITY</span><span>STATUS</span><span>DUE</span></div>@for(item of items();track item.id){<a [routerLink]="['/candidates',item.candidate_id]"><span>{{name(item.candidate_id)}}</span><span><b>{{item.category}}</b><small>{{item.title}}</small></span><span>{{item.severity}}</span><span>{{item.status}}</span><span>{{item.due_date ? (item.due_date | date:'dd MMM yyyy') : '—'}}</span></a>}</div>}@else{<div class="state">No active due-diligence items.</div>}</section>`,styleUrl:'./due-diligence.page.scss'})export default class DueDiligencePage{readonly repo=inject(CompassRepository);readonly items=signal<Awaited<ReturnType<CompassRepository['ddItems']>>>([]);readonly names=signal<Record<string,string>>({});readonly error=signal('');constructor(){void this.load()}async load(){try{const[items,radar]=await Promise.all([this.repo.ddItems(),this.repo.radar()]);this.items.set(items);this.names.set(Object.fromEntries(radar.filter(x=>x.id).map(x=>[x.id!,x.title||'Candidate'])))}catch(e){this.error.set(e instanceof Error?e.message:'DD queue could not load.')}}name(id:string){return this.names()[id]||'Candidate'}}

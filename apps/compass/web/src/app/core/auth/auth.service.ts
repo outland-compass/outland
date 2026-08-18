@@ -7,6 +7,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 export class AuthService {
   readonly session = signal<Session | null>(null);
   readonly ready = signal(false);
+  readonly error = signal<string | null>(null);
 
   constructor(private readonly supabase: SupabaseService) {}
 
@@ -16,12 +17,21 @@ export class AuthService {
       return;
     }
 
-    const { data } = await this.supabase.client.auth.getSession();
-    this.session.set(data.session);
-    this.supabase.client.auth.onAuthStateChange((_event, nextSession) => {
-      this.session.set(nextSession);
-    });
-    this.ready.set(true);
+    try {
+      const { data, error } = await this.supabase.client.auth.getSession();
+      if (error) {
+        this.error.set(error.message);
+      } else {
+        this.session.set(data.session);
+        this.supabase.client.auth.onAuthStateChange((_event, nextSession) => {
+          this.session.set(nextSession);
+        });
+      }
+    } catch {
+      this.error.set('Authentication could not be initialized. Please verify local configuration.');
+    } finally {
+      this.ready.set(true);
+    }
   }
 
   async signIn(email: string, password: string): Promise<string | null> {
