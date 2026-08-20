@@ -23,7 +23,8 @@
     "tslib": "^2.3.0"
   },
   "optionalDependencies": {
-    "@oxc-parser/binding-linux-x64-gnu": "0.142.0"
+    "@oxc-parser/binding-linux-x64-gnu": "0.142.0",
+    "@rolldown/binding-linux-x64-gnu": "1.2.0"
   },
   "devDependencies": {
     "@angular/build": "^22.1.4",
