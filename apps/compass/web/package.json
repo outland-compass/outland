@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "node scripts/generate-production-environment.mjs && ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false",
     "typecheck": "ng build --configuration development"
@@ -21,6 +21,9 @@
     "@supabase/supabase-js": "^2.112.3",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
+  },
+  "optionalDependencies": {
+    "@oxc-parser/binding-linux-x64-gnu": "0.142.0"
   },
   "devDependencies": {
     "@angular/build": "^22.1.4",
