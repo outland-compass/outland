@@ -23,6 +23,7 @@ export class CompassRepository {
   async radarCandidate(id: string): Promise<RadarRow> { return this.one(this.db.from('v_candidate_radar').select('*').eq('id', id).single()); }
   async gates(candidateId: string): Promise<Gate[]> { return this.data(this.db.from('candidate_gates').select('*').eq('candidate_id', candidateId).order('category')); }
   async sources(candidateId: string) { return this.data(this.db.from('candidate_sources').select('*').eq('candidate_id', candidateId)); }
+  async sourceUrls(candidateIds: string[]): Promise<{ candidate_id: string; source_url: string | null }[]> { if (!candidateIds.length) return []; return this.data(this.db.from('candidate_sources').select('candidate_id,source_url').in('candidate_id', candidateIds)); }
   async prices(candidateId: string) { return this.data(this.db.from('candidate_price_history').select('*').eq('candidate_id', candidateId).order('observed_at', { ascending: false })); }
   async economics(candidateId: string) { return this.oneOrNull(this.db.from('candidate_economics').select('*').eq('candidate_id', candidateId).maybeSingle()); }
   async notes(candidateId: string) { return this.data(this.db.from('notes').select('*').eq('candidate_id', candidateId).order('created_at', { ascending: false })); }
