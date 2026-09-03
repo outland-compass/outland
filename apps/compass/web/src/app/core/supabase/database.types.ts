@@ -10,167 +10,10 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
-  graphql_public: {
+  land: {
     Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-  public: {
-    Tables: {
-      activities: {
-        Row: {
-          action: string
-          actor_id: string | null
-          candidate_id: string | null
-          created_at: string
-          entity_id: string | null
-          entity_type: string
-          id: number
-          new_data: Json | null
-          old_data: Json | null
-        }
-        Insert: {
-          action: string
-          actor_id?: string | null
-          candidate_id?: string | null
-          created_at?: string
-          entity_id?: string | null
-          entity_type: string
-          id?: never
-          new_data?: Json | null
-          old_data?: Json | null
-        }
-        Update: {
-          action?: string
-          actor_id?: string | null
-          candidate_id?: string | null
-          created_at?: string
-          entity_id?: string | null
-          entity_type?: string
-          id?: never
-          new_data?: Json | null
-          old_data?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "activities_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "candidates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "activities_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "v_candidate_gate_summary"
-            referencedColumns: ["candidate_id"]
-          },
-          {
-            foreignKeyName: "activities_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "v_candidate_radar"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      assets: {
-        Row: {
-          acquired_at: string | null
-          acquisition_price: number | null
-          asset_kind: Database["public"]["Enums"]["asset_kind"]
-          created_at: string
-          created_by: string | null
-          currency: string
-          id: string
-          name: string
-          source_candidate_id: string | null
-          status: string
-          updated_at: string
-          world_id: string
-        }
-        Insert: {
-          acquired_at?: string | null
-          acquisition_price?: number | null
-          asset_kind: Database["public"]["Enums"]["asset_kind"]
-          created_at?: string
-          created_by?: string | null
-          currency?: string
-          id?: string
-          name: string
-          source_candidate_id?: string | null
-          status?: string
-          updated_at?: string
-          world_id: string
-        }
-        Update: {
-          acquired_at?: string | null
-          acquisition_price?: number | null
-          asset_kind?: Database["public"]["Enums"]["asset_kind"]
-          created_at?: string
-          created_by?: string | null
-          currency?: string
-          id?: string
-          name?: string
-          source_candidate_id?: string | null
-          status?: string
-          updated_at?: string
-          world_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "assets_source_candidate_id_fkey"
-            columns: ["source_candidate_id"]
-            isOneToOne: true
-            referencedRelation: "candidates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assets_source_candidate_id_fkey"
-            columns: ["source_candidate_id"]
-            isOneToOne: true
-            referencedRelation: "v_candidate_gate_summary"
-            referencedColumns: ["candidate_id"]
-          },
-          {
-            foreignKeyName: "assets_source_candidate_id_fkey"
-            columns: ["source_candidate_id"]
-            isOneToOne: true
-            referencedRelation: "v_candidate_radar"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assets_world_id_fkey"
-            columns: ["world_id"]
-            isOneToOne: false
-            referencedRelation: "worlds"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       candidate_economics: {
         Row: {
           annual_revenue_base: number | null
@@ -628,15 +471,7 @@ export type Database = {
           updated_at?: string
           world_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "candidates_world_id_fkey"
-            columns: ["world_id"]
-            isOneToOne: false
-            referencedRelation: "worlds"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       dd_items: {
         Row: {
@@ -1069,13 +904,6 @@ export type Database = {
             referencedRelation: "v_candidate_radar"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "evaluations_world_id_fkey"
-            columns: ["world_id"]
-            isOneToOne: false
-            referencedRelation: "worlds"
-            referencedColumns: ["id"]
-          },
         ]
       }
       evidence_items: {
@@ -1237,30 +1065,6 @@ export type Database = {
           },
         ]
       }
-      profiles: {
-        Row: {
-          created_at: string
-          display_name: string | null
-          email: string | null
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          display_name?: string | null
-          email?: string | null
-          id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          display_name?: string | null
-          email?: string | null
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       score_dimensions: {
         Row: {
           code: Database["public"]["Enums"]["score_dimension"]
@@ -1371,35 +1175,7 @@ export type Database = {
             referencedRelation: "v_candidate_radar"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "signals_world_id_fkey"
-            columns: ["world_id"]
-            isOneToOne: false
-            referencedRelation: "worlds"
-            referencedColumns: ["id"]
-          },
         ]
-      }
-      user_roles: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
       }
       visits: {
         Row: {
@@ -1492,13 +1268,6 @@ export type Database = {
             referencedRelation: "score_dimensions"
             referencedColumns: ["code"]
           },
-          {
-            foreignKeyName: "world_dimension_weights_world_id_fkey"
-            columns: ["world_id"]
-            isOneToOne: false
-            referencedRelation: "worlds"
-            referencedColumns: ["id"]
-          },
         ]
       }
       world_gate_definitions: {
@@ -1538,15 +1307,7 @@ export type Database = {
           sort_order?: number
           world_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "world_gate_definitions_world_id_fkey"
-            columns: ["world_id"]
-            isOneToOne: false
-            referencedRelation: "worlds"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       world_score_criteria: {
         Row: {
@@ -1596,80 +1357,7 @@ export type Database = {
             referencedRelation: "score_dimensions"
             referencedColumns: ["code"]
           },
-          {
-            foreignKeyName: "world_score_criteria_world_id_fkey"
-            columns: ["world_id"]
-            isOneToOne: false
-            referencedRelation: "worlds"
-            referencedColumns: ["id"]
-          },
         ]
-      }
-      worlds: {
-        Row: {
-          archetype: string | null
-          asset_kind: Database["public"]["Enums"]["asset_kind"]
-          code: string
-          created_at: string
-          environment: string | null
-          id: string
-          inner_movement: string | null
-          is_active: boolean
-          name: string
-          radar_enabled: boolean
-          reunderwrite_above_eur: number | null
-          search_notes: string | null
-          target_area_max_m2: number | null
-          target_area_min_m2: number | null
-          target_capital_max_eur: number | null
-          target_capital_min_eur: number | null
-          target_geography: string | null
-          target_profile: Json
-          updated_at: string
-        }
-        Insert: {
-          archetype?: string | null
-          asset_kind: Database["public"]["Enums"]["asset_kind"]
-          code: string
-          created_at?: string
-          environment?: string | null
-          id?: string
-          inner_movement?: string | null
-          is_active?: boolean
-          name: string
-          radar_enabled?: boolean
-          reunderwrite_above_eur?: number | null
-          search_notes?: string | null
-          target_area_max_m2?: number | null
-          target_area_min_m2?: number | null
-          target_capital_max_eur?: number | null
-          target_capital_min_eur?: number | null
-          target_geography?: string | null
-          target_profile?: Json
-          updated_at?: string
-        }
-        Update: {
-          archetype?: string | null
-          asset_kind?: Database["public"]["Enums"]["asset_kind"]
-          code?: string
-          created_at?: string
-          environment?: string | null
-          id?: string
-          inner_movement?: string | null
-          is_active?: boolean
-          name?: string
-          radar_enabled?: boolean
-          reunderwrite_above_eur?: number | null
-          search_notes?: string | null
-          target_area_max_m2?: number | null
-          target_area_min_m2?: number | null
-          target_capital_max_eur?: number | null
-          target_capital_min_eur?: number | null
-          target_geography?: string | null
-          target_profile?: Json
-          updated_at?: string
-        }
-        Relationships: []
       }
     }
     Views: {
@@ -1750,15 +1438,7 @@ export type Database = {
           world_id: string | null
           world_name: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "candidates_world_id_fkey"
-            columns: ["world_id"]
-            isOneToOne: false
-            referencedRelation: "worlds"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       v_evaluation_dimension_scores: {
         Row: {
@@ -1836,6 +1516,23 @@ export type Database = {
           },
         ]
       }
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
     }
     Functions: {
       can_admin: { Args: never; Returns: boolean }
@@ -1917,6 +1614,222 @@ export type Database = {
       [_ in never]: never
     }
   }
+  shared: {
+    Tables: {
+      activities: {
+        Row: {
+          action: string
+          actor_id: string | null
+          candidate_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: number
+          new_data: Json | null
+          old_data: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          candidate_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: never
+          new_data?: Json | null
+          old_data?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          candidate_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: never
+          new_data?: Json | null
+          old_data?: Json | null
+        }
+        Relationships: []
+      }
+      assets: {
+        Row: {
+          acquired_at: string | null
+          acquisition_price: number | null
+          asset_kind: Database["public"]["Enums"]["asset_kind"]
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          name: string
+          source_candidate_id: string | null
+          status: string
+          updated_at: string
+          world_id: string
+        }
+        Insert: {
+          acquired_at?: string | null
+          acquisition_price?: number | null
+          asset_kind: Database["public"]["Enums"]["asset_kind"]
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          name: string
+          source_candidate_id?: string | null
+          status?: string
+          updated_at?: string
+          world_id: string
+        }
+        Update: {
+          acquired_at?: string | null
+          acquisition_price?: number | null
+          asset_kind?: Database["public"]["Enums"]["asset_kind"]
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          name?: string
+          source_candidate_id?: string | null
+          status?: string
+          updated_at?: string
+          world_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      worlds: {
+        Row: {
+          archetype: string | null
+          asset_kind: Database["public"]["Enums"]["asset_kind"]
+          code: string
+          created_at: string
+          environment: string | null
+          id: string
+          inner_movement: string | null
+          is_active: boolean
+          name: string
+          radar_enabled: boolean
+          reunderwrite_above_eur: number | null
+          search_notes: string | null
+          target_area_max_m2: number | null
+          target_area_min_m2: number | null
+          target_capital_max_eur: number | null
+          target_capital_min_eur: number | null
+          target_geography: string | null
+          target_profile: Json
+          updated_at: string
+        }
+        Insert: {
+          archetype?: string | null
+          asset_kind: Database["public"]["Enums"]["asset_kind"]
+          code: string
+          created_at?: string
+          environment?: string | null
+          id?: string
+          inner_movement?: string | null
+          is_active?: boolean
+          name: string
+          radar_enabled?: boolean
+          reunderwrite_above_eur?: number | null
+          search_notes?: string | null
+          target_area_max_m2?: number | null
+          target_area_min_m2?: number | null
+          target_capital_max_eur?: number | null
+          target_capital_min_eur?: number | null
+          target_geography?: string | null
+          target_profile?: Json
+          updated_at?: string
+        }
+        Update: {
+          archetype?: string | null
+          asset_kind?: Database["public"]["Enums"]["asset_kind"]
+          code?: string
+          created_at?: string
+          environment?: string | null
+          id?: string
+          inner_movement?: string | null
+          is_active?: boolean
+          name?: string
+          radar_enabled?: boolean
+          reunderwrite_above_eur?: number | null
+          search_notes?: string | null
+          target_area_max_m2?: number | null
+          target_area_min_m2?: number | null
+          target_capital_max_eur?: number | null
+          target_capital_min_eur?: number | null
+          target_geography?: string | null
+          target_profile?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -1927,12 +1840,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1956,11 +1869,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1981,11 +1894,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2006,11 +1919,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2023,11 +1936,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2037,7 +1950,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
+  land: {
     Enums: {},
   },
   public: {
@@ -2104,5 +2017,8 @@ export const Constants = {
         "DISPUTED",
       ],
     },
+  },
+  shared: {
+    Enums: {},
   },
 } as const

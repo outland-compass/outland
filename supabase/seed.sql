@@ -2,7 +2,7 @@
 -- OUTLAND COMPASS v0.1 seed configuration.
 -- Safe to run after migrations in local/staging. Review before production.
 
-insert into public.score_dimensions(code,label,sort_order) values
+insert into land.score_dimensions(code,label,sort_order) values
 ('PLACE','Place',10),
 ('FEASIBILITY','Feasibility',20),
 ('ECONOMICS','Economics',30),
@@ -10,7 +10,7 @@ insert into public.score_dimensions(code,label,sort_order) values
 ('NETWORK','Network Fit',50)
 on conflict (code) do update set label=excluded.label, sort_order=excluded.sort_order;
 
-insert into public.worlds(
+insert into shared.worlds(
   code,name,environment,archetype,inner_movement,asset_kind,radar_enabled,
   target_geography,target_area_min_m2,target_area_max_m2,
   target_capital_min_eur,target_capital_max_eur,reunderwrite_above_eur,
@@ -50,9 +50,9 @@ on conflict (code) do update set
   target_profile=excluded.target_profile;
 
 -- Default dimension weights for every Radar-enabled world.
-insert into public.world_dimension_weights(world_id,dimension,weight)
+insert into land.world_dimension_weights(world_id,dimension,weight)
 select w.id, x.dimension, x.weight
-from public.worlds w
+from shared.worlds w
 cross join (values
  ('PLACE'::public.score_dimension,0.35::numeric),
  ('FEASIBILITY'::public.score_dimension,0.20::numeric),
@@ -65,7 +65,7 @@ on conflict (world_id,dimension) do update set weight=excluded.weight;
 
 -- Shared LAND criteria for GREENHILL / LOST SIGNAL / NAVIGATOR / LOST VALLEY.
 with land_worlds as (
-  select id from public.worlds where code in ('GREENHILL','LOST_SIGNAL','NAVIGATOR','LOST_VALLEY')
+  select id from shared.worlds where code in ('GREENHILL','LOST_SIGNAL','NAVIGATOR','LOST_VALLEY')
 ),
 criteria(dimension,code,label,item_weight,sort_order) as (values
  ('PLACE'::public.score_dimension,'natural_beauty','Natural beauty / immersion',1.3,10),
@@ -98,14 +98,14 @@ criteria(dimension,code,label,item_weight,sort_order) as (values
  ('NETWORK'::public.score_dimension,'operational_synergy','Shared operations / equipment synergy',0.8,40),
  ('NETWORK'::public.score_dimension,'network_role','Strategic network role',1.2,50)
 )
-insert into public.world_score_criteria(world_id,dimension,code,label,item_weight,sort_order)
+insert into land.world_score_criteria(world_id,dimension,code,label,item_weight,sort_order)
 select lw.id,c.dimension,c.code,c.label,c.item_weight,c.sort_order
 from land_worlds lw cross join criteria c
 on conflict (world_id,code) do update set
  dimension=excluded.dimension,label=excluded.label,item_weight=excluded.item_weight,sort_order=excluded.sort_order,is_active=true;
 
 -- RIVERKEEPER criteria.
-with rw as (select id from public.worlds where code='RIVERKEEPER'),
+with rw as (select id from shared.worlds where code='RIVERKEEPER'),
 criteria(dimension,code,label,item_weight,sort_order) as (values
  ('PLACE'::public.score_dimension,'water_experience','Water / reed / river experience quality',1.4,10),
  ('PLACE'::public.score_dimension,'quiet_privacy','Quiet / privacy from neighboring activity',1.4,20),
@@ -137,7 +137,7 @@ criteria(dimension,code,label,item_weight,sort_order) as (values
  ('NETWORK'::public.score_dimension,'content_brand_value','Content / brand value',0.9,40),
  ('NETWORK'::public.score_dimension,'cross_sell','Cross-world travel / cross-sell',0.8,50)
 )
-insert into public.world_score_criteria(world_id,dimension,code,label,item_weight,sort_order)
+insert into land.world_score_criteria(world_id,dimension,code,label,item_weight,sort_order)
 select rw.id,c.dimension,c.code,c.label,c.item_weight,c.sort_order
 from rw cross join criteria c
 on conflict (world_id,code) do update set
@@ -145,7 +145,7 @@ on conflict (world_id,code) do update set
 
 -- LAND gate template.
 with land_worlds as (
-  select id from public.worlds where code in ('GREENHILL','LOST_SIGNAL','NAVIGATOR','LOST_VALLEY')
+  select id from shared.worlds where code in ('GREENHILL','LOST_SIGNAL','NAVIGATOR','LOST_VALLEY')
 ),
 gates(code,category,label,is_critical,sort_order) as (values
  ('ownership','LEGAL & PLANNING','Ownership clean and verifiable',true,10),
@@ -159,14 +159,14 @@ gates(code,category,label,is_critical,sort_order) as (values
  ('water','INFRASTRUCTURE','Water source viable',false,90),
  ('wastewater','INFRASTRUCTURE','Wastewater solution viable',true,100)
 )
-insert into public.world_gate_definitions(world_id,code,category,label,is_critical,sort_order)
+insert into land.world_gate_definitions(world_id,code,category,label,is_critical,sort_order)
 select lw.id,g.code,g.category,g.label,g.is_critical,g.sort_order
 from land_worlds lw cross join gates g
 on conflict (world_id,code) do update set
  category=excluded.category,label=excluded.label,is_critical=excluded.is_critical,sort_order=excluded.sort_order,is_active=true;
 
 -- RIVERKEEPER gate template.
-with rw as (select id from public.worlds where code='RIVERKEEPER'),
+with rw as (select id from shared.worlds where code='RIVERKEEPER'),
 gates(code,category,label,is_critical,sort_order) as (values
  ('floating_ownership','LEGAL & CONTROL','Floating-object ownership clean and verifiable',true,10),
  ('registration','LEGAL & CONTROL','Registration status / registrability verified',true,20),
@@ -181,7 +181,7 @@ gates(code,category,label,is_critical,sort_order) as (values
  ('wastewater','UTILITIES & WASTE','Wastewater / black-water solution acceptable',true,110),
  ('quiet_privacy','EXPERIENCE FIT','Quiet / privacy from neighboring splav activity',false,120)
 )
-insert into public.world_gate_definitions(world_id,code,category,label,is_critical,sort_order)
+insert into land.world_gate_definitions(world_id,code,category,label,is_critical,sort_order)
 select rw.id,g.code,g.category,g.label,g.is_critical,g.sort_order
 from rw cross join gates g
 on conflict (world_id,code) do update set

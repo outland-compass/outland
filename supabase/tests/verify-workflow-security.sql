@@ -20,7 +20,7 @@ begin
     ('00000000-0000-0000-0000-000000000000', viewer_id, 'authenticated', 'authenticated', 'viewer@test.outland', crypt('test-password', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', '')
   on conflict (id) do nothing;
 
-  insert into public.user_roles(user_id, role) values
+  insert into shared.user_roles(user_id, role) values
     (owner_id, 'OWNER'), (admin_id, 'ADMIN'), (analyst_id, 'ANALYST'), (advisor_id, 'ADVISOR'), (viewer_id, 'VIEWER')
   on conflict do nothing;
 end;
@@ -42,59 +42,59 @@ declare
   actual_score numeric;
   actual_confidence numeric;
 begin
-  select id into greenhill_id from public.worlds where code = 'GREENHILL';
-  select id into riverkeeper_id from public.worlds where code = 'RIVERKEEPER';
+  select id into greenhill_id from shared.worlds where code = 'GREENHILL';
+  select id into riverkeeper_id from shared.worlds where code = 'RIVERKEEPER';
 
-  insert into public.signals(world_id, source_name, source_url, raw_title, raw_description, raw_price, raw_currency, raw_area_m2)
+  insert into land.signals(world_id, source_name, source_url, raw_title, raw_description, raw_price, raw_currency, raw_area_m2)
   values (greenhill_id, 'workflow test', 'https://example.test/signal-promotion', 'Promotion test', 'Test signal', 100000, 'EUR', 10000)
   returning id into v_signal_id;
   v_candidate_id := public.promote_signal_to_candidate(v_signal_id, greenhill_id, null);
 
-  if not exists (select 1 from public.candidates where id = v_candidate_id)
-    or not exists (select 1 from public.signals where id = v_signal_id and status = 'PROMOTED' and promoted_candidate_id = v_candidate_id)
-    or not exists (select 1 from public.candidate_sources where candidate_id = v_candidate_id and signal_id = v_signal_id)
-    or not exists (select 1 from public.candidate_price_history where candidate_id = v_candidate_id and price = 100000)
-    or not exists (select 1 from public.candidate_gates where candidate_id = v_candidate_id) then
+  if not exists (select 1 from land.candidates where id = v_candidate_id)
+    or not exists (select 1 from land.signals where id = v_signal_id and status = 'PROMOTED' and promoted_candidate_id = v_candidate_id)
+    or not exists (select 1 from land.candidate_sources where candidate_id = v_candidate_id and signal_id = v_signal_id)
+    or not exists (select 1 from land.candidate_price_history where candidate_id = v_candidate_id and price = 100000)
+    or not exists (select 1 from land.candidate_gates where candidate_id = v_candidate_id) then
     raise exception 'Signal promotion verification failed';
   end if;
 
   v_evaluation_id := public.start_evaluation(v_candidate_id);
-  if not exists (select 1 from public.evaluation_dimension_weights where evaluation_id = v_evaluation_id)
-    or not exists (select 1 from public.evaluation_items where evaluation_id = v_evaluation_id) then
+  if not exists (select 1 from land.evaluation_dimension_weights where evaluation_id = v_evaluation_id)
+    or not exists (select 1 from land.evaluation_items where evaluation_id = v_evaluation_id) then
     raise exception 'Evaluation snapshot was not initialized';
   end if;
 
-  select item_weight into snapshot_weight from public.evaluation_items where evaluation_id = v_evaluation_id and criterion_code = 'natural_beauty';
-  update public.world_score_criteria set item_weight = item_weight + 0.5 where world_id = greenhill_id and code = 'natural_beauty';
-  if (select item_weight from public.evaluation_items where evaluation_id = v_evaluation_id and criterion_code = 'natural_beauty') <> snapshot_weight then
+  select item_weight into snapshot_weight from land.evaluation_items where evaluation_id = v_evaluation_id and criterion_code = 'natural_beauty';
+  update land.world_score_criteria set item_weight = item_weight + 0.5 where world_id = greenhill_id and code = 'natural_beauty';
+  if (select item_weight from land.evaluation_items where evaluation_id = v_evaluation_id and criterion_code = 'natural_beauty') <> snapshot_weight then
     raise exception 'Evaluation changed after world configuration changed';
   end if;
 
-  update public.evaluation_items set score = null, confidence_percent = 0, evidence_state = 'UNKNOWN' where evaluation_id = v_evaluation_id;
-  update public.evaluation_items set score = 90, confidence_percent = 100, evidence_state = 'VERIFIED' where evaluation_id = v_evaluation_id and criterion_code = 'natural_beauty';
-  update public.evaluation_items set score = 92, confidence_percent = 100, evidence_state = 'VERIFIED' where evaluation_id = v_evaluation_id and criterion_code = 'privacy';
+  update land.evaluation_items set score = null, confidence_percent = 0, evidence_state = 'UNKNOWN' where evaluation_id = v_evaluation_id;
+  update land.evaluation_items set score = 90, confidence_percent = 100, evidence_state = 'VERIFIED' where evaluation_id = v_evaluation_id and criterion_code = 'natural_beauty';
+  update land.evaluation_items set score = 92, confidence_percent = 100, evidence_state = 'VERIFIED' where evaluation_id = v_evaluation_id and criterion_code = 'privacy';
 
   select round(sum(score::numeric * item_weight) / sum(item_weight), 1) into expected_score
-  from public.evaluation_items where evaluation_id = v_evaluation_id and dimension = 'PLACE' and score is not null;
+  from land.evaluation_items where evaluation_id = v_evaluation_id and dimension = 'PLACE' and score is not null;
   select dimension_score, dimension_confidence into actual_score, actual_confidence
-  from public.v_evaluation_dimension_scores where evaluation_id = v_evaluation_id and dimension = 'PLACE';
+  from land.v_evaluation_dimension_scores where evaluation_id = v_evaluation_id and dimension = 'PLACE';
   if actual_score <> expected_score or actual_confidence >= 100 then
     raise exception 'UNKNOWN was scored as zero or did not reduce confidence';
   end if;
 
-  update public.evaluation_items set score = 95, confidence_percent = 100, evidence_state = 'VERIFIED' where evaluation_id = v_evaluation_id;
-  update public.candidate_gates set state = 'FAIL' where id = (
-    select id from public.candidate_gates where candidate_id = v_candidate_id and is_critical order by id limit 1
+  update land.evaluation_items set score = 95, confidence_percent = 100, evidence_state = 'VERIFIED' where evaluation_id = v_evaluation_id;
+  update land.candidate_gates set state = 'FAIL' where id = (
+    select id from land.candidate_gates where candidate_id = v_candidate_id and is_critical order by id limit 1
   );
-  if (select recommendation from public.v_candidate_radar where id = v_candidate_id) <> 'BLOCKED' then
+  if (select recommendation from land.v_candidate_radar where id = v_candidate_id) <> 'BLOCKED' then
     raise exception 'Critical failed gate did not block candidate';
   end if;
 
-  insert into public.signals(world_id, source_name, source_url, raw_title, extracted_payload)
+  insert into land.signals(world_id, source_name, source_url, raw_title, extracted_payload)
   values (riverkeeper_id, 'workflow test', 'https://example.test/riverkeeper', 'Riverkeeper test', '{"asset_kind":"FLOATING"}')
   returning id into v_river_signal_id;
   v_river_candidate_id := public.promote_signal_to_candidate(v_river_signal_id, riverkeeper_id, null);
-  if (select count(*) from public.candidate_gates where candidate_id = v_river_candidate_id and gate_code in (
+  if (select count(*) from land.candidate_gates where candidate_id = v_river_candidate_id and gate_code in (
     'floating_ownership', 'registration', 'berth_right', 'commercial_use', 'water_envelope',
     'moorings', 'shore_access', 'emergency_access', 'wastewater'
   )) <> 9 then
@@ -119,7 +119,7 @@ begin
     raise exception 'VIEWER authentication context or role helpers are incorrect';
   end if;
 
-  update public.candidates set title = title where id = (select id from public.candidates limit 1);
+  update land.candidates set title = title where id = (select id from land.candidates limit 1);
   get diagnostics affected_rows = row_count;
   if affected_rows > 0 then
     raise exception 'VIEWER unexpectedly modified a candidate';
@@ -141,12 +141,12 @@ begin
     raise exception 'ANALYST authentication context or role helpers are incorrect';
   end if;
 
-  select id into world_id from public.worlds where code = 'GREENHILL';
-  select id into v_candidate_id from public.candidates limit 1;
-  insert into public.signals(world_id, source_name, source_url, raw_title)
+  select id into world_id from shared.worlds where code = 'GREENHILL';
+  select id into v_candidate_id from land.candidates limit 1;
+  insert into land.signals(world_id, source_name, source_url, raw_title)
   values (world_id, 'security test', 'https://example.test/analyst', 'Analyst write');
-  update public.candidate_gates set notes = 'Analyst update' where id = (select id from public.candidate_gates g where g.candidate_id = v_candidate_id limit 1);
-  insert into public.dd_items(candidate_id, category, title) values (v_candidate_id, 'SECURITY', 'Analyst DD write');
+  update land.candidate_gates set notes = 'Analyst update' where id = (select id from land.candidate_gates g where g.candidate_id = v_candidate_id limit 1);
+  insert into land.dd_items(candidate_id, category, title) values (v_candidate_id, 'SECURITY', 'Analyst DD write');
 end;
 $$;
 
@@ -164,10 +164,10 @@ begin
     raise exception 'ADVISOR authentication context or role helpers are incorrect';
   end if;
 
-  select id into v_candidate_id from public.candidates limit 1;
-  insert into public.notes(candidate_id, body) values (v_candidate_id, 'Advisor note');
-  insert into public.evidence_items(candidate_id, evidence_type, title) values (v_candidate_id, 'OTHER', 'Advisor evidence');
-  update public.candidates set title = title where id = v_candidate_id;
+  select id into v_candidate_id from land.candidates limit 1;
+  insert into land.notes(candidate_id, body) values (v_candidate_id, 'Advisor note');
+  insert into land.evidence_items(candidate_id, evidence_type, title) values (v_candidate_id, 'OTHER', 'Advisor evidence');
+  update land.candidates set title = title where id = v_candidate_id;
   get diagnostics affected_rows = row_count;
   if affected_rows > 0 then
     raise exception 'ADVISOR unexpectedly modified candidate core data';
@@ -189,11 +189,11 @@ begin
     raise exception 'OWNER authentication context or role helpers are incorrect';
   end if;
 
-  select id into v_candidate_id from public.candidates limit 1;
-  select id into world_id from public.worlds where code = 'GREENHILL';
-  update public.worlds set search_notes = coalesce(search_notes, '') where id = world_id;
-  insert into public.assets(source_candidate_id, world_id, name, asset_kind) values (v_candidate_id, world_id, 'Owner verification asset', 'LAND');
-  insert into public.user_roles(user_id, role) values ('00000000-0000-4000-8000-000000000004', 'ADVISOR') on conflict do nothing;
+  select id into v_candidate_id from land.candidates limit 1;
+  select id into world_id from shared.worlds where code = 'GREENHILL';
+  update shared.worlds set search_notes = coalesce(search_notes, '') where id = world_id;
+  insert into shared.assets(source_candidate_id, world_id, name, asset_kind) values (v_candidate_id, world_id, 'Owner verification asset', 'LAND');
+  insert into shared.user_roles(user_id, role) values ('00000000-0000-4000-8000-000000000004', 'ADVISOR') on conflict do nothing;
 end;
 $$;
 
@@ -208,8 +208,8 @@ begin
     raise exception 'ADMIN authentication context or role helpers are incorrect';
   end if;
 
-  update public.worlds set search_notes = coalesce(search_notes, '') where code = 'GREENHILL';
-  insert into public.user_roles(user_id, role) values ('00000000-0000-4000-8000-000000000004', 'ADMIN') on conflict do nothing;
+  update shared.worlds set search_notes = coalesce(search_notes, '') where code = 'GREENHILL';
+  insert into shared.user_roles(user_id, role) values ('00000000-0000-4000-8000-000000000004', 'ADMIN') on conflict do nothing;
 end;
 $$;
 
