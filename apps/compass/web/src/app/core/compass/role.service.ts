@@ -13,7 +13,7 @@ export class RoleService {
   async load(): Promise<void> {
     const userId = this.auth.session()?.user.id;
     if (!userId || !this.supabase.isConfigured) return;
-    const { data, error } = await this.supabase.client.from('user_roles').select('role').eq('user_id', userId);
+    const { data, error } = await this.supabase.client.schema('shared').from('user_roles').select('role').eq('user_id', userId);
     if (error) throw new Error(error.message);
     this.roles.set((data ?? []).map((row) => row.role));
   }
