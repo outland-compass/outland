@@ -9,6 +9,7 @@ export type Candidate = Tables<{ schema: 'land' }, 'candidates'>;
 export type Gate = Tables<{ schema: 'land' }, 'candidate_gates'>;
 export type EvaluationItem = Tables<{ schema: 'land' }, 'evaluation_items'>;
 export type Signal = Tables<{ schema: 'land' }, 'signals'>;
+export type DdItem = Tables<{ schema: 'land' }, 'dd_items'>;
 
 export interface ImportedListing {
   source_name: string | null;
@@ -53,7 +54,7 @@ export class CompassRepository {
   async economics(candidateId: string) { return this.oneOrNull(this.land.from('candidate_economics').select('*').eq('candidate_id', candidateId).maybeSingle()); }
   async notes(candidateId: string) { return this.data(this.land.from('notes').select('*').eq('candidate_id', candidateId).order('created_at', { ascending: false })); }
   async evidence(candidateId: string) { return this.data(this.land.from('evidence_items').select('*').eq('candidate_id', candidateId).order('created_at', { ascending: false })); }
-  async ddItems() { return this.data(this.land.from('dd_items').select('*').order('due_date')); }
+  async ddItems(candidateId?: string): Promise<DdItem[]> { let request = this.land.from('dd_items').select('*'); if (candidateId) request = request.eq('candidate_id', candidateId); return this.data(request.order('due_date', { nullsFirst: false })); }
 
   async latestEvaluation(candidateId: string) { return this.oneOrNull(this.land.from('v_candidate_latest_evaluation').select('*').eq('candidate_id', candidateId).maybeSingle()); }
   async evaluation(id: string) { return this.one(this.land.from('evaluations').select('*').eq('id', id).single()); }
@@ -66,6 +67,10 @@ export class CompassRepository {
   async signalByListingId(sourceName: string, listingId: string): Promise<Signal | null> { return this.oneOrNull(this.land.from('signals').select('*').eq('source_name', sourceName).eq('source_listing_id', listingId).limit(1).maybeSingle()); }
   async promoteSignal(signalId: string, worldId: string, title?: string): Promise<string> { return this.one(this.db.rpc('promote_signal_to_candidate', { p_signal_id: signalId, p_world_id: worldId, p_title: title })); }
   async startEvaluation(candidateId: string): Promise<string> { return this.one(this.db.rpc('start_evaluation', { p_candidate_id: candidateId })); }
+  async updateCandidate(id: string, update: TablesUpdate<{ schema: 'land' }, 'candidates'>): Promise<void> { await this.mutate(this.land.from('candidates').update(update).eq('id', id)); }
+  async createDdItem(item: TablesInsert<{ schema: 'land' }, 'dd_items'>): Promise<void> { await this.mutate(this.land.from('dd_items').insert(item)); }
+  async updateDdItem(id: string, update: TablesUpdate<{ schema: 'land' }, 'dd_items'>): Promise<void> { await this.mutate(this.land.from('dd_items').update(update).eq('id', id)); }
+  async addEvidence(item: TablesInsert<{ schema: 'land' }, 'evidence_items'>): Promise<void> { await this.mutate(this.land.from('evidence_items').insert(item)); }
   async updateEvaluationItem(id: string, update: TablesUpdate<{ schema: 'land' }, 'evaluation_items'>): Promise<void> { await this.mutate(this.land.from('evaluation_items').update(update).eq('id', id)); }
   async updateGate(id: string, update: TablesUpdate<{ schema: 'land' }, 'candidate_gates'>): Promise<void> { await this.mutate(this.land.from('candidate_gates').update(update).eq('id', id)); }
   async addNote(note: TablesInsert<{ schema: 'land' }, 'notes'>): Promise<void> { await this.mutate(this.land.from('notes').insert(note)); }
