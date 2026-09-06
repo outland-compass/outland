@@ -22,7 +22,16 @@ export class AuthService {
       if (error) {
         this.error.set(error.message);
       } else {
-        this.session.set(data.session);
+        let restoredSession = data.session;
+
+        if (restoredSession) {
+          const { data: refreshed, error: refreshError } = await this.supabase.client.auth.refreshSession();
+          if (!refreshError && refreshed.session) {
+            restoredSession = refreshed.session;
+          }
+        }
+
+        this.session.set(restoredSession);
         this.supabase.client.auth.onAuthStateChange((_event, nextSession) => {
           this.session.set(nextSession);
         });
