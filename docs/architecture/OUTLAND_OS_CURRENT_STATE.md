@@ -1,6 +1,6 @@
 # OUTLAND OS — Current State
 
-**Status date:** 2026-09-04  
+**Status date:** 2026-09-06  
 **Purpose:** Operational handover and current-state reference for OUTLAND OS development.
 
 > This document describes what exists now, what has been completed, what is intentionally deferred, and what should happen next.
@@ -393,13 +393,15 @@ These responsibilities should not be collapsed without a demonstrated product re
 
 ---
 
-## 14. Candidate next vertical slice
+## 14. Selected candidate for the next vertical slice
 
-After COMPASS stabilization, a strong candidate for the next software experiment is a very small Universe/SENSE proof.
+After COMPASS stabilization, the selected candidate for the next software experiment is the **RAFTER Passport Prototype V0.1**, a very small PASSPORT/SENSE/Universe Engine proof.
 
 Target:
 
-**one World + one Mystery + one ESP32 Game Node + a few interactions + one minimal persistent consequence**
+**one World + one Mystery + one Passport + two physical terminals + one persistent achievement**
+
+Terminal 1 proves time-bounded accommodation access and controlled offline operation. Terminal 2 proves ordered Mystery progress and a safe physical response using light, audio and a test actuator. Successful completion persists `RIVER_KEEPER` / `ČUVAR REKE` after RAFTER access expires.
 
 The purpose is to discover the minimum real requirements for:
 
@@ -409,7 +411,20 @@ The purpose is to discover the minimum real requirements for:
 
 The purpose is **not** to implement these complete modules.
 
-No schema should be designed until the first concrete playable loop is defined.
+The concrete loop is now defined at product-concept level. No final schema should be designed until the prototype specification fixes the hardware flow, minimum persistence and executable tests.
+
+Implementation has not started. Hardware, suppliers, actual pricing and the final persistence model are not yet confirmed.
+
+The prototype PASS criteria are:
+
+1. the same DESFire card opens the entrance during a valid grant;
+2. entrance access works during a controlled internet outage;
+3. the Mystery terminal rejects invalid ordering;
+4. a valid step triggers light, audio and a test actuator;
+5. `RIVER_KEEPER` persists after check-out;
+6. a credential can be revoked and replaced without losing the profile;
+7. offline terminal events synchronize later;
+8. failure degrades to a safe, normal stay.
 
 ---
 
@@ -456,6 +471,16 @@ PASSPORT does not own:
 - booking truth;
 - Mystery rules;
 - ESP32/device state.
+
+### Passport Product Concept V1 — ADOPTED
+
+The first Passport is a durable ID-1 card using an original NXP MIFARE DESFire EV3 4K credential with AES authentication.
+
+The Passport belongs to an individual person and remains with that person between visits. Reservations, stays and Mystery sessions may belong to a group or crew.
+
+The card carries a secure pseudonymous credential rather than complete profile or progress state. OUTLAND OS remains the source of truth, allowing credential revocation and replacement without loss of the persistent journey.
+
+The adopted concept is documented in `docs/product/OUTLAND_PASSPORT_PLATFORM_CONCEPT_V1.md`. Adoption of the concept does not authorize complete PASSPORT, BOOKING, SENSE or Universe Engine implementation.
 
 ---
 
@@ -557,11 +582,12 @@ Production-impacting changes require explicit approval.
 
 ### NEXT
 
-Subject to real use-case validation:
+Subject to real-use-case validation:
 
-- define the first tiny Universe/SENSE playable loop;
-- prototype one ESP32 Game Node;
-- derive minimum `game` / `sense` / Passport persistence from that loop.
+- specify the RAFTER Passport Prototype V0.1 in implementation-ready detail;
+- prototype two physical terminals: entrance and Mystery point;
+- prove DESFire authentication, time-bounded offline access, ordered Mystery progress and one persistent achievement;
+- derive minimum `game` / `sense` / Passport persistence from the operating prototype.
 
 BOOKING can supersede this priority if a real OUTLAND asset becomes genuinely close to accepting reservations.
 
