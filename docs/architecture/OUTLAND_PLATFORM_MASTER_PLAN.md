@@ -1,4 +1,4 @@
-# OUTLAND Platform Master Plan v1.1
+# OUTLAND Platform Master Plan v1.2
 
 **September 2026**
 
@@ -71,6 +71,16 @@ It may eventually retain:
 PASSPORT records persistent consequences.
 
 It does **not** own Mystery logic, ESP32 state or reservation truth.
+
+### Physical credential decision
+
+The first physical OUTLAND Passport is a durable ID-1 card using an original NXP MIFARE DESFire EV3 4K credential with AES authentication. It is global across Worlds and remains with the person between visits.
+
+The Passport belongs to an individual person. A reservation, stay or Mystery session may belong to a group or crew.
+
+The card carries a secure pseudonymous credential, not the complete guest profile, access history or Mystery progress. OUTLAND OS remains the source of truth, so a lost credential can be revoked and replaced without losing the person's persistent journey.
+
+This product decision does not authorize a complete PASSPORT implementation or a full `guest` schema.
 
 ## 6. SENSE
 
@@ -214,13 +224,17 @@ Build when real operations and data justify them.
 
 only after the underlying real-world loops are proven.
 
-### First Universe proof
+### First Universe proof — RAFTER
 
-A strong first proof is:
+A concrete first proof is the **RAFTER Passport Prototype V0.1**:
 
-**one World + one Mystery + one ESP32 Game Node + a few interactions + one minimal Passport consequence**
+**one World + one Mystery + one Passport + two physical terminals + one persistent achievement**
+
+Terminal 1 proves time-bounded accommodation access with controlled offline operation. Terminal 2 proves ordered Mystery progress and a safe physical response such as light, audio and a test drawer or cabinet lock. Successful completion persists `RIVER_KEEPER` / `ČUVAR REKE` in the person's Passport journey after accommodation access expires.
 
 No full video game, generalized content editor, multiplayer platform or universal game engine is required.
+
+The prototype must derive the minimum real persistence model. It does not authorize complete `guest`, `game`, `sense` or `booking` schemas.
 
 ## 13. Safety
 
