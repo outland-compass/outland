@@ -1,19 +1,29 @@
 import { routes } from './app.routes';
 
-describe('COMPASS routes', () => {
-  it('defines each protected Property Radar placeholder route', () => {
-    const paths = routes.map((route) => route.path);
+describe('OUTLAND routes', () => {
+  const compassLayout = routes.find(
+    (route) => route.path === '' && route.canActivate?.length === 1 && route.children?.length
+  );
 
-    expect(paths).toContain('radar');
-    expect(paths).toContain('candidates/:id');
-    expect(paths).toContain('compare');
-    expect(paths).toContain('due-diligence');
-    expect(paths).toContain('worlds');
+  it('defines a public home route', () => {
+    const publicHome = routes.find(
+      (route) => route.path === '' && route.pathMatch === 'full' && !route.canActivate
+    );
+
+    expect(publicHome).toBeDefined();
   });
 
-  it('protects each operational route', () => {
+  it('keeps COMPASS operational routes inside the protected layout', () => {
+    expect(compassLayout).toBeDefined();
+
+    const childPaths = compassLayout?.children?.map((route) => route.path) ?? [];
+
     for (const path of ['radar', 'candidates/:id', 'compare', 'due-diligence', 'worlds']) {
-      expect(routes.find((route) => route.path === path)?.canActivate?.length).toBe(1);
+      expect(childPaths).toContain(path);
     }
+  });
+
+  it('protects the COMPASS layout with auth', () => {
+    expect(compassLayout?.canActivate?.length).toBe(1);
   });
 });
