@@ -413,7 +413,9 @@ The purpose is **not** to implement these complete modules.
 
 The concrete loop is now defined at product-concept level. No final schema should be designed until the prototype specification fixes the hardware flow, minimum persistence and executable tests.
 
-Implementation has not started. Hardware, suppliers, actual pricing and the final persistence model are not yet confirmed.
+The implementation-ready V0.1 specification is documented in `docs/product/RAFTER_PASSPORT_PROTOTYPE_V0_1.md`.
+
+Specification status is **DEFINED**; implementation has not started. The next gate is the NFC security spike: one ESP32-S3, one PN7160 development board, two DESFire EV3 cards, AES mutual authentication and diversified keys. Hardware SKUs, suppliers, actual pricing and the final persistence model are not yet confirmed.
 
 The prototype PASS criteria are:
 
@@ -584,9 +586,10 @@ Production-impacting changes require explicit approval.
 
 Subject to real-use-case validation:
 
-- specify the RAFTER Passport Prototype V0.1 in implementation-ready detail;
-- prototype two physical terminals: entrance and Mystery point;
-- prove DESFire authentication, time-bounded offline access, ordered Mystery progress and one persistent achievement;
+- execute Gate A of the RAFTER Passport Prototype V0.1: the NFC security spike;
+- prove DESFire AES mutual authentication and diversified keys before building relays or persistent schemas;
+- then prototype two physical terminals: entrance and Mystery point;
+- prove time-bounded offline access, ordered Mystery progress and one persistent achievement;
 - derive minimum `game` / `sense` / Passport persistence from the operating prototype.
 
 BOOKING can supersede this priority if a real OUTLAND asset becomes genuinely close to accepting reservations.
