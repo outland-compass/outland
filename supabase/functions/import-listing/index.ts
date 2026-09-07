@@ -2,6 +2,7 @@
 // returns normalized Signal fields. Never infers or invents missing values.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { extractJsonLdImageUrl, extractMetaImageUrl } from './image.ts';
 
 const ALLOWED_DOMAINS = ['oglasi.rs', 'realitica.com', 'estitor.com'];
 const FETCH_TIMEOUT_MS = 12_000;
@@ -24,6 +25,7 @@ interface ImportedListing {
   currency: string | null;
   area_m2: number | null;
   description: string | null;
+  image_url: string | null;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -398,6 +400,9 @@ function parseListing(html: string, url: URL): ImportedListing {
 
   const area = jsonLdQuantity(nodes, ['floorSize', 'lotSize', 'area']) ?? (isOglasi ? oglasiArea(oglasiText) : null) ?? findArea(primaryText);
   const location = jsonLdAddress(nodes) ?? clean(meta(html, 'og:locality')) ?? (isOglasi ? oglasiLocation(oglasiText) : null);
+  const image_url = extractMetaImageUrl(html, url, 'og:image')
+    ?? extractMetaImageUrl(html, url, 'twitter:image')
+    ?? extractJsonLdImageUrl(nodes, url);
 
   return {
     source_name: sourceNameFor(url.hostname),
@@ -408,7 +413,8 @@ function parseListing(html: string, url: URL): ImportedListing {
     price,
     currency: price !== null ? currency ?? 'EUR' : currency,
     area_m2: area,
-    description
+    description,
+    image_url
   };
 }
 
