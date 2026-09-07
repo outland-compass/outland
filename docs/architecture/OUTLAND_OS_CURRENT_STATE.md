@@ -1,6 +1,6 @@
 # OUTLAND OS — Current State
 
-**Status date:** 2026-09-06  
+**Status date:** 2026-09-07  
 **Purpose:** Operational handover and current-state reference for OUTLAND OS development.
 
 > This document describes what exists now, what has been completed, what is intentionally deferred, and what should happen next.
@@ -401,7 +401,9 @@ Target:
 
 **one World + one Mystery + one Passport + two physical terminals + one persistent achievement**
 
-Terminal 1 proves time-bounded accommodation access and controlled offline operation. Terminal 2 proves ordered Mystery progress and a safe physical response using light, audio and a test actuator. Successful completion persists `RIVER_KEEPER` / `ČUVAR REKE` after RAFTER access expires.
+The canonical RAFTER package is stored under `docs/worlds/rafter/`. The current owner-approved physical/access boundary for Terminal 1 is **Front Deck → automatic main entrance → River Room**. During normal guest access, Passport/NFC authenticates the credential and commands a local entrance controller to unlock/open that automatic main entrance. Safe emergency egress must remain mechanical/manual and independent of Passport/NFC, Mystery state, network/cloud and normal powered door automation.
+
+Terminal 1 therefore proves time-bounded accommodation access through that local entrance controller plus controlled offline operation. Terminal 2 proves ordered Mystery progress and a safe physical response using light, audio and the Cartographer cabinet actuator. RAFTER's minimum narrative progression is `TOK → GLAS → OBALA → NOĆ`, followed by finale/cabinet eligibility. Successful completion persists `RIVER_KEEPER` / `ČUVAR REKE` after RAFTER access expires.
 
 The purpose is to discover the minimum real requirements for:
 
@@ -411,20 +413,20 @@ The purpose is to discover the minimum real requirements for:
 
 The purpose is **not** to implement these complete modules.
 
-The concrete loop is now defined at product-concept level. No final schema should be designed until the prototype specification fixes the hardware flow, minimum persistence and executable tests.
+The RAFTER requirements above are **documented requirements, not implemented capability**. No final schema should be designed until the prototype specification fixes the hardware flow, minimum persistence and executable tests.
 
-Implementation has not started. Hardware, suppliers, actual pricing and the final persistence model are not yet confirmed.
+Implementation has not started on this branch. Hardware, suppliers, actual pricing and the final persistence model are not confirmed by this documentation sync.
 
 The prototype PASS criteria are:
 
-1. the same DESFire card opens the entrance during a valid grant;
-2. entrance access works during a controlled internet outage;
+1. the same DESFire card opens the automatic Front Deck → River Room main entrance during a valid grant through the local entrance controller;
+2. valid-stay entrance access works during a controlled internet outage under the defined local policy;
 3. the Mystery terminal rejects invalid ordering;
-4. a valid step triggers light, audio and a test actuator;
+4. a valid step triggers local light/audio and the intended test/cabinet actuator response;
 5. `RIVER_KEEPER` persists after check-out;
-6. a credential can be revoked and replaced without losing the profile;
+6. a credential can be revoked and replaced without losing the profile or achievement history;
 7. offline terminal events synchronize later;
-8. failure degrades to a safe, normal stay.
+8. failure degrades to a safe, normal stay and never makes safe exit dependent on Passport/NFC, network/cloud or powered automation.
 
 ---
 
@@ -492,6 +494,8 @@ An ESP32-2432S028 device is available for prototyping.
 
 The first implementation should prove one real end-to-end interaction before a generalized device platform is designed.
 
+RAFTER V1 currently justifies local control only for the concrete pilot interactions: the automatic main-entrance lock/door actuator and entrance controller, Mystery light/audio feedback, Cartographer cabinet actuator, and basic device health/availability signals where operationally useful.
+
 Possible later SENSE responsibilities include both game and operational functions:
 
 - RFID/NFC;
@@ -541,6 +545,8 @@ Never physically lock guests into rooms.
 
 Essential accommodation must not depend on game logic.
 
+For RAFTER, Passport/NFC may control the normal automatic main entrance, but **safe emergency egress must remain mechanically/manual possible independently of Passport/NFC, Mystery, network/cloud and normal powered door automation**. Loss of internet must not strand a valid guest outside when the defined local access policy can safely verify the stay. Mechanical/manual emergency release and operator override remain physical requirements owned by RAFTER.
+
 SENSE or Universe Engine failure should degrade gracefully to a normal stay.
 
 Safety-critical or irreversible physical automation requires stronger validation and appropriate fail-safe behavior.
@@ -575,6 +581,7 @@ Production-impacting changes require explicit approval.
 ### NOW
 
 - Treat Platform Master Plan as architecture source of truth.
+- Treat `docs/worlds/rafter/` as the controlled repository copy of the owner-approved RAFTER World package.
 - Stabilize existing COMPASS product.
 - Keep `shared` small.
 - Continue operating the current `land` domain.
@@ -584,9 +591,10 @@ Production-impacting changes require explicit approval.
 
 Subject to real-use-case validation:
 
-- specify the RAFTER Passport Prototype V0.1 in implementation-ready detail;
-- prototype two physical terminals: entrance and Mystery point;
-- prove DESFire authentication, time-bounded offline access, ordered Mystery progress and one persistent achievement;
+- specify/prove the RAFTER Passport Prototype V0.1 without expanding into complete PASSPORT/SENSE/Universe Engine modules;
+- prototype the two physical terminals: Entrance and Mystery;
+- prove DESFire authentication, time-bounded offline access through the local entrance controller, ordered `TOK → GLAS → OBALA → NOĆ` progression and one persistent achievement;
+- prove credential revoke/reissue and queued offline-event synchronization;
 - derive minimum `game` / `sense` / Passport persistence from the operating prototype.
 
 BOOKING can supersede this priority if a real OUTLAND asset becomes genuinely close to accepting reservations.
@@ -636,16 +644,14 @@ The architecture/database namespace work is complete.
 
 Do not start by redesigning the platform.
 
-Start with:
-
-> **Inspect the current COMPASS implementation and classify the existing product into KEEP / FIX NOW / PARK / REMOVE LATER.**
-
-The objective is to determine whether COMPASS has any genuine blocking product work remaining before selecting the next real OUTLAND OS vertical slice.
+Start with the smallest real RAFTER implementation gate that is consistent with the approved product handoff and current repository state. Do not treat the documentation sync itself as evidence that hardware, firmware, schemas or runtime capability exist.
 
 ---
 
 **Canonical architecture:** `docs/architecture/OUTLAND_PLATFORM_MASTER_PLAN.md`
 
 **Current-state document:** `docs/architecture/OUTLAND_OS_CURRENT_STATE.md`
+
+**Canonical RAFTER World package:** `docs/worlds/rafter/RAFTER_DOCUMENT_INDEX_V1.md`
 
 > **The Universe can be big. Each build step must be small.**
