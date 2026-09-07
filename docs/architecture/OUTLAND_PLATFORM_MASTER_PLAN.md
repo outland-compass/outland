@@ -56,6 +56,10 @@ The same Universe can be experienced through:
 
 Do not create separate mythologies or disconnected progression systems by default.
 
+### 4.1 OUTLAND World visitor interface boundary
+
+**World is a thin interface layer and does not own domain truth. It must not create substitute implementations of planned OUTLAND OS capabilities; domain logic and persistence remain with the responsible capability when its real build trigger is reached.**
+
 ## 5. PASSPORT
 
 PASSPORT is not merely CRM. It represents the persistent journey of a person through OUTLAND.
