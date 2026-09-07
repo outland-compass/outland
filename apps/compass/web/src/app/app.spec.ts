@@ -5,12 +5,14 @@ describe('OUTLAND routes', () => {
     (route) => route.path === '' && route.canActivate?.length === 1 && route.children?.length
   );
 
-  it('defines a public home route', () => {
+  it('defines public home and RAFTER routes', () => {
     const publicHome = routes.find(
       (route) => route.path === '' && route.pathMatch === 'full' && !route.canActivate
     );
+    const rafter = routes.find((route) => route.path === 'rafter' && !route.canActivate);
 
     expect(publicHome).toBeDefined();
+    expect(rafter).toBeDefined();
   });
 
   it('keeps COMPASS operational routes inside the protected layout', () => {
