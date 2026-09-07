@@ -255,3 +255,12 @@ Meaningful architecture decisions update this plan or the Decision Log.
 Database changes go through migrations.
 
 > **The Universe can be big. Each build step must be small.**
+
+
+## 15. Physical portal principle and RAFTER proof
+
+OUTLAND uses the same discreet technology pattern across Worlds while each World retains a distinct physical portal: “Ista nevidljiva OUTLAND tehnologija, drugačiji fizički portal svakog World-a.”
+
+For RAFTER V1, the primary portal is a custom manual door between Front Deck and River Room. DESFire EV3 authorization is processed locally and briefly releases a concealed fail-secure strike; the guest opens the normal handle by hand. Mechanical exit from inside never depends on PASSPORT, SENSE, internet, power or Universe Engine state.
+
+This is a concrete World constraint, not a mandate for a generalized lock platform. Final door construction, strike faceplate, reader mask, structural details and regulatory compliance remain TO VERIFY in the RAFTER source-of-truth package under `docs/worlds/rafter/`.

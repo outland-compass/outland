@@ -649,3 +649,16 @@ The objective is to determine whether COMPASS has any genuine blocking product w
 **Current-state document:** `docs/architecture/OUTLAND_OS_CURRENT_STATE.md`
 
 > **The Universe can be big. Each build step must be small.**
+
+
+---
+
+## 24. RAFTER entrance integration — canonical handoff 2026-09-06
+
+RAFTER remains the selected next vertical slice. Its Entrance Terminal is now fixed at the manual portal between the open Front Deck and enclosed River Room, not at the stern or inside the service zone.
+
+The minimum chain is: DESFire EV3 Passport → concealed reader → local OUTLAND terminal → relay → concealed fail-secure electric strike. The terminal briefly releases the strike; the guest opens the ordinary handle manually. A door-closed sensor, administrative unlock, credential revocation/reissue and time-limited offline grant are required.
+
+Interior egress is mechanically independent of Passport, NFC, network, power, Mystery state and OUTLAND OS. The stern is a motor/service zone and is not a guest access path. Do not build automatic doors, a hotel smart-lock abstraction, a visible keypad/screen, or a key-dispensing box as the primary RAFTER experience.
+
+Prototype hardware reference: ASSA ABLOY effeff 118, 10–24 V AC/DC, fail-secure. Exact faceplate/variant and NFC mask remain TO VERIFY through frame selection and a full-stack read test. This handoff does not authorize generalized access-control, IoT, game or booking infrastructure.
