@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { CompassRepository, RadarRow } from '../../core/compass/compass.repository';
+import { CompassRepository, RadarRow, Signal } from '../../core/compass/compass.repository';
 import { RoleService } from '../../core/compass/role.service';
 import RadarPage, { mapRadarSources } from './radar.page';
 
@@ -45,11 +45,18 @@ describe('RadarPage thumbnail rendering', () => {
     settlement: 'Test location'
   } as RadarRow);
 
-  async function createPage(rows: RadarRow[], sources: { candidate_id: string; source_url: string | null; image_url: string | null }[]) {
+  const signal = (id: string, image_url?: string): Signal => ({
+    id,
+    raw_payload: image_url ? { image_url } : {},
+    raw_title: `Signal ${id}`,
+    status: 'NEW'
+  } as Signal);
+
+  async function createPage(rows: RadarRow[], sources: { candidate_id: string; source_url: string | null; image_url: string | null }[], signals: Signal[] = []) {
     const repository = {
       radar: vi.fn().mockResolvedValue(rows),
       worlds: vi.fn().mockResolvedValue([]),
-      signals: vi.fn().mockResolvedValue([]),
+      signals: vi.fn().mockResolvedValue(signals),
       sourceUrls: vi.fn().mockResolvedValue(sources)
     };
     const roles = { canAnalyze: true, load: vi.fn().mockResolvedValue(undefined) };
@@ -97,5 +104,45 @@ describe('RadarPage thumbnail rendering', () => {
     expect(fixture.nativeElement.querySelectorAll('.thumb-empty').length).toBe(1);
     expect(fixture.nativeElement.querySelectorAll('.thumb img').length).toBe(1);
     expect(fixture.nativeElement.querySelector('.thumb img')?.getAttribute('src')).toBe('https://image/b.jpg');
+  });
+
+  it('renders a Signal image from raw_payload.image_url', async () => {
+    const { fixture, page } = await createPage([], [], [signal('signal-a', 'https://image/a.jpg')]);
+    page.panel.set('signals');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.signal-thumb img')?.getAttribute('src')).toBe('https://image/a.jpg');
+  });
+
+  it('renders a fixed Signal thumbnail slot without an image', async () => {
+    const { fixture, page } = await createPage([], [], [signal('signal-a')]);
+    page.panel.set('signals');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.signal-thumb')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.signal-thumb img')).toBeNull();
+  });
+
+  it('keeps the Signal slot after an image error', async () => {
+    const { fixture, page } = await createPage([], [], [signal('signal-a', 'https://image/a.jpg')]);
+    page.panel.set('signals');
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.signal-thumb img').dispatchEvent(new Event('error'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.signal-thumb')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.signal-thumb img')).toBeNull();
+  });
+
+  it('does not suppress another Signal after one image fails', async () => {
+    const { fixture, page } = await createPage([], [], [signal('signal-a', 'https://image/a.jpg'), signal('signal-b', 'https://image/b.jpg')]);
+    page.panel.set('signals');
+    fixture.detectChanges();
+    fixture.nativeElement.querySelectorAll('.signal-thumb img')[0].dispatchEvent(new Event('error'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('.signal-thumb').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.signal-thumb img').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('.signal-thumb img')?.getAttribute('src')).toBe('https://image/b.jpg');
   });
 });
