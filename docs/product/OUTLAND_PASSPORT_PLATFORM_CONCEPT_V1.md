@@ -61,7 +61,15 @@ Preporučeni credential za prototip je originalni `NXP MIFARE DESFire EV3 4K` sa
 
 Ne koristiti NTAG213 niti sistem zasnovan samo na javno čitljivom UID-u.
 
-Kartica čuva bezbedan pseudonimni credential. OUTLAND OS ostaje primarni izvor istine za identitet, dozvole, istoriju, Mystery stanje, artefakte, achievements i World statuse.
+Kartica čuva bezbedan pseudonimni credential. OUTLAND OS ostaje primarni izvor istine za:
+
+- identitet;
+- dozvole;
+- istoriju;
+- Mystery stanje;
+- artefakte;
+- achievements;
+- World statuse.
 
 Kompletan napredak ne čuva se prvenstveno na kartici. Jedan čip može podržati logički odvojene funkcije, ali softverski domeni i njihova odgovornost ostaju odvojeni.
 
@@ -94,13 +102,22 @@ PASSPORT ne poseduje rezervacionu istinu, Mystery pravila niti stanje uređaja.
 
 ## 6. Glavne funkcije
 
-Passport dugoročno može podržati digitalni profil, posećene i završene svetove, Mystery odluke, pronađene artefakte, achievements i statuse, aktivne i istorijske pristupe, buduće ekspedicije i eventualni membership/loyalty sloj.
+Passport dugoročno može podržati:
+
+- digitalni profil;
+- posećene i završene svetove;
+- Mystery odluke;
+- pronađene artefakte;
+- achievements i statuse;
+- aktivne i istorijske pristupe;
+- buduće ekspedicije;
+- membership ili loyalty funkcije.
 
 Ovo je produktni pravac, ne početni implementation scope.
 
 ## 7. Pristup smeštaju
 
-Tokom aktivnog boravka isti Passport privremeno omogućava pristup odgovarajućem smeštaju. Pristup se aktivira pri check-inu i prestaje pri check-outu, dok kartica i trajni profil ostaju gostu.
+Tokom aktivnog boravka isti Passport privremeno otključava odgovarajući smeštaj. Pristup se aktivira pri check-inu i prestaje pri check-outu, dok kartica i trajni profil ostaju gostu.
 
 Svaki objekat mora imati:
 
@@ -113,28 +130,35 @@ Osnovna funkcija smeštaja ne sme zavisiti od Mystery logike.
 
 ## 8. Mystery interakcije
 
-Passport se može koristiti na fizičkim OUTLAND terminalima kako bi potvrdio dolazak, registrovao trag, pokrenuo audio/svetlo, otvorio bezbednu kutiju/fioku/orman, promenio Mystery fazu, dodelio achievement ili aktivirao sadržaj zavisan od ranijih iskustava.
+Passport se može koristiti na fizičkim OUTLAND terminalima kako bi:
+
+- potvrdio dolazak;
+- registrovao pronađeni trag;
+- pokrenuo audio, svetlo ili projekciju;
+- otvorio bezbednu kutiju, fioku ili orman;
+- promenio Mystery fazu;
+- dodelio artefakt ili achievement;
+- aktivirao sadržaj zavisan od ranijih iskustava.
 
 Terminal je spoj NFC čitača, lokalnog kontrolera i jednog ili više bezbednih fizičkih izlaza.
 
 ## 9. RAFTER pilot
 
-RAFTER je prvi konkretan World za proveru koncepta.
+RAFTER je prvi konkretan svet za proveru koncepta.
 
 ### Terminal 1 — ulaz
 
 Fizička granica je **Front Deck → automatski glavni ulaz → River Room**.
 
-Terminal:
 - autentifikuje Passport;
 - proverava vremenski ograničenu lokalnu dozvolu;
 - za važeći access grant komanduje lokalnom entrance controlleru da otključa/otvori automatski glavni ulaz;
 - odbija normalni automatski ulaz za nevažeći/istekli/opozvani credential;
 - beleži dolazak/access event;
-- može aktivirati početak Mystery konteksta;
+- može aktivirati početak Mystery sesije;
 - nastavlja da radi sa definisanim, vremenski ograničenim lokalnim pristupom tokom prekida interneta.
 
-Automatski glavni ulaz je normalni guest-entry mehanizam, ali **nije jedini safe-exit mehanizam**. Emergency egress mora ostati mehanički/manual moguć i nezavisan od Passport/NFC, mreže/clouda i normalne powered door automation. Tačan actuator, lock, controller, power i emergency-release hardware ostaju RAFTER `TO VERIFY` stavke.
+Automatski glavni ulaz je normalni guest-entry mehanizam, ali nije jedini safe-exit mehanizam. Emergency egress mora ostati mehanički/manual moguć i nezavisan od Passport/NFC, mreže/clouda i normalne powered door automation. Tačan actuator, lock, controller, power i emergency-release hardware ostaju RAFTER `TO VERIFY` stavke.
 
 ### Terminal 2 — Mystery tačka
 
@@ -143,7 +167,7 @@ Automatski glavni ulaz je normalni guest-entry mehanizam, ali **nije jedini safe
 - podržava minimalnu RAFTER progresiju `TOK → GLAS → OBALA → NOĆ`;
 - dozvoljava ili odbija sledeći korak;
 - aktivira svetlo i audio-poruku;
-- otključava/otvara Cartographer cabinet kada je finalni uslov ispunjen;
+- otključava Cartographer cabinet kada je finalni uslov ispunjen;
 - odbija akciju ako prethodni uslov nije ispunjen;
 - queue/sync događaje kada se konekcija vrati.
 
@@ -153,7 +177,7 @@ Prvi trajni Passport achievement je:
 
 Na check-outu prestaje pristup RAFTER-u, ali achievement ostaje trajno povezan sa osobom.
 
-Tačno **dva funkcionalna terminala** dovoljna su za V1 prototip. Dodatni Mystery checkpointi su deferred dok playtesting ne pokaže da su potrebni.
+Tačno dva funkcionalna terminala dovoljna su za V1 prototip. Dodatni Mystery checkpointi su deferred dok playtesting ne pokaže da su potrebni.
 
 ## 10. Minimalni prototip — podaci
 
@@ -170,11 +194,39 @@ Za prvi prototip projektovati samo minimum potreban za stvarni tok:
 - dva terminala;
 - evidenciju terminalskih događaja i sinhronizacije.
 
-Ne praviti unapred poseban model ili tabelu za svaki budući pojam. Konačno vlasništvo, struktura i persistence model izvode se iz RAFTER prototipa i postojećih granica domena.
+Ne praviti unapred poseban model ili tabelu za svaki budući pojam.
+
+Sledeći pojmovi predstavljaju konceptualni budući model, a ne trenutni zahtev za tabelama:
+
+- World;
+- Location;
+- Reservation;
+- Access Grant;
+- Check-in Event;
+- Mystery;
+- Mystery Step;
+- Artifact;
+- Achievement;
+- World Status;
+- Device;
+- Device Action;
+- Revocation and Replacement Record.
+
+Njihovo konačno vlasništvo, struktura i persistence model izvode se iz RAFTER prototipa i postojećih granica domena.
 
 ## 11. Terminalski događaj
 
-Za prototip terminalski događaj treba da omogući beleženje pseudonimnog Passport identifikatora, terminala, Worlda/lokacije, vremena, povezane Mystery sesije kada postoji, rezultata autentikacije, dozvoljene/odbijene akcije, izvršene fizičke reakcije i statusa lokalne/serverske sinhronizacije.
+Za prototip terminalski događaj treba da omogući beleženje:
+
+- pseudonimnog Passport identifikatora;
+- terminala;
+- Worlda i lokacije;
+- vremena;
+- povezane Mystery sesije kada postoji;
+- rezultata autentikacije;
+- dozvoljene ili odbijene akcije;
+- izvršene fizičke reakcije;
+- statusa lokalne i serverske sinhronizacije.
 
 Čuvati samo podatke potrebne za rad, dijagnostiku, bezbednost i validaciju prototipa.
 
@@ -189,7 +241,7 @@ Prototip je uspešan samo ako:
 5. achievement `RIVER_KEEPER` ostaje nakon check-outa;
 6. kartica može biti opozvana i zamenjena bez gubitka profila;
 7. terminali naknadno sinhronizuju offline događaje;
-8. kvar Mystery/OS sistema degradira iskustvo na bezbedan, normalan boravak;
+8. kvar sistema degradira iskustvo na bezbedan, normalan boravak;
 9. safe exit nije zavisan od Passport/NFC, mreže/clouda ili normalne powered entrance automation.
 
 ## 13. Nije deo prvog prototipa
@@ -210,7 +262,17 @@ Ne graditi sada:
 
 ## 14. Kasniji Field Journal
 
-Štampana knjižica se ne uvodi u prvoj fazi. Kasnije može postojati opcioni premium `OUTLAND Field Journal`, ali ne predstavlja ključ i nije tehnički obavezan.
+Štampana knjižica se ne uvodi u prvoj fazi.
+
+Kasnije može postojati opcioni premium `OUTLAND Field Journal` za:
+
+- fizičke pečate;
+- mape;
+- beleške;
+- artefakte;
+- kolekcionarstvo.
+
+Može imati džep za Passport karticu, ali ne predstavlja ključ i nije tehnički obavezan.
 
 ## 15. Radne procene troškova
 
