@@ -5,8 +5,11 @@
   "workspaces": ["apps/*/*", "packages/*"],
   "scripts": {
     "build": "npm run build --workspace=@outland/compass-web",
+    "build:world": "npm run build --workspace=@outland/world-web",
     "typecheck": "npm run typecheck --workspace=@outland/compass-web",
+    "typecheck:world": "npm run typecheck --workspace=@outland/world-web",
     "test": "npm run test --workspace=@outland/compass-web",
+    "test:world": "npm run test --workspace=@outland/world-web",
     "db:start": "npx --yes supabase start",
     "db:reset": "npx --yes supabase db reset",
     "db:types": "node scripts/generate-db-types.mjs",

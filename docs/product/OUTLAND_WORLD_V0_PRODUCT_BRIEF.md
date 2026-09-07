@@ -1,6 +1,6 @@
 # OUTLAND World V0 — Product Brief
 
-**Status:** Gate 1 approved; implementation not yet authorized  
+**Status:** Gate 1 approved; repo-backed V0 implementation authorized
 **Date:** 2026-09-07  
 **Product:** OUTLAND World  
 **First World:** RAFTER  
