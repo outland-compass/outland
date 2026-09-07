@@ -415,7 +415,7 @@ The purpose is **not** to implement these complete modules.
 
 The RAFTER requirements above are **documented requirements, not implemented capability**. No final schema should be designed until the prototype specification fixes the hardware flow, minimum persistence and executable tests.
 
-Implementation has not started on this branch. Hardware, suppliers, actual pricing and the final persistence model are not confirmed by this documentation sync.
+This documentation alignment does not establish that implementation has started. Hardware, suppliers, actual pricing and the final persistence model remain unconfirmed here.
 
 The prototype PASS criteria are:
 
@@ -591,10 +591,9 @@ Production-impacting changes require explicit approval.
 
 Subject to real-use-case validation:
 
-- specify/prove the RAFTER Passport Prototype V0.1 without expanding into complete PASSPORT/SENSE/Universe Engine modules;
-- prototype the two physical terminals: Entrance and Mystery;
-- prove DESFire authentication, time-bounded offline access through the local entrance controller, ordered `TOK → GLAS → OBALA → NOĆ` progression and one persistent achievement;
-- prove credential revoke/reissue and queued offline-event synchronization;
+- specify the RAFTER Passport Prototype V0.1 in implementation-ready detail;
+- prototype two physical terminals: entrance and Mystery point;
+- prove DESFire authentication, time-bounded offline access, ordered Mystery progress and one persistent achievement;
 - derive minimum `game` / `sense` / Passport persistence from the operating prototype.
 
 BOOKING can supersede this priority if a real OUTLAND asset becomes genuinely close to accepting reservations.
@@ -644,7 +643,11 @@ The architecture/database namespace work is complete.
 
 Do not start by redesigning the platform.
 
-Start with the smallest real RAFTER implementation gate that is consistent with the approved product handoff and current repository state. Do not treat the documentation sync itself as evidence that hardware, firmware, schemas or runtime capability exist.
+Start with:
+
+> **Inspect the current COMPASS implementation and classify the existing product into KEEP / FIX NOW / PARK / REMOVE LATER.**
+
+The objective is to determine whether COMPASS has any genuine blocking product work remaining before selecting the next real OUTLAND OS vertical slice.
 
 ---
 
