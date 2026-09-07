@@ -24,6 +24,19 @@ export interface ImportedListing {
   image_url: string | null;
 }
 
+interface PostgrestError {
+  code?: string;
+  message: string;
+}
+
+type PostgrestResponse<T> = { data: T | null; error: PostgrestError | null };
+
+const FUTURE_JWT_RETRY_DELAY_MS = 750;
+
+function isFutureJwtError(error: PostgrestError | null): boolean {
+  return error?.code === 'PGRST303' || error?.message.includes('JWT issued at future') === true;
+}
+
 // candidate_sources.source_snapshot already carries the signal's raw_payload;
 // reusing it avoids a new media table/column for a single image URL.
 export function extractSourceImage(snapshot: unknown): string | null {
@@ -75,9 +88,10 @@ export class CompassRepository {
   async updateGate(id: string, update: TablesUpdate<{ schema: 'land' }, 'candidate_gates'>): Promise<void> { await this.mutate(this.land.from('candidate_gates').update(update).eq('id', id)); }
   async addNote(note: TablesInsert<{ schema: 'land' }, 'notes'>): Promise<void> { await this.mutate(this.land.from('notes').insert(note)); }
 
-  private async data<T>(request: PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> { const { data, error } = await request; if (error) throw new Error(error.message); return data ?? []; }
-  private async one<T>(request: PromiseLike<{ data: T | null; error: { message: string } | null }>): Promise<T> { const { data, error } = await request; if (error || data === null) throw new Error(error?.message ?? 'No data returned.'); return data; }
-  private async oneOrNull<T>(request: PromiseLike<{ data: T | null; error: { message: string } | null }>): Promise<T | null> { const { data, error } = await request; if (error) throw new Error(error.message); return data; }
-  private async mutate(request: PromiseLike<{ error: { message: string } | null }>): Promise<void> { const { error } = await request; if (error) throw new Error(error.message); }
+  private async data<T>(request: PromiseLike<PostgrestResponse<T[]>>): Promise<T[]> { const { data, error } = await this.withFutureJwtRetry(request); if (error) throw new Error(error.message); return data ?? []; }
+  private async one<T>(request: PromiseLike<PostgrestResponse<T>>): Promise<T> { const { data, error } = await this.withFutureJwtRetry(request); if (error || data === null) throw new Error(error?.message ?? 'No data returned.'); return data; }
+  private async oneOrNull<T>(request: PromiseLike<PostgrestResponse<T>>): Promise<T | null> { const { data, error } = await this.withFutureJwtRetry(request); if (error) throw new Error(error.message); return data; }
+  private async mutate(request: PromiseLike<PostgrestResponse<unknown>>): Promise<void> { const { error } = await this.withFutureJwtRetry(request); if (error) throw new Error(error.message); }
+  private async withFutureJwtRetry<T>(request: PromiseLike<PostgrestResponse<T>>): Promise<PostgrestResponse<T>> { const result = await request; if (!isFutureJwtError(result.error)) return result; await new Promise<void>((resolve) => setTimeout(resolve, FUTURE_JWT_RETRY_DELAY_MS)); return request; }
   private async functionErrorMessage(error: unknown): Promise<string> { const context = (error as { context?: unknown })?.context; if (context instanceof Response) { try { const body = await context.clone().json(); if (body && typeof body === 'object' && 'error' in body) return String((body as { error: unknown }).error); } catch { /* fall through to the generic message */ } } return error instanceof Error ? error.message : 'Listing could not be imported.'; }
 }
