@@ -37,7 +37,7 @@ This is an ontology, **not an instruction to create a table for every level**.
 ### Meanings
 
 - **Big Story** — overarching OUTLAND mythology.
-- **World** — major narrative + physical/digital setting (GREENHILL, LOST SIGNAL, RIVERKEEPER...).
+- **World** — major narrative + physical/digital setting (GREENHILL, LOST SIGNAL, RAFTER...).
 - **World Story** — self-contained narrative arc of one World.
 - **Epic** — large playable chapter that can span several Mysteries and interfaces.
 - **Mystery** — bounded optional playable adventure.
@@ -230,9 +230,13 @@ A concrete first proof is the **RAFTER Passport Prototype V0.1**:
 
 **one World + one Mystery + one Passport + two physical terminals + one persistent achievement**
 
-Terminal 1 proves time-bounded accommodation access with controlled offline operation. Terminal 2 proves ordered Mystery progress and a safe physical response such as light, audio and a test drawer or cabinet lock. Successful completion persists `RIVER_KEEPER` / `ČUVAR REKE` in the person's Passport journey after accommodation access expires.
+Terminal 1 proves time-bounded accommodation access with controlled offline operation at the RAFTER physical boundary **Front Deck → automatic main entrance → River Room**. A valid Passport/NFC credential commands a local entrance controller to unlock/open the automatic main entrance. The normal automated entrance is not the sole safe-exit mechanism: emergency egress remains mechanically/manual possible independent of Passport/NFC, network/cloud and normal powered door automation.
 
-No full video game, generalized content editor, multiplayer platform or universal game engine is required.
+Terminal 2 proves the minimal RAFTER Mystery progression `TOK → GLAS → OBALA → NOĆ`, local light/audio response and Cartographer cabinet actuation. Successful completion persists `RIVER_KEEPER` / `ČUVAR REKE` in the person's Passport journey after accommodation access expires.
+
+These are **documented RAFTER requirements**, not claims that the capability is already implemented.
+
+No full video game, generalized content editor, multiplayer platform, universal game engine, generalized IoT fleet platform or custom booking engine is required.
 
 The prototype must derive the minimum real persistence model. It does not authorize complete `guest`, `game`, `sense` or `booking` schemas.
 
@@ -242,6 +246,7 @@ The prototype must derive the minimum real persistence model. It does not author
 - Never physically lock guests into rooms.
 - Essential accommodation does not depend on game logic.
 - SENSE/game failure degrades to a normal stay.
+- RAFTER safe emergency egress must not depend on Passport/NFC, network/cloud or normal powered entrance automation.
 - Water/weather safety can disable outdoor play and trigger a fallback experience.
 
 ## 14. Governance
