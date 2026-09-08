@@ -10,3 +10,9 @@ truth.
 - `WORLD_SESSION_SECRET` — random secret used to sign the HttpOnly visitor session.
 
 Both values must be configured in Vercel for Preview and Production.
+
+## Vercel project settings
+
+- Framework preset: `Next.js`
+- Root directory: `apps/world/web`
+- Output directory: Next.js default
