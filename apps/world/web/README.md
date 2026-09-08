@@ -16,3 +16,6 @@ Both values must be configured in Vercel for Preview and Production.
 - Framework preset: `Next.js`
 - Root directory: `apps/world/web`
 - Output directory: Next.js default
+
+Redeploy after changing either runtime secret so the new values are available
+to the deployment.
