@@ -4,7 +4,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { extractJsonLdImageUrl, extractMetaImageUrl } from './image.ts';
 
-const ALLOWED_DOMAINS = ['oglasi.rs', 'realitica.com', 'estitor.com'];
+const ALLOWED_DOMAINS = ['oglasi.rs', 'realitica.com', 'estitor.com', 'nekretnine.rs'];
 const FETCH_TIMEOUT_MS = 12_000;
 const MAX_RESPONSE_BYTES = 2_000_000;
 const TRACKING_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid'];
@@ -297,6 +297,7 @@ function sourceNameFor(hostname: string): string | null {
   if (host.endsWith('oglasi.rs')) return 'Oglasi.rs';
   if (host.endsWith('realitica.com')) return 'Realitica';
   if (host.endsWith('estitor.com')) return 'Estitor';
+  if (host.endsWith('nekretnine.rs')) return 'Nekretnine.rs';
   return null;
 }
 
@@ -357,6 +358,7 @@ function listingIdFor(url: URL): string | null {
   const path = url.pathname;
   if (host.endsWith('realitica.com')) return path.match(/\/listing\/(\d+)/i)?.[1] ?? null;
   if (host.endsWith('estitor.com')) return path.match(/\/id-(\d+)/i)?.[1] ?? null;
+  if (host.endsWith('nekretnine.rs')) return path.match(/\/oglasi\/(\d+)/i)?.[1] ?? null;
   if (host.endsWith('oglasi.rs')) {
     return path.match(/(\d{2}-\d{5,})/)?.[1] ?? url.searchParams.get('oglas') ?? null;
   }
