@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { CompassRepository, RadarRow, Signal } from '../../core/compass/compass.repository';
+import { CompassRepository, RadarRow, Signal, World } from '../../core/compass/compass.repository';
 import { RoleService } from '../../core/compass/role.service';
 import RadarPage, { mapRadarSources } from './radar.page';
 
@@ -37,7 +37,9 @@ describe('RadarPage thumbnail rendering', () => {
   const signal = (id: string, image_url?: string): Signal => ({ id, raw_payload: image_url ? { image_url } : {}, raw_title: `Signal ${id}`, status: 'NEW' } as Signal);
 
   async function createPage(rows: RadarRow[], sources: { candidate_id: string; source_url: string | null; image_url: string | null }[], signals: Signal[] = []) {
-    const repository = { radar: vi.fn().mockResolvedValue(rows), worlds: vi.fn().mockResolvedValue([]), signals: vi.fn().mockResolvedValue(signals), sourceUrls: vi.fn().mockResolvedValue(sources) };
+    const worldCodes = [...new Set(rows.map((candidate) => candidate.world_code).filter((code): code is string => !!code))];
+    const worlds = worldCodes.map((code) => ({ id: code.toLowerCase(), code, name: code, radar_enabled: true } as World));
+    const repository = { radar: vi.fn().mockResolvedValue(rows), worlds: vi.fn().mockResolvedValue(worlds), signals: vi.fn().mockResolvedValue(signals), sourceUrls: vi.fn().mockResolvedValue(sources) };
     const roles = { canAnalyze: true, load: vi.fn().mockResolvedValue(undefined) };
     await TestBed.configureTestingModule({ imports: [RadarPage], providers: [provideRouter([]), { provide: CompassRepository, useValue: repository }, { provide: RoleService, useValue: roles }] }).compileComponents();
     const fixture = TestBed.createComponent(RadarPage);
@@ -70,18 +72,24 @@ describe('RadarPage thumbnail rendering', () => {
     expect(fixture.nativeElement.querySelector('.thumb img')?.getAttribute('src')).toBe('https://image/b.jpg');
   });
 
-  it('recomputes candidate results when the World filter changes', async () => {
+  it('recomputes candidate results when the World filter changes through the UI', async () => {
     const { fixture, page } = await createPage([row('greenhill', 'GREENHILL'), row('work-a', 'OUTLAND_WORK'), row('work-b', 'OUTLAND_WORK')], []);
     expect(page.filtered().length).toBe(3);
-    page.world = 'OUTLAND_WORK';
+    const worldSelect = fixture.nativeElement.querySelectorAll('.toolbar select')[0] as HTMLSelectElement;
+    worldSelect.value = 'OUTLAND_WORK';
+    worldSelect.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(page.filtered().map((candidate) => candidate.id)).toEqual(['work-a', 'work-b']);
     expect(fixture.nativeElement.querySelectorAll('.candidate-row').length).toBe(2);
   });
 
-  it('recomputes candidate results when search changes', async () => {
+  it('recomputes candidate results when search changes through the UI', async () => {
     const { fixture, page } = await createPage([row('alpha'), row('beta')], []);
-    page.search = 'beta';
+    const searchInput = fixture.nativeElement.querySelector('.toolbar input') as HTMLInputElement;
+    searchInput.value = 'beta';
+    searchInput.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(page.filtered().map((candidate) => candidate.id)).toEqual(['beta']);
     expect(fixture.nativeElement.querySelectorAll('.candidate-row').length).toBe(1);
