@@ -1,9 +1,20 @@
 import { NgClass } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CompassRepository, mapRadarSources, RadarRow, World } from '../../core/compass/compass.repository';
+import { CompassRepository, RadarRow } from '../../core/compass/compass.repository';
 
 type SourceMap = Record<string, string>;
+
+type RadarSource = { candidate_id: string; source_url: string | null; image_url: string | null };
+
+function mapSourceImages(sources: RadarSource[]): SourceMap {
+  const images: SourceMap = {};
+  for (const source of sources) {
+    const image = source.image_url?.trim();
+    if (image && !images[source.candidate_id]) images[source.candidate_id] = image;
+  }
+  return images;
+}
 
 @Component({
   imports: [NgClass, RouterLink],
@@ -101,7 +112,6 @@ type SourceMap = Record<string, string>;
 export default class MobileAssetsPage {
   readonly repo = inject(CompassRepository);
   readonly allRows = signal<RadarRow[]>([]);
-  readonly worlds = signal<World[]>([]);
   readonly sourceImages = signal<SourceMap>({});
   readonly imageFailed = signal<Record<string, boolean>>({});
   readonly loading = signal(true);
@@ -116,13 +126,11 @@ export default class MobileAssetsPage {
   async load() {
     try {
       this.loading.set(true);
-      const [rows, worlds] = await Promise.all([this.repo.radar(), this.repo.worlds()]);
+      const rows = await this.repo.radar();
       this.allRows.set(rows);
-      this.worlds.set(worlds);
       const ids = rows.filter((row) => row.world_code === 'WANDERER').map((row) => row.id).filter((id): id is string => !!id);
       const sources = await this.repo.sourceUrls(ids);
-      const { images } = mapRadarSources(sources);
-      this.sourceImages.set(images);
+      this.sourceImages.set(mapSourceImages(sources));
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to load Mobile Assets.');
     } finally {
