@@ -1,151 +1,22 @@
 import { NgClass } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CompassRepository, RadarRow } from '../../core/compass/compass.repository';
-
-type SourceMap = Record<string, string>;
-
-type RadarSource = { candidate_id: string; source_url: string | null; image_url: string | null };
-
-function mapSourceImages(sources: RadarSource[]): SourceMap {
-  const images: SourceMap = {};
-  for (const source of sources) {
-    const image = source.image_url?.trim();
-    if (image && !images[source.candidate_id]) images[source.candidate_id] = image;
-  }
-  return images;
-}
-
-@Component({
-  imports: [NgClass, RouterLink],
-  template: `
-    <section class="page mobile-assets-page">
-      <header class="page-header">
-        <div>
-          <p class="eyebrow">COMPASS / NETWORK ASSETS</p>
-          <h1>MOBILE ASSETS</h1>
-          <p>Shared OUTLAND assets that move between Worlds.</p>
-        </div>
-      </header>
-
-      @if (loading()) {
-        <div class="state">Loading Mobile Assets...</div>
-      } @else if (error()) {
-        <div class="state error">{{ error() }}</div>
-      } @else {
-        <section class="program-card">
-          <div class="program-copy">
-            <div class="program-title"><span class="world">WANDERER</span><span class="type-pill">CAMPERVAN</span></div>
-            <h2>WANDERER ACQUISITION RADAR</h2>
-            <p>Find a beautiful, professionally converted, four-season camper that strengthens the whole OUTLAND network.</p>
-            <div class="target-strip">
-              <span><b>Target</b> €25–40k</span>
-              <span><b>Exceptional</b> ≤€45k</span>
-              <span><b>Roof</b> Fixed high</span>
-              <span><b>AWD</b> Bonus</span>
-            </div>
-          </div>
-          <div class="program-kpis">
-            <div><strong>{{ activeCount() }}</strong><span>ACTIVE</span></div>
-            <div><strong>{{ shortlistCount() }}</strong><span>SHORTLIST</span></div>
-            <div><strong>{{ ddCount() }}</strong><span>DD</span></div>
-          </div>
-        </section>
-
-        @if (benchmark()) {
-          <section class="benchmark">
-            <div class="benchmark-label">★ CURRENT BENCHMARK</div>
-            <a [routerLink]="['/candidates', benchmark()!.id]" class="benchmark-card">
-              <div class="hero" [class.hero-empty]="!benchmarkImage() || imageFailed()[benchmark()!.id!]">
-                @if (benchmarkImage() && !imageFailed()[benchmark()!.id!]) {
-                  <img [src]="benchmarkImage()" [alt]="benchmark()!.title" (error)="onImageError(benchmark()!.id!)">
-                }
-              </div>
-              <div class="benchmark-copy">
-                <span class="world">{{ benchmark()!.world_code }}</span>
-                <h2>{{ benchmark()!.title }}</h2>
-                <p>{{ location(benchmark()!) }}</p>
-                <div class="benchmark-metrics">
-                  <div><span>ASKING</span><strong>{{ money(benchmark()!.asking_price, benchmark()!.currency) }}</strong></div>
-                  <div><span>COMPASS</span><strong>{{ number(benchmark()!.compass_score) }}</strong></div>
-                  <div><span>CONFIDENCE</span><strong>{{ percent(benchmark()!.confidence_percent) }}</strong></div>
-                </div>
-              </div>
-              <span class="badge" [ngClass]="badge(benchmark()!.recommendation)">{{ benchmark()!.recommendation }}</span>
-            </a>
-          </section>
-        }
-
-        <section class="radar-section">
-          <div class="section-head"><div><p class="eyebrow">WANDERER</p><h2>CANDIDATES</h2></div><span>{{ wandererRows().length }} tracked</span></div>
-          @if (wandererRows().length) {
-            <div class="candidate-grid">
-              @for (row of wandererRows(); track row.id) {
-                <a class="candidate-card" [routerLink]="['/candidates', row.id]">
-                  <div class="candidate-image" [class.hero-empty]="!row.id || !sourceImages()[row.id] || imageFailed()[row.id]">
-                    @if (row.id && sourceImages()[row.id] && !imageFailed()[row.id]) {
-                      <img [src]="sourceImages()[row.id]" [alt]="row.title" loading="lazy" (error)="onImageError(row.id)">
-                    }
-                  </div>
-                  <div class="candidate-body">
-                    <div class="candidate-top"><span class="status">{{ row.status }}</span><span class="score">{{ number(row.compass_score) }}</span></div>
-                    <h3>{{ row.title }}</h3>
-                    <p>{{ location(row) }}</p>
-                    <div class="candidate-bottom"><strong>{{ money(row.asking_price, row.currency) }}</strong><span class="badge" [ngClass]="badge(row.recommendation)">{{ row.recommendation }}</span></div>
-                  </div>
-                </a>
-              }
-            </div>
-          } @else {
-            <div class="empty-state">
-              <p class="eyebrow">RADAR READY</p>
-              <h2>No WANDERER candidates yet.</h2>
-              <p>Activate the WANDERER search profile and promote the first verified camper signal to start the benchmark.</p>
-            </div>
-          }
-        </section>
-      }
-    </section>
-  `,
-  styleUrl: './mobile-assets.page.scss'
-})
-export default class MobileAssetsPage {
-  readonly repo = inject(CompassRepository);
-  readonly allRows = signal<RadarRow[]>([]);
-  readonly sourceImages = signal<SourceMap>({});
-  readonly imageFailed = signal<Record<string, boolean>>({});
-  readonly loading = signal(true);
-  readonly error = signal('');
-
-  readonly wandererRows = computed(() => this.allRows().filter((row) => row.world_code === 'WANDERER').sort((a, b) => this.rank(b) - this.rank(a)));
-  readonly benchmark = computed(() => this.wandererRows().find((row) => ['SHORTLIST', 'DD', 'NEGOTIATION'].includes(row.status ?? '')) ?? this.wandererRows()[0] ?? null);
-  readonly benchmarkImage = computed(() => { const id = this.benchmark()?.id; return id ? this.sourceImages()[id] ?? null : null; });
-
-  constructor() { void this.load(); }
-
-  async load() {
-    try {
-      this.loading.set(true);
-      const rows = await this.repo.radar();
-      this.allRows.set(rows);
-      const ids = rows.filter((row) => row.world_code === 'WANDERER').map((row) => row.id).filter((id): id is string => !!id);
-      const sources = await this.repo.sourceUrls(ids);
-      this.sourceImages.set(mapSourceImages(sources));
-    } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Unable to load Mobile Assets.');
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  activeCount() { return this.wandererRows().filter((row) => !['ACQUIRED', 'REJECTED', 'ARCHIVED', 'SOLD'].includes(row.status ?? '')).length; }
-  shortlistCount() { return this.wandererRows().filter((row) => row.status === 'SHORTLIST').length; }
-  ddCount() { return this.wandererRows().filter((row) => row.status === 'DD').length; }
-  rank(row: RadarRow) { return ({ HOT: 600, STRONG: 500, WATCH: 400, LOW: 300, UNSCORED: 100, BLOCKED: -100 }[row.recommendation ?? ''] ?? 0) + (row.compass_score ?? 0); }
-  location(row: RadarRow) { return row.settlement || row.municipality || row.region || 'Location not recorded'; }
-  money(value: number | null, currency: string | null = 'EUR') { return value == null ? '—' : new Intl.NumberFormat('en-IE', { style: 'currency', currency: currency ?? 'EUR', maximumFractionDigits: 0 }).format(value); }
-  number(value: number | null) { return value == null ? '—' : Math.round(value).toString(); }
-  percent(value: number | null) { return value == null ? '—' : `${Math.round(value)}%`; }
-  badge(value: string | null) { return `badge-${(value ?? 'UNSCORED').toLowerCase()}`; }
-  onImageError(id: string) { this.imageFailed.update((state) => ({ ...state, [id]: true })); }
+import { CompassRepository, MobileCandidateSpec, RadarRow } from '../../core/compass/compass.repository';
+type SourceMap=Record<string,string>; type SpecMap=Record<string,MobileCandidateSpec>;
+type RadarSource={candidate_id:string;source_url:string|null;image_url:string|null};
+function mapSourceImages(sources:RadarSource[]):SourceMap{const images:SourceMap={};for(const s of sources){const image=s.image_url?.trim();if(image&&!images[s.candidate_id])images[s.candidate_id]=image;}return images;}
+@Component({imports:[NgClass,RouterLink],template:`
+<section class="page mobile-assets-page"><header class="page-header"><div><p class="eyebrow">COMPASS / NETWORK ASSETS</p><h1>MOBILE ASSETS</h1><p>Shared OUTLAND assets that move between Worlds.</p></div></header>
+@if(loading()){<div class="state">Loading Mobile Assets...</div>}@else if(error()){<div class="state error">{{error()}}</div>}@else{
+<section class="program-card"><div class="program-copy"><div class="program-title"><span class="world">WANDERER</span><span class="type-pill">CAMPERVAN</span></div><h2>WANDERER ACQUISITION RADAR</h2><p>One job: find a camper that is materially better than the current benchmark.</p><div class="target-strip"><span><b>Target</b> €25–40k</span><span><b>Exceptional</b> ≤€45k</span><span><b>Four-season</b> Required</span><span><b>AWD</b> Bonus</span></div></div><div class="program-kpis"><div><strong>{{activeCount()}}</strong><span>ACTIVE</span></div><div><strong>{{shortlistCount()}}</strong><span>SHORTLIST</span></div><div><strong>{{ddCount()}}</strong><span>DD</span></div></div></section>
+@if(benchmark()){<section class="benchmark"><div class="benchmark-label">★ BENCHMARK TO BEAT</div><a [routerLink]="['/candidates',benchmark()!.id]" class="benchmark-card"><div class="hero" [class.hero-empty]="!benchmarkImage()||imageFailed()[benchmark()!.id!]">@if(benchmarkImage()&&!imageFailed()[benchmark()!.id!]){<img [src]="benchmarkImage()" [alt]="benchmark()!.title" (error)="onImageError(benchmark()!.id!)">}</div><div class="benchmark-copy"><span class="world">WANDERER / CURRENT BENCHMARK</span><h2>{{benchmark()!.title}}</h2><p>{{location(benchmark()!)}}</p><div class="spec-strip">@if(spec(benchmark()!);as s){<span><b>{{s.model_year??'—'}}</b> YEAR</span><span><b>{{km(s.mileage_km)}}</b> KM</span><span><b>{{meters(s.length_mm)}}</b> LENGTH</span><span><b>{{weight(s.gross_weight_kg)}}</b> GVW</span><span><b>{{s.drivetrain??'—'}}</b> DRIVE</span>}</div><div class="benchmark-metrics"><div><span>ASKING</span><strong>{{money(benchmark()!.asking_price,benchmark()!.currency)}}</strong></div><div><span>READY-TO-WANDER</span><strong>≈ €43k</strong></div><div><span>COMPASS</span><strong>{{number(benchmark()!.compass_score)}}</strong></div></div><p class="working-note">Working estimate: €38.5k target offer + ~€4.5k registration/service/minimal OUTLAND retrofit. Verify before negotiation.</p></div><span class="badge" [ngClass]="badge(benchmark()!.recommendation)">{{benchmark()!.recommendation}}</span></a></section>}
+<section class="radar-section"><div class="section-head"><div><p class="eyebrow">WANDERER</p><h2>CHALLENGERS</h2></div><span>{{challengers().length}} tracked</span></div>
+@if(challengers().length){<div class="candidate-grid">@for(row of challengers();track row.id){<a class="candidate-card" [routerLink]="['/candidates',row.id]"><div class="candidate-image" [class.hero-empty]="!row.id||!sourceImages()[row.id]||imageFailed()[row.id]">@if(row.id&&sourceImages()[row.id]&&!imageFailed()[row.id]){<img [src]="sourceImages()[row.id]" [alt]="row.title" loading="lazy" (error)="onImageError(row.id)">}</div><div class="candidate-body"><div class="candidate-top"><span class="decision-pill" [class.beats]="beatsBenchmark(row)">{{beatsBenchmark(row)?'BEATS BENCHMARK':'DOES NOT BEAT BENCHMARK'}}</span><span class="score">{{number(row.compass_score)}}</span></div><h3>{{row.title}}</h3><p>{{location(row)}}</p>@if(spec(row);as s){<div class="mini-specs"><span>{{s.model_year??'—'}}</span><span>{{km(s.mileage_km)}}</span><span>{{meters(s.length_mm)}}</span><span>{{s.drivetrain??'—'}}</span></div>}<div class="candidate-bottom"><strong>{{money(row.asking_price,row.currency)}}</strong><span class="badge" [ngClass]="badge(row.recommendation)">{{row.recommendation}}</span></div></div></a>}</div>}@else{<div class="empty-state"><p class="eyebrow">BENCHMARK SET</p><h2>Now wait for a camper that beats it.</h2><p>Do not add software. Add only verified challengers with enough data to make a purchase decision.</p></div>}</section>}
+</section>`,styleUrl:'./mobile-assets.page.scss'})
+export default class MobileAssetsPage{
+ readonly repo=inject(CompassRepository);readonly allRows=signal<RadarRow[]>([]);readonly sourceImages=signal<SourceMap>({});readonly specs=signal<SpecMap>({});readonly imageFailed=signal<Record<string,boolean>>({});readonly loading=signal(true);readonly error=signal('');
+ readonly wandererRows=computed(()=>this.allRows().filter(r=>r.world_code==='WANDERER').sort((a,b)=>this.rank(b)-this.rank(a)));readonly benchmark=computed(()=>this.wandererRows().find(r=>['SHORTLIST','DD','NEGOTIATION'].includes(r.status??''))??this.wandererRows()[0]??null);readonly challengers=computed(()=>this.wandererRows().filter(r=>r.id!==this.benchmark()?.id));readonly benchmarkImage=computed(()=>{const id=this.benchmark()?.id;return id?this.sourceImages()[id]??null:null;});
+ constructor(){void this.load();} async load(){try{this.loading.set(true);const rows=await this.repo.radar();this.allRows.set(rows);const ids=rows.filter(r=>r.world_code==='WANDERER').map(r=>r.id).filter((id):id is string=>!!id);const[sources,specs]=await Promise.all([this.repo.sourceUrls(ids),this.repo.mobileSpecs(ids)]);this.sourceImages.set(mapSourceImages(sources));this.specs.set(Object.fromEntries(specs.map(s=>[s.candidate_id,s])));}catch(e){this.error.set(e instanceof Error?e.message:'Unable to load Mobile Assets.');}finally{this.loading.set(false);}}
+ spec(row:RadarRow){return row.id?this.specs()[row.id]??null:null;} beatsBenchmark(row:RadarRow){const b=this.benchmark();if(!b)return false;const score=(row.compass_score??0)-(b.compass_score??0);const price=(b.asking_price??Infinity)-(row.asking_price??Infinity);return score>=5||(score>=0&&price>=3000);}
+ activeCount(){return this.wandererRows().filter(r=>!['ACQUIRED','REJECTED','ARCHIVED','SOLD'].includes(r.status??'')).length;}shortlistCount(){return this.wandererRows().filter(r=>r.status==='SHORTLIST').length;}ddCount(){return this.wandererRows().filter(r=>r.status==='DD').length;}rank(r:RadarRow){return({HOT:600,STRONG:500,WATCH:400,LOW:300,UNSCORED:100,BLOCKED:-100}[r.recommendation??'']??0)+(r.compass_score??0);}location(r:RadarRow){return r.settlement||r.municipality||r.region||'Location not recorded';}money(v:number|null,c:string|null='EUR'){return v==null?'—':new Intl.NumberFormat('en-IE',{style:'currency',currency:c??'EUR',maximumFractionDigits:0}).format(v);}number(v:number|null){return v==null?'—':Math.round(v).toString();}km(v:number|null){return v==null?'—':new Intl.NumberFormat('en-IE').format(v);}meters(v:number|null){return v==null?'—':`${(v/1000).toFixed(2)} m`;}weight(v:number|null){return v==null?'—':`${new Intl.NumberFormat('en-IE').format(v)} kg`;}badge(v:string|null){return`badge-${(v??'UNSCORED').toLowerCase()}`;}onImageError(id:string){this.imageFailed.update(s=>({...s,[id]:true}));}
 }
