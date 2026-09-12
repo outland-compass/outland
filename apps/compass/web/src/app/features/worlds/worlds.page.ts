@@ -48,9 +48,9 @@ type HuntForm = {
           } @else {
             <div class="hunt-summary">
               <h3>LAND HUNT</h3>
-              <p><strong>{{hunt(world).development_track || 'Not configured'}}</strong></p>
+              <p><strong>{{hunt(world)['development_track'] || 'Not configured'}}</strong></p>
               <p>Land: {{priceRange(world)}} · Area: {{areaRange(world)}}</p>
-              @if(hunt(world).legal_path){<p class="legal">{{hunt(world).legal_path}}</p>}
+              @if(hunt(world)['legal_path']){<p class="legal">{{hunt(world)['legal_path']}}</p>}
               <button (click)="edit(world)">Edit Land Hunt</button>
             </div>
           }
