@@ -80,6 +80,7 @@ export class CompassRepository {
   async signalByListingId(sourceName: string, listingId: string): Promise<Signal | null> { return this.oneOrNull(this.land.from('signals').select('*').eq('source_name', sourceName).eq('source_listing_id', listingId).limit(1).maybeSingle()); }
   async promoteSignal(signalId: string, worldId: string, title?: string): Promise<string> { return this.one(this.db.rpc('promote_signal_to_candidate', { p_signal_id: signalId, p_world_id: worldId, p_title: title })); }
   async startEvaluation(candidateId: string): Promise<string> { return this.one(this.db.rpc('start_evaluation', { p_candidate_id: candidateId })); }
+  async updateWorld(id: string, update: TablesUpdate<{ schema: 'shared' }, 'worlds'>): Promise<void> { await this.mutate(this.shared.from('worlds').update(update).eq('id', id)); }
   async updateCandidate(id: string, update: TablesUpdate<{ schema: 'land' }, 'candidates'>): Promise<void> { await this.mutate(this.land.from('candidates').update(update).eq('id', id)); }
   async createDdItem(item: TablesInsert<{ schema: 'land' }, 'dd_items'>): Promise<void> { await this.mutate(this.land.from('dd_items').insert(item)); }
   async updateDdItem(id: string, update: TablesUpdate<{ schema: 'land' }, 'dd_items'>): Promise<void> { await this.mutate(this.land.from('dd_items').update(update).eq('id', id)); }
