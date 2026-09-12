@@ -10,6 +10,7 @@ export const routes: Routes = [
     loadComponent: () => import('./core/layout/compass-layout.component'),
     children: [
       { path: 'radar', loadComponent: () => import('./features/radar/radar.page') },
+      { path: 'mobile-assets', loadComponent: () => import('./features/mobile-assets/mobile-assets.page') },
       { path: 'candidates/:id', loadComponent: () => import('./features/candidate/candidate.page') },
       { path: 'compare', loadComponent: () => import('./features/compare/compare.page') },
       { path: 'due-diligence', loadComponent: () => import('./features/due-diligence/due-diligence.page') },
