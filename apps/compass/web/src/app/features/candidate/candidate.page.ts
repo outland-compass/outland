@@ -85,7 +85,7 @@ type Evidence = Tables<{ schema: 'land' }, 'evidence_items'>;
             </section>
 
             <section class="panel">
-              <div class="panel-header"><h2>EVALUATION</h2>@if(!latest()){<button class="primary" (click)="start()" [disabled]="!roles.canAnalyze || busy()">START EVALUATION</button>}</div>
+              <div class="panel-header"><h2>EVALUATION</h2>@if(!latest()){<button class="primary" (click)="start()" [disabled]="!roles.canAnalyze || busy() || !candidate()?.world_id" [title]="candidate()?.world_id ? '' : 'Assign a World before starting its World-specific evaluation'">START EVALUATION</button>}</div>
               @for(dimension of dimensions();track dimension.dimension){<div class="row"><b>{{dimension.dimension}}</b><strong>{{number(dimension.dimension_score)}}</strong><small>{{percent(dimension.dimension_confidence)}} confidence · {{dimension.unknown_count || 0}} unknown</small></div>}@empty{<p class="muted">No evaluation snapshot yet.</p>}
               @for(item of items();track item.id){<div class="criterion"><span>{{item.dimension}} · {{item.criterion_label}}</span><input [(ngModel)]="item.score" type="number" min="0" max="100" placeholder="UNKNOWN" [disabled]="!roles.canAnalyze || busy()"><input [(ngModel)]="item.confidence_percent" type="number" min="0" max="100" [disabled]="!roles.canAnalyze || busy()"><select [(ngModel)]="item.evidence_state" [disabled]="!roles.canAnalyze || busy()"><option>UNKNOWN</option><option>CLAIMED</option><option>OBSERVED</option><option>VERIFIED</option></select><button class="quiet" (click)="saveItem(item)" [disabled]="!roles.canAnalyze || busy()">SAVE</button></div>}
             </section>

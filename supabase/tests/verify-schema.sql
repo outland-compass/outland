@@ -9,7 +9,8 @@ declare
     'signals', 'candidates', 'candidate_sources', 'candidate_price_history',
     'candidate_media', 'candidate_economics', 'evaluations',
     'evaluation_dimension_weights', 'evaluation_items', 'candidate_gates',
-    'dd_items', 'documents', 'evidence_items', 'notes', 'visits', 'decisions'
+    'dd_items', 'documents', 'evidence_items', 'notes', 'visits', 'decisions',
+    'search_profiles', 'candidate_search_profiles'
   ];
   entity_name text;
 begin
@@ -42,6 +43,22 @@ begin
 
   if not exists (select 1 from shared.worlds where code = 'WANDERER' and radar_enabled = false) then
     raise exception 'WANDERER must be seeded with radar_enabled = false';
+  end if;
+
+  if not exists (
+    select 1 from land.search_profiles
+    where code = 'MONTENEGRO_POD_LAND'
+      and development_model = 'POD'
+      and price_priority_eur = 15000
+      and (criteria ->> 'no_minimum_price')::boolean = true
+  ) then
+    raise exception 'Montenegro Pod Land Search profile is missing or invalid';
+  end if;
+
+  if (select count(*) from land.candidates where internal_name in (
+    'pod-pisce-piva', 'pod-vladimir-sasko', 'pod-rudnica-piva', 'pod-rvasi-skadar', 'pod-brijeg-tara'
+  ) and development_model = 'POD') <> 5 then
+    raise exception 'The five initial Pod hunt candidates were not loaded';
   end if;
 
   if (select count(*) from land.world_score_criteria c join shared.worlds w on w.id = c.world_id where w.code = 'GREENHILL') = 0
