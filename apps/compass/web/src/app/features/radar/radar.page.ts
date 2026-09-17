@@ -2,44 +2,479 @@ import { DatePipe, NgClass } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { CompassRepository, extractSourceImage, RadarRow, Signal, World } from '../../core/compass/compass.repository';
+import {
+  CompassRepository,
+  extractSourceImage,
+  RadarRow,
+  SearchProfile,
+  Signal,
+  World,
+} from '../../core/compass/compass.repository';
 import { RoleService } from '../../core/compass/role.service';
 
 type RadarSource = { candidate_id: string; source_url: string | null; image_url: string | null };
 
 export function mapRadarSources(sources: RadarSource[]) {
-	const urls: Record<string, string> = {};
-	const images: Record<string, string> = {};
-	for (const source of sources) {
-		if (source.source_url && !urls[source.candidate_id]) urls[source.candidate_id] = source.source_url;
-		const imageUrl = source.image_url?.trim();
-		if (imageUrl && !images[source.candidate_id]) images[source.candidate_id] = imageUrl;
-	}
-	return { urls, images };
+  const urls: Record<string, string> = {};
+  const images: Record<string, string> = {};
+  for (const source of sources) {
+    if (source.source_url && !urls[source.candidate_id])
+      urls[source.candidate_id] = source.source_url;
+    const imageUrl = source.image_url?.trim();
+    if (imageUrl && !images[source.candidate_id]) images[source.candidate_id] = imageUrl;
+  }
+  return { urls, images };
 }
 
 @Component({
-	imports: [DatePipe, FormsModule, NgClass, RouterLink],
-	template: `<section class="page radar-page">
-		<header class="page-header"><div><p class="eyebrow">COMPASS / INTELLIGENCE</p><h1>PROPERTY RADAR</h1><p>Live OUTLAND property intelligence</p></div><button class="primary" (click)="showSignal.set(true)" [disabled]="!roles.canAnalyze">+ ADD SIGNAL</button></header>
-		<div class="kpis"><article><span>ACTIVE</span><strong>{{ activeCount() }}</strong></article><article><span>HOT</span><strong>{{ countRecommendation('HOT') }}</strong></article><article><span>SHORTLIST</span><strong>{{ countStatus('SHORTLIST') }}</strong></article><article><span>DD</span><strong>{{ countStatus('DD') }}</strong></article><article><span>BLOCKED</span><strong>{{ countRecommendation('BLOCKED') }}</strong></article></div>
-		<div class="toolbar"><input [(ngModel)]="search" placeholder="Search title, place, region"><select [(ngModel)]="world"><option value="">ALL WORLDS</option>@for (item of radarWorlds(); track item.id) {<option [value]="item.code">{{ item.name }}</option>}</select><select [(ngModel)]="recommendation"><option value="">ALL RECOMMENDATIONS</option>@for (item of recommendations; track item) {<option [value]="item">{{ item }}</option>}</select><select [(ngModel)]="status"><option value="">ALL STATUSES</option>@for (item of statuses; track item) {<option [value]="item">{{ item }}</option>}</select><label>Min score <input type="number" [(ngModel)]="minScore"></label><label>Min confidence <input type="number" [(ngModel)]="minConfidence"></label><button class="quiet" (click)="reset()">Reset filters</button></div>
-		<div class="subnav"><button [class.active]="panel() === 'radar'" (click)="panel.set('radar')">RADAR <b>{{ filtered().length }}</b></button><button [class.active]="panel() === 'signals'" (click)="panel.set('signals')">SIGNAL INBOX <b>{{ signals().length }}</b></button></div>
-		@if (loading()) { <div class="state">Loading live Radar...</div> } @else if (error()) { <div class="state error">{{ error() }}</div> } @else if (panel() === 'radar') {
-			@if (filtered().length) { <div class="candidate-list">@for (row of filtered(); track row.id) {<a class="candidate-row" [routerLink]="['/candidates', row.id]"><div class="thumb" [class.thumb-empty]="!row.id || !sourceImages()[row.id] || candidateImgFailed()[row.id]">@if (row.id && sourceImages()[row.id] && !candidateImgFailed()[row.id]) {<img [src]="sourceImages()[row.id]" [alt]="row.title" loading="lazy" (error)="onCandidateImgError(row.id)">}</div><div class="property-cell"><span class="world">{{ row.world_code }}</span><h2>{{ row.title }}</h2><p>{{ row.settlement || row.municipality || row.region || 'Location unknown' }}</p>@if(row.id && sourceUrls()[row.id]){<button type="button" class="quiet listing-link" (click)="openListing($event, sourceUrls()[row.id!])">LISTING ↗</button>}</div><div><span class="label">ASKING</span><strong>{{ money(row.asking_price, row.currency) }}</strong><small>{{ area(row.area_m2) }} · {{ money(row.price_per_m2, row.currency) }}/m²</small></div><div class="metric"><span>COMPASS</span><strong>{{ number(row.compass_score) }}</strong></div><div class="metric"><span>CONFIDENCE</span><strong>{{ percent(row.confidence_percent) }}</strong></div><div><span class="badge" [ngClass]="badge(row.recommendation)">{{ row.recommendation }}</span><small>{{ row.critical_failed_count || 0 }} critical fails · {{ row.critical_unknown_count || 0 }} critical unknowns</small></div><div><span class="label">LAST SEEN</span><small>{{ row.last_seen_at ? (row.last_seen_at | date:'dd MMM') : '—' }}</small></div></a>}</div> } @else { <div class="state">No candidates match these filters.</div> }
-		} @else { <div class="signal-list">@for (signal of signals(); track signal.id) {<article class="signal-row"><div class="signal-thumb" [class.thumb-empty]="!signalImages()[signal.id] || signalImgFailed()[signal.id]">@if (signalImages()[signal.id] && !signalImgFailed()[signal.id]) {<img [src]="signalImages()[signal.id]" [alt]="signal.raw_title || 'Signal'" loading="lazy" (error)="onSignalImgError(signal.id)">}</div><div class="property-cell"><span class="world">{{ signal.status }}</span><h2>{{ signal.raw_title || 'Untitled signal' }}</h2><p>{{ signal.source_name || 'Unknown source' }} · {{ signal.discovered_at | date:'dd MMM yyyy' }}</p></div><div class="signal-price"><strong>{{ money(signal.raw_price, signal.raw_currency) }}</strong><small>{{ area(signal.raw_area_m2) }}</small></div><div class="signal-actions"><select [(ngModel)]="promotionWorld[signal.id]" [disabled]="!roles.canAnalyze"><option value="">Select World</option>@for (item of radarWorlds(); track item.id) {<option [value]="item.id">{{ item.name }}</option>}</select><button class="quiet" (click)="promote(signal)" [disabled]="!promotionWorld[signal.id] || !roles.canAnalyze">PROMOTE</button></div></article>} @empty {<div class="state">No captured signals yet.</div>}</div> }
-		@if (showSignal()) {<div class="modal-backdrop"><form class="modal" (ngSubmit)="saveSignal()"><button type="button" class="close" (click)="showSignal.set(false)">×</button><p class="eyebrow">CAPTURE OPPORTUNITY</p><h2>ADD SIGNAL</h2><label>Source URL<input name="url" [(ngModel)]="draft.source_url" type="url"></label><label>Source name<input name="source" [(ngModel)]="draft.source_name"></label><label>World<select name="draftWorld" [(ngModel)]="draft.world_id"><option [ngValue]="null">Unassigned</option>@for (item of radarWorlds(); track item.id) {<option [value]="item.id">{{ item.name }}</option>}</select></label><label>Listing title<input name="title" [(ngModel)]="draft.raw_title"></label><label>Location<input name="location" [(ngModel)]="draft.raw_location"></label><label>Price (whole EUR)<input name="price" [(ngModel)]="draft.raw_price" type="number" min="0" step="1" placeholder="29900"></label><label>Area m² (whole number)<input name="area" [(ngModel)]="draft.raw_area_m2" type="number" min="0" step="1" placeholder="1800"></label><label>Notes<textarea name="description" [(ngModel)]="draft.raw_description"></textarea></label><p class="form-error">{{ formError() }}</p><button class="primary" type="submit">SAVE SIGNAL</button></form></div>}
-	</section>`,
-	styleUrl: './radar.page.scss'
+  imports: [DatePipe, FormsModule, NgClass, RouterLink],
+  template: `<section class="page radar-page">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">COMPASS / INTELLIGENCE</p>
+        <h1>PROPERTY RADAR</h1>
+        <p>Live OUTLAND property intelligence</p>
+      </div>
+      <button class="primary" (click)="showSignal.set(true)" [disabled]="!roles.canAnalyze">
+        + ADD SIGNAL
+      </button>
+    </header>
+    <div class="kpis">
+      <article>
+        <span>ACTIVE</span><strong>{{ activeCount() }}</strong>
+      </article>
+      <article>
+        <span>HOT</span><strong>{{ countRecommendation('HOT') }}</strong>
+      </article>
+      <article>
+        <span>SHORTLIST</span><strong>{{ countStatus('SHORTLIST') }}</strong>
+      </article>
+      <article>
+        <span>DD</span><strong>{{ countStatus('DD') }}</strong>
+      </article>
+      <article>
+        <span>BLOCKED</span><strong>{{ countRecommendation('BLOCKED') }}</strong>
+      </article>
+    </div>
+    <div class="toolbar">
+      <input [(ngModel)]="search" placeholder="Search title, place, region" /><select
+        [(ngModel)]="profile"
+      >
+        <option value="">ALL LAND SEARCHES</option>
+        @for (item of profiles(); track item.id) {
+          <option [value]="item.code">{{ item.name }}</option>
+        }</select
+      ><select [(ngModel)]="developmentModel">
+        <option value="">ALL STRATEGIES</option>
+        @for (item of developmentModels; track item) {
+          <option [value]="item">{{ item }}</option>
+        }</select
+      ><select [(ngModel)]="world">
+        <option value="">ALL WORLDS</option>
+        <option value="__UNASSIGNED__">WORLD UNASSIGNED</option>
+        @for (item of radarWorlds(); track item.id) {
+          <option [value]="item.code">{{ item.name }}</option>
+        }</select
+      ><select [(ngModel)]="recommendation">
+        <option value="">ALL RECOMMENDATIONS</option>
+        @for (item of recommendations; track item) {
+          <option [value]="item">{{ item }}</option>
+        }</select
+      ><select [(ngModel)]="status">
+        <option value="">ALL STATUSES</option>
+        @for (item of statuses; track item) {
+          <option [value]="item">{{ item }}</option>
+        }</select
+      ><label>Min score <input type="number" [(ngModel)]="minScore" /></label
+      ><label>Min confidence <input type="number" [(ngModel)]="minConfidence" /></label
+      ><button class="quiet" (click)="reset()">Reset filters</button>
+    </div>
+    @if (selectedProfile(); as hunt) {
+      <article class="hunt-summary">
+        <div>
+          <span class="label">LAND SEARCH</span><strong>{{ hunt.name }}</strong>
+          <p>{{ hunt.description }}</p>
+        </div>
+        <div>
+          <span class="label">STRATEGY</span><strong>{{ hunt.development_model }}</strong
+          ><small
+            >Priority ≤ {{ money(hunt.price_priority_eur) }} · ceiling
+            {{ money(hunt.price_ceiling_eur) }}</small
+          >
+        </div>
+        <div>
+          <span class="label">LAST RUN</span
+          ><strong>{{ hunt.last_run_at ? (hunt.last_run_at | date: 'dd MMM yyyy') : '—' }}</strong
+          ><small>{{ hunt.geographies.join(' · ') }}</small>
+        </div>
+      </article>
+    }
+    <div class="subnav">
+      <button [class.active]="panel() === 'radar'" (click)="panel.set('radar')">
+        RADAR <b>{{ filtered().length }}</b></button
+      ><button [class.active]="panel() === 'signals'" (click)="panel.set('signals')">
+        SIGNAL INBOX <b>{{ signals().length }}</b>
+      </button>
+    </div>
+    @if (loading()) {
+      <div class="state">Loading live Radar...</div>
+    } @else if (error()) {
+      <div class="state error">{{ error() }}</div>
+    } @else if (panel() === 'radar') {
+      @if (filtered().length) {
+        <div class="candidate-list">
+          @for (row of filtered(); track row.id) {
+            <a class="candidate-row" [routerLink]="['/candidates', row.id]"
+              ><div
+                class="thumb"
+                [class.thumb-empty]="
+                  !row.id || !sourceImages()[row.id] || candidateImgFailed()[row.id]
+                "
+              >
+                @if (row.id && sourceImages()[row.id] && !candidateImgFailed()[row.id]) {
+                  <img
+                    [src]="sourceImages()[row.id]"
+                    [alt]="row.title"
+                    loading="lazy"
+                    (error)="onCandidateImgError(row.id)"
+                  />
+                }
+              </div>
+              <div class="property-cell">
+                <span class="world">{{
+                  row.world_code || row.search_profile_name || 'UNASSIGNED HUNT'
+                }}</span>
+                <h2>{{ row.title }}</h2>
+                <p>{{ row.settlement || row.municipality || row.region || 'Location unknown' }}</p>
+                <div class="candidate-tags">
+                  @if (row.development_model && row.development_model !== 'UNDECIDED') {
+                    <span>{{ row.development_model }}</span>
+                  }
+                  @if (row.land_price_band) {
+                    <span>{{ row.land_price_band }}</span>
+                  }
+                  @if (!row.world_id) {
+                    <span>WORLD TBD</span>
+                  }
+                </div>
+                @if (row.id && sourceUrls()[row.id]) {
+                  <button
+                    type="button"
+                    class="quiet listing-link"
+                    (click)="openListing($event, sourceUrls()[row.id!])"
+                  >
+                    LISTING ↗
+                  </button>
+                }
+              </div>
+              <div>
+                <span class="label">ASKING</span
+                ><strong>{{ money(row.asking_price, row.currency) }}</strong
+                ><small
+                  >{{ area(row.area_m2) }} · {{ money(row.price_per_m2, row.currency) }}/m²</small
+                >
+              </div>
+              <div class="metric">
+                <span>COMPASS</span><strong>{{ number(row.compass_score) }}</strong>
+              </div>
+              <div class="metric">
+                <span>CONFIDENCE</span><strong>{{ percent(row.confidence_percent) }}</strong>
+              </div>
+              <div>
+                <span class="badge" [ngClass]="badge(row.recommendation)">{{
+                  row.recommendation
+                }}</span
+                ><small
+                  >{{ row.critical_failed_count || 0 }} critical fails ·
+                  {{ row.critical_unknown_count || 0 }} critical unknowns</small
+                >
+              </div>
+              <div>
+                <span class="label">LAST SEEN</span
+                ><small>{{ row.last_seen_at ? (row.last_seen_at | date: 'dd MMM') : '—' }}</small>
+              </div></a
+            >
+          }
+        </div>
+      } @else {
+        <div class="state">No candidates match these filters.</div>
+      }
+    } @else {
+      <div class="signal-list">
+        @for (signal of signals(); track signal.id) {
+          <article class="signal-row">
+            <div
+              class="signal-thumb"
+              [class.thumb-empty]="!signalImages()[signal.id] || signalImgFailed()[signal.id]"
+            >
+              @if (signalImages()[signal.id] && !signalImgFailed()[signal.id]) {
+                <img
+                  [src]="signalImages()[signal.id]"
+                  [alt]="signal.raw_title || 'Signal'"
+                  loading="lazy"
+                  (error)="onSignalImgError(signal.id)"
+                />
+              }
+            </div>
+            <div class="property-cell">
+              <span class="world">{{ signal.status }}</span>
+              <h2>{{ signal.raw_title || 'Untitled signal' }}</h2>
+              <p>
+                {{ signal.source_name || 'Unknown source' }} ·
+                {{ signal.discovered_at | date: 'dd MMM yyyy' }}
+              </p>
+            </div>
+            <div class="signal-price">
+              <strong>{{ money(signal.raw_price, signal.raw_currency) }}</strong
+              ><small>{{ area(signal.raw_area_m2) }}</small>
+            </div>
+            <div class="signal-actions">
+              <select [(ngModel)]="promotionWorld[signal.id]" [disabled]="!roles.canAnalyze">
+                <option value="">Select World</option>
+                @for (item of radarWorlds(); track item.id) {
+                  <option [value]="item.id">{{ item.name }}</option>
+                }</select
+              ><button
+                class="quiet"
+                (click)="promote(signal)"
+                [disabled]="!promotionWorld[signal.id] || !roles.canAnalyze"
+              >
+                PROMOTE
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="state">No captured signals yet.</div>
+        }
+      </div>
+    }
+    @if (showSignal()) {
+      <div class="modal-backdrop">
+        <form class="modal" (ngSubmit)="saveSignal()">
+          <button type="button" class="close" (click)="showSignal.set(false)">×</button>
+          <p class="eyebrow">CAPTURE OPPORTUNITY</p>
+          <h2>ADD SIGNAL</h2>
+          <label>Source URL<input name="url" [(ngModel)]="draft.source_url" type="url" /></label
+          ><label>Source name<input name="source" [(ngModel)]="draft.source_name" /></label
+          ><label
+            >World<select name="draftWorld" [(ngModel)]="draft.world_id">
+              <option [ngValue]="null">Unassigned</option>
+              @for (item of radarWorlds(); track item.id) {
+                <option [value]="item.id">{{ item.name }}</option>
+              }
+            </select></label
+          ><label>Listing title<input name="title" [(ngModel)]="draft.raw_title" /></label
+          ><label>Location<input name="location" [(ngModel)]="draft.raw_location" /></label
+          ><label
+            >Price (whole EUR)<input
+              name="price"
+              [(ngModel)]="draft.raw_price"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="29900" /></label
+          ><label
+            >Area m² (whole number)<input
+              name="area"
+              [(ngModel)]="draft.raw_area_m2"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="1800" /></label
+          ><label
+            >Notes<textarea name="description" [(ngModel)]="draft.raw_description"></textarea>
+          </label>
+          <p class="form-error">{{ formError() }}</p>
+          <button class="primary" type="submit">SAVE SIGNAL</button>
+        </form>
+      </div>
+    }
+  </section>`,
+  styleUrl: './radar.page.scss',
 })
 export default class RadarPage {
-	readonly repo = inject(CompassRepository); readonly roles = inject(RoleService); readonly rows = signal<RadarRow[]>([]); readonly worlds = signal<World[]>([]); readonly signals = signal<Signal[]>([]); readonly sourceUrls = signal<Record<string, string>>({}); readonly sourceImages = signal<Record<string, string>>({}); readonly candidateImgFailed = signal<Record<string, boolean>>({}); readonly signalImages = signal<Record<string, string>>({}); readonly signalImgFailed = signal<Record<string, boolean>>({}); readonly loading = signal(true); readonly error = signal(''); readonly panel = signal<'radar' | 'signals'>('radar'); readonly showSignal = signal(false); readonly formError = signal('');
-	search = ''; world = ''; recommendation = ''; status = ''; minScore?: number; minConfidence?: number; promotionWorld: Record<string, string> = {}; readonly recommendations = ['HOT', 'STRONG', 'WATCH', 'LOW', 'BLOCKED', 'UNSCORED']; readonly statuses = ['NEW', 'REVIEWED', 'SHORTLIST', 'DD', 'NEGOTIATION', 'ACQUIRED']; draft: { source_url?: string; source_name?: string; world_id?: string | null; raw_title?: string; raw_location?: string; raw_price?: number; raw_area_m2?: number; raw_description?: string } = {};
-	readonly radarWorlds = computed(() => this.worlds().filter((world) => world.radar_enabled));
-	filtered() { const rows = this.rows(); return rows.filter((row) => { const text = [row.title, row.settlement, row.municipality, row.region].join(' ').toLowerCase(); return (!this.search || text.includes(this.search.toLowerCase())) && (!this.world || row.world_code === this.world) && (!this.recommendation || row.recommendation === this.recommendation) && (!this.status || row.status === this.status) && (!this.minScore || (row.compass_score ?? -1) >= this.minScore) && (!this.minConfidence || (row.confidence_percent ?? -1) >= this.minConfidence); }).sort((a, b) => this.rank(b) - this.rank(a)); }
-	constructor() { void this.refresh(); void this.roles.load(); } async refresh() { try { this.loading.set(true); const [rows, worlds, signals] = await Promise.all([this.repo.radar(), this.repo.worlds(), this.repo.signals()]); this.rows.set(rows); this.worlds.set(worlds); this.signals.set(signals); const candidateIds = rows.map((row) => row.id).filter((id): id is string => !!id); const sources = await this.repo.sourceUrls(candidateIds); const { urls, images } = mapRadarSources(sources); this.sourceUrls.set(urls); this.sourceImages.set(images); const signalImgs: Record<string, string> = {}; for (const signal of signals) { const imgUrl = extractSourceImage({ raw_payload: signal.raw_payload }); if (imgUrl) { signalImgs[signal.id] = imgUrl; } } this.signalImages.set(signalImgs); } catch (error) { this.error.set(error instanceof Error ? error.message : 'Unable to load Property Radar.'); } finally { this.loading.set(false); } }
-	countRecommendation(value: string) { return this.rows().filter((row) => row.recommendation === value).length; } countStatus(value: string) { return this.rows().filter((row) => row.status === value).length; } activeCount() { return this.rows().filter((row) => !['ACQUIRED', 'REJECTED', 'ARCHIVED', 'SOLD'].includes(row.status ?? '')).length; } reset() { this.search = this.world = this.recommendation = this.status = ''; this.minScore = this.minConfidence = undefined; } rank(row: RadarRow) { return row.recommendation === 'BLOCKED' ? -1 : ({ HOT: 600, STRONG: 500, WATCH: 400, LOW: 300, UNSCORED: 100 }[row.recommendation ?? ''] ?? 0) + (row.compass_score ?? 0); }
-	async saveSignal() { if (!this.draft.source_url && !this.draft.raw_title) { this.formError.set('Add a source URL or a meaningful listing title.'); return; } try { await this.repo.createSignal({ ...this.draft, raw_currency: 'EUR' }); this.showSignal.set(false); this.draft = {}; await this.refresh(); } catch (error) { this.formError.set(error instanceof Error ? error.message : 'Signal could not be saved.'); } } async promote(signal: Signal) { try { const id = await this.repo.promoteSignal(signal.id, this.promotionWorld[signal.id], signal.raw_title ?? undefined); location.assign(`/candidates/${id}`); } catch (error) { this.error.set(error instanceof Error ? error.message : 'Signal could not be promoted.'); } }
-	openListing(event: Event, url: string) { event.preventDefault(); event.stopPropagation(); window.open(url, '_blank', 'noopener,noreferrer'); } onCandidateImgError(candidateId: string) { this.candidateImgFailed.update((state) => ({ ...state, [candidateId]: true })); } onSignalImgError(signalId: string) { this.signalImgFailed.update((state) => ({ ...state, [signalId]: true })); }
-	money(value: number | null, currency: string | null = 'EUR') { return value == null ? '—' : new Intl.NumberFormat('en-IE', { style: 'currency', currency: currency ?? 'EUR' }).format(value); } area(value: number | null) { return value == null ? '—' : `${new Intl.NumberFormat('en-IE').format(value)} m²`; } number(value: number | null) { return value == null ? '—' : Math.round(value).toString(); } percent(value: number | null) { return value == null ? '—' : `${Math.round(value)}%`; } badge(value: string | null) { return `badge-${(value ?? 'UNSCORED').toLowerCase()}`; }
+  readonly repo = inject(CompassRepository);
+  readonly roles = inject(RoleService);
+  readonly rows = signal<RadarRow[]>([]);
+  readonly worlds = signal<World[]>([]);
+  readonly profiles = signal<SearchProfile[]>([]);
+  readonly signals = signal<Signal[]>([]);
+  readonly sourceUrls = signal<Record<string, string>>({});
+  readonly sourceImages = signal<Record<string, string>>({});
+  readonly candidateImgFailed = signal<Record<string, boolean>>({});
+  readonly signalImages = signal<Record<string, string>>({});
+  readonly signalImgFailed = signal<Record<string, boolean>>({});
+  readonly loading = signal(true);
+  readonly error = signal('');
+  readonly panel = signal<'radar' | 'signals'>('radar');
+  readonly showSignal = signal(false);
+  readonly formError = signal('');
+  search = '';
+  profile = '';
+  developmentModel = '';
+  world = '';
+  recommendation = '';
+  status = '';
+  minScore?: number;
+  minConfidence?: number;
+  promotionWorld: Record<string, string> = {};
+  readonly developmentModels = ['POD', 'HOUSE', 'FLOATING', 'EXISTING_PROPERTY', 'UNDECIDED'];
+  readonly recommendations = ['HOT', 'STRONG', 'WATCH', 'LOW', 'BLOCKED', 'UNSCORED'];
+  readonly statuses = ['NEW', 'REVIEWED', 'SHORTLIST', 'DD', 'NEGOTIATION', 'ACQUIRED'];
+  draft: {
+    source_url?: string;
+    source_name?: string;
+    world_id?: string | null;
+    raw_title?: string;
+    raw_location?: string;
+    raw_price?: number;
+    raw_area_m2?: number;
+    raw_description?: string;
+  } = {};
+  readonly radarWorlds = computed(() => this.worlds().filter((world) => world.radar_enabled));
+  readonly selectedProfile = computed(() =>
+    this.profiles().find((item) => item.code === this.profile),
+  );
+  filtered() {
+    const rows = this.rows();
+    return rows
+      .filter((row) => {
+        const text = [row.title, row.settlement, row.municipality, row.region]
+          .join(' ')
+          .toLowerCase();
+        const worldMatches =
+          !this.world ||
+          (this.world === '__UNASSIGNED__' ? !row.world_id : row.world_code === this.world);
+        return (
+          (!this.search || text.includes(this.search.toLowerCase())) &&
+          (!this.profile || row.search_profile_code === this.profile) &&
+          (!this.developmentModel || row.development_model === this.developmentModel) &&
+          worldMatches &&
+          (!this.recommendation || row.recommendation === this.recommendation) &&
+          (!this.status || row.status === this.status) &&
+          (!this.minScore || (row.compass_score ?? -1) >= this.minScore) &&
+          (!this.minConfidence || (row.confidence_percent ?? -1) >= this.minConfidence)
+        );
+      })
+      .sort((a, b) => this.rank(b) - this.rank(a));
+  }
+  constructor() {
+    void this.refresh();
+    void this.roles.load();
+  }
+  async refresh() {
+    try {
+      this.loading.set(true);
+      const [rows, worlds, profiles, signals] = await Promise.all([
+        this.repo.radar(),
+        this.repo.worlds(),
+        this.repo.searchProfiles(),
+        this.repo.signals(),
+      ]);
+      this.rows.set(rows);
+      this.worlds.set(worlds);
+      this.profiles.set(profiles);
+      this.signals.set(signals);
+      const candidateIds = rows.map((row) => row.id).filter((id): id is string => !!id);
+      const sources = await this.repo.sourceUrls(candidateIds);
+      const { urls, images } = mapRadarSources(sources);
+      this.sourceUrls.set(urls);
+      this.sourceImages.set(images);
+      const signalImgs: Record<string, string> = {};
+      for (const signal of signals) {
+        const imgUrl = extractSourceImage({ raw_payload: signal.raw_payload });
+        if (imgUrl) {
+          signalImgs[signal.id] = imgUrl;
+        }
+      }
+      this.signalImages.set(signalImgs);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to load Property Radar.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+  countRecommendation(value: string) {
+    return this.rows().filter((row) => row.recommendation === value).length;
+  }
+  countStatus(value: string) {
+    return this.rows().filter((row) => row.status === value).length;
+  }
+  activeCount() {
+    return this.rows().filter(
+      (row) => !['ACQUIRED', 'REJECTED', 'ARCHIVED', 'SOLD'].includes(row.status ?? ''),
+    ).length;
+  }
+  reset() {
+    this.search =
+      this.profile =
+      this.developmentModel =
+      this.world =
+      this.recommendation =
+      this.status =
+        '';
+    this.minScore = this.minConfidence = undefined;
+  }
+  rank(row: RadarRow) {
+    return row.recommendation === 'BLOCKED'
+      ? -1
+      : ({ HOT: 600, STRONG: 500, WATCH: 400, LOW: 300, UNSCORED: 100 }[row.recommendation ?? ''] ??
+          0) + (row.compass_score ?? 0);
+  }
+  async saveSignal() {
+    if (!this.draft.source_url && !this.draft.raw_title) {
+      this.formError.set('Add a source URL or a meaningful listing title.');
+      return;
+    }
+    try {
+      await this.repo.createSignal({ ...this.draft, raw_currency: 'EUR' });
+      this.showSignal.set(false);
+      this.draft = {};
+      await this.refresh();
+    } catch (error) {
+      this.formError.set(error instanceof Error ? error.message : 'Signal could not be saved.');
+    }
+  }
+  async promote(signal: Signal) {
+    try {
+      const id = await this.repo.promoteSignal(
+        signal.id,
+        this.promotionWorld[signal.id],
+        signal.raw_title ?? undefined,
+      );
+      location.assign(`/candidates/${id}`);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Signal could not be promoted.');
+    }
+  }
+  openListing(event: Event, url: string) {
+    event.preventDefault();
+    event.stopPropagation();
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+  onCandidateImgError(candidateId: string) {
+    this.candidateImgFailed.update((state) => ({ ...state, [candidateId]: true }));
+  }
+  onSignalImgError(signalId: string) {
+    this.signalImgFailed.update((state) => ({ ...state, [signalId]: true }));
+  }
+  money(value: number | null, currency: string | null = 'EUR') {
+    return value == null
+      ? '—'
+      : new Intl.NumberFormat('en-IE', { style: 'currency', currency: currency ?? 'EUR' }).format(
+          value,
+        );
+  }
+  area(value: number | null) {
+    return value == null ? '—' : `${new Intl.NumberFormat('en-IE').format(value)} m²`;
+  }
+  number(value: number | null) {
+    return value == null ? '—' : Math.round(value).toString();
+  }
+  percent(value: number | null) {
+    return value == null ? '—' : `${Math.round(value)}%`;
+  }
+  badge(value: string | null) {
+    return `badge-${(value ?? 'UNSCORED').toLowerCase()}`;
+  }
 }
