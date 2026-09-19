@@ -83,4 +83,5 @@ begin
 end;
 $function$;
 
+revoke execute on function public.promote_discovery_signal_to_candidate(uuid, uuid, text) from public, anon;
 grant execute on function public.promote_discovery_signal_to_candidate(uuid, uuid, text) to authenticated;
