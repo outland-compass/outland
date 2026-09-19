@@ -235,6 +235,19 @@ export class CompassRepository {
       }),
     );
   }
+  async promoteDiscoverySignal(
+    signalId: string,
+    searchProfileId: string,
+    title?: string,
+  ): Promise<string> {
+    return this.one(
+      this.db.rpc('promote_discovery_signal_to_candidate', {
+        p_signal_id: signalId,
+        p_search_profile_id: searchProfileId,
+        p_title: title,
+      }),
+    );
+  }
   async startEvaluation(candidateId: string): Promise<string> {
     return this.one(this.db.rpc('start_evaluation', { p_candidate_id: candidateId }));
   }
