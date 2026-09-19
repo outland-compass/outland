@@ -28,8 +28,15 @@ type Evidence = Tables<{ schema: 'land' }, 'evidence_items'>;
             <p class="eyebrow">{{ radar()?.world_code }}</p>
             <h1>{{ candidate()?.title }}</h1>
             <p>{{ candidate()?.settlement || candidate()?.municipality || candidate()?.region || 'Location unknown' }} · {{ candidate()?.status }}</p>
-            @if (sourceUrl()) {
-              <a [href]="sourceUrl()" target="_blank" rel="noopener noreferrer" class="source-link">VIEW ORIGINAL LISTING ↗</a>
+            @if (primarySource(); as source) {
+              <div class="source-lifecycle">
+                <span class="source-status" [ngClass]="'source-'+displayListingStatus(source.listing_status).toLowerCase()">{{ displayListingStatus(source.listing_status) }}</span>
+                @if (displayListingStatus(source.listing_status) === 'LIVE' && source.source_url) {
+                  <a [href]="source.source_url" target="_blank" rel="noopener noreferrer" class="source-link">VIEW ORIGINAL LISTING ↗</a>
+                } @else if (source.source_url) {
+                  <span class="muted">Original URL retained as historical source</span>
+                }
+              </div>
             }
           </div>
           <span class="badge" [ngClass]="'badge-'+(radar()?.recommendation || 'unscored').toLowerCase()">{{ radar()?.recommendation }}</span>
@@ -140,7 +147,7 @@ export default class CandidatePage {
   readonly evidence = signal<Evidence[]>([]);
   readonly ddItems = signal<DdItem[]>([]);
   readonly sources = signal<Tables<{ schema: 'land' }, 'candidate_sources'>[]>([]);
-  readonly sourceUrl = computed(() => this.sources().find(s => s.source_url)?.source_url ?? null);
+  readonly primarySource = computed(() => this.sources().find(s => s.source_url) ?? this.sources()[0] ?? null);
   readonly heroImage = computed(() => { for (const s of this.sources()) { const img = extractSourceImage(s.source_snapshot); if (img) return img; } return null; });
   readonly imgFailed = signal(false);
   readonly allowedStatuses = computed(() => this.transitions[this.candidate()?.status ?? 'NEW'] ?? []);
@@ -184,6 +191,11 @@ export default class CandidatePage {
   area(v: number | null | undefined) { return v == null ? '—' : `${new Intl.NumberFormat('en-IE').format(v)} m²`; }
   number(v: number | null | undefined) { return v == null ? 'UNKNOWN' : Math.round(v).toString(); }
   percent(v: number | null | undefined) { return v == null ? '—' : `${Math.round(v)}%`; }
+  displayListingStatus(status: string | null | undefined) {
+    if (status === 'ACTIVE') return 'LIVE';
+    if (status === 'EXPIRED' || status === 'REMOVED' || status === 'SOLD') return 'EXPIRED';
+    return 'UNKNOWN';
+  }
   onImgError() { this.imgFailed.set(true); }
 
   private async mutate(success: string, action: () => Promise<unknown>, reset?: () => void) {
