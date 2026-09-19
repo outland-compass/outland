@@ -1622,6 +1622,10 @@ export type Database = {
         Args: { p_signal_id: string; p_title?: string; p_world_id: string };
         Returns: string;
       };
+      promote_discovery_signal_to_candidate: {
+        Args: { p_signal_id: string; p_search_profile_id: string; p_title?: string };
+        Returns: string;
+      };
       start_evaluation: { Args: { p_candidate_id: string }; Returns: string };
     };
     Enums: {

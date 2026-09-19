@@ -217,7 +217,7 @@ export function mapRadarSources(sources: RadarSource[]) {
               }
             </div>
             <div class="property-cell">
-              <span class="world">{{ signal.status }}</span>
+              <span class="world">{{ signalLabel(signal) }}</span>
               <h2>{{ signal.raw_title || 'Untitled signal' }}</h2>
               <p>
                 {{ signal.source_name || 'Unknown source' }} ·
@@ -229,18 +229,30 @@ export function mapRadarSources(sources: RadarSource[]) {
               ><small>{{ area(signal.raw_area_m2) }}</small>
             </div>
             <div class="signal-actions">
-              <select [(ngModel)]="promotionWorld[signal.id]" [disabled]="!roles.canAnalyze">
-                <option value="">Select World</option>
-                @for (item of radarWorlds(); track item.id) {
-                  <option [value]="item.id">{{ item.name }}</option>
-                }</select
-              ><button
-                class="quiet"
-                (click)="promote(signal)"
-                [disabled]="!promotionWorld[signal.id] || !roles.canAnalyze"
-              >
-                PROMOTE
-              </button>
+              @if (discoveryProfile(signal); as hunt) {
+                <span class="world">DISCOVERY / {{ hunt.development_model }}</span>
+                <small>{{ hunt.name }} · World unassigned</small>
+                <button
+                  class="quiet"
+                  (click)="promote(signal)"
+                  [disabled]="!roles.canAnalyze"
+                >
+                  PROMOTE TO CANDIDATE
+                </button>
+              } @else {
+                <select [(ngModel)]="promotionWorld[signal.id]" [disabled]="!roles.canAnalyze">
+                  <option value="">Select World</option>
+                  @for (item of radarWorlds(); track item.id) {
+                    <option [value]="item.id">{{ item.name }}</option>
+                  }</select
+                ><button
+                  class="quiet"
+                  (click)="promote(signal)"
+                  [disabled]="!promotionWorld[signal.id] || !roles.canAnalyze"
+                >
+                  PROMOTE
+                </button>
+              }
             </div>
           </article>
         } @empty {
@@ -435,13 +447,28 @@ export default class RadarPage {
       this.formError.set(error instanceof Error ? error.message : 'Signal could not be saved.');
     }
   }
+  discoveryProfile(signal: Signal): SearchProfile | undefined {
+    const payload = signal.extracted_payload;
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return undefined;
+    const code = (payload as Record<string, unknown>)['search_profile_code'];
+    return typeof code === 'string'
+      ? this.profiles().find((profile) => profile.code === code)
+      : undefined;
+  }
+  signalLabel(signal: Signal): string {
+    const hunt = this.discoveryProfile(signal);
+    return hunt ? `DISCOVERY / ${hunt.development_model} SIGNAL` : signal.status;
+  }
   async promote(signal: Signal) {
     try {
-      const id = await this.repo.promoteSignal(
-        signal.id,
-        this.promotionWorld[signal.id],
-        signal.raw_title ?? undefined,
-      );
+      const hunt = this.discoveryProfile(signal);
+      const id = hunt
+        ? await this.repo.promoteDiscoverySignal(signal.id, hunt.id, signal.raw_title ?? undefined)
+        : await this.repo.promoteSignal(
+            signal.id,
+            this.promotionWorld[signal.id],
+            signal.raw_title ?? undefined,
+          );
       location.assign(`/candidates/${id}`);
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Signal could not be promoted.');
