@@ -53,3 +53,35 @@ export function extractJsonLdImageUrl(nodes: Record<string, unknown>[], baseUrl:
   }
   return null;
 }
+
+
+function imageAttribute(tag: string, name: string): string | null {
+  const escaped = name.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\$&');
+  const value = tag.match(new RegExp(`\\b${escaped}\\s*=\\s*["']([^"']+)["']`, 'i'))?.[1];
+  return value ? clean(value) : null;
+}
+
+function srcsetFirst(value: string | null, baseUrl: URL): string | null {
+  if (!value) return null;
+  for (const candidate of value.split(',')) {
+    const raw = candidate.trim().split(/\s+/)[0];
+    const image = normalizeImageUrl(raw, baseUrl);
+    if (image) return image;
+  }
+  return null;
+}
+
+export function extractHtmlImageUrl(html: string, baseUrl: URL): string | null {
+  const tags = html.match(/<img\b[^>]*>/gi) ?? [];
+  for (const tag of tags) {
+    const haystack = tag.toLowerCase();
+    if (/logo|icon|avatar|profile|banner|sprite|placeholder/.test(haystack)) continue;
+    const direct = ['data-src', 'data-lazy-src', 'data-original', 'src']
+      .map((name) => normalizeImageUrl(imageAttribute(tag, name), baseUrl))
+      .find((value): value is string => Boolean(value));
+    if (direct) return direct;
+    const responsive = srcsetFirst(imageAttribute(tag, 'data-srcset') ?? imageAttribute(tag, 'srcset'), baseUrl);
+    if (responsive) return responsive;
+  }
+  return null;
+}
