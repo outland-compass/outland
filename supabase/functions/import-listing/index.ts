@@ -2,9 +2,9 @@
 // returns normalized Signal fields. Never infers or invents missing values.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { extractJsonLdImageUrl, extractMetaImageUrl } from './image.ts';
+import { extractHtmlImageUrl, extractJsonLdImageUrl, extractMetaImageUrl } from './image.ts';
 
-const ALLOWED_DOMAINS = ['oglasi.rs', 'realitica.com', 'estitor.com', 'nekretnine.rs'];
+const ALLOWED_DOMAINS = ['oglasi.rs', 'oglasi.me', 'realitica.com', 'estitor.com', 'nekretnine.rs'];
 const FETCH_TIMEOUT_MS = 12_000;
 const MAX_RESPONSE_BYTES = 2_000_000;
 const TRACKING_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid'];
@@ -295,6 +295,7 @@ function findArea(text: string): number | null {
 function sourceNameFor(hostname: string): string | null {
   const host = baseDomain(hostname);
   if (host.endsWith('oglasi.rs')) return 'Oglasi.rs';
+  if (host.endsWith('oglasi.me')) return 'oglasi.me';
   if (host.endsWith('realitica.com')) return 'Realitica';
   if (host.endsWith('estitor.com')) return 'Estitor';
   if (host.endsWith('nekretnine.rs')) return 'Nekretnine.rs';
@@ -362,6 +363,9 @@ function listingIdFor(url: URL): string | null {
   if (host.endsWith('oglasi.rs')) {
     return path.match(/(\d{2}-\d{5,})/)?.[1] ?? url.searchParams.get('oglas') ?? null;
   }
+  if (host.endsWith('oglasi.me')) {
+    return path.match(/(og\d+me)/i)?.[1] ?? null;
+  }
   return null;
 }
 
@@ -404,7 +408,8 @@ function parseListing(html: string, url: URL): ImportedListing {
   const location = jsonLdAddress(nodes) ?? clean(meta(html, 'og:locality')) ?? (isOglasi ? oglasiLocation(oglasiText) : null);
   const image_url = extractMetaImageUrl(html, url, 'og:image')
     ?? extractMetaImageUrl(html, url, 'twitter:image')
-    ?? extractJsonLdImageUrl(nodes, url);
+    ?? extractJsonLdImageUrl(nodes, url)
+    ?? extractHtmlImageUrl(html, url);
 
   return {
     source_name: sourceNameFor(url.hostname),
