@@ -105,18 +105,19 @@ export class CompassRepository {
   }
   async sourceUrls(
     candidateIds: string[],
-  ): Promise<{ candidate_id: string; source_url: string | null; image_url: string | null }[]> {
+  ): Promise<{ candidate_id: string; source_url: string | null; image_url: string | null; listing_status: string }[]> {
     if (!candidateIds.length) return [];
     const rows = await this.data(
       this.land
         .from('candidate_sources')
-        .select('candidate_id,source_url,source_snapshot')
+        .select('candidate_id,source_url,source_snapshot,listing_status')
         .in('candidate_id', candidateIds),
     );
     return rows.map((row) => ({
       candidate_id: row.candidate_id,
       source_url: row.source_url,
       image_url: extractSourceImage(row.source_snapshot),
+      listing_status: row.listing_status,
     }));
   }
   async mobileSpecs(candidateIds: string[]): Promise<MobileCandidateSpec[]> {
