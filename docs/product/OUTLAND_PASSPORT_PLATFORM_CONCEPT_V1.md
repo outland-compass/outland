@@ -281,3 +281,14 @@ Sledeće procene nisu potvrđene ponude dobavljača:
 Sledeći dokument, pre bilo kakve šeme ili implementacije, jeste `RAFTER Passport Prototype V0.1`: konkretan tok dva terminala, izbor prototipskog hardvera, minimum persistent podataka i izvršivi PASS/FAIL testovi.
 
 Tek rezultati tog prototipa mogu opravdati proširenje PASSPORT, SENSE, Universe Engine ili BOOKING modela.
+
+
+## 17. RAFTER ulazni portal — kanonska odluka
+
+Ulazni terminal RAFTER-a nalazi se na ručno otvaranim vratima između otvorenog Front Deck-a i zatvorenog River Room-a. Nije na krmi niti između servisne zone i Inner Room-a.
+
+Gost prislanja DESFire EV3 Passport na diskretno označeno mesto. Skriveni čitač i lokalni OUTLAND terminal proveravaju vremenski ograničenu dozvolu i kratko oslobađaju skriveni fail-secure električni prihvatnik; gost zatim otvara običnu kvaku rukom.
+
+Izlazak iznutra je uvek mehanički i nezavisan od Passporta, NFC-a, interneta, napajanja, Mystery stanja i OUTLAND OS-a. Sistem mora podržati administrativno otključavanje, vremenski ograničen offline pristup, senzor zatvorenosti vrata i rezervni mehanički pristup operatora.
+
+Prototipska referenca prihvatnika je `ASSA ABLOY effeff 118, 10–24 V AC/DC, fail-secure`; konačna čeona ploča/varijanta i maska ispred antene ostaju `TO VERIFY`. Automatska/motorizovana vrata, generička hotelska smart-brava, vidljivi keypad/ekran i NFC kutija koja izdaje fizički ključ nisu primarno RAFTER V1 rešenje.
