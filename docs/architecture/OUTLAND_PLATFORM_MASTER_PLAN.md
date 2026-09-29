@@ -259,3 +259,14 @@ Meaningful architecture decisions update this plan or the Decision Log.
 Database changes go through migrations.
 
 > **The Universe can be big. Each build step must be small.**
+
+
+---
+
+## Architecture note — SIGNAL boundary (2026-09-29)
+
+SIGNAL architecture work supersedes the assumption that `shared.worlds` is the universal representation of an OUTLAND experiential World.
+
+`shared.worlds` remains a **COMPASS bounded-context concept** for acquisition, scoring and due-diligence configuration until a dedicated SIGNAL/platform migration is separately approved. Historical `universe.nodes/frontiers/spots` and `passport.journeys/events` remain preserved as V0 history; they must not be expanded opportunistically into the new SIGNAL model.
+
+The next schema phase will define Universe → World → accommodation/base concepts, independent geography, and SIGNAL quest/gameplay entities explicitly rather than mutating the legacy COMPASS meaning in place.
