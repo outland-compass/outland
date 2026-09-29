@@ -55,6 +55,14 @@ on conflict (code) do update set
   reunderwrite_above_eur=excluded.reunderwrite_above_eur,
   target_profile=excluded.target_profile;
 
+-- Reproduce the historical Universe V0 GREENHILL node after World seed data exists.
+insert into universe.nodes(world_id,asset_id,code,name,node_type,status,metadata)
+select w.id,null,'N.01','GREENHILL N·01','stay','planned',
+  jsonb_build_object('display_code','N·01','implementation_order',1,'canon_status','working')
+from shared.worlds w
+where w.code='GREENHILL'
+on conflict (world_id,code) do nothing;
+
 -- Default dimension weights for every Radar-enabled world.
 insert into land.world_dimension_weights(world_id,dimension,weight)
 select w.id, x.dimension, x.weight
