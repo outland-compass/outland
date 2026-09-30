@@ -169,7 +169,7 @@ The current database contains several concepts that must remain explicitly separ
 - `passport` — experimental journey/event continuity V0.
 - `signal` — not implemented yet.
 
-**Boundary rule:** `shared.worlds` is the existing COMPASS acquisition/scoring concept. It must not be treated as the future SIGNAL/Universe `World` entity. SIGNAL architecture work may introduce a dedicated model only through a separately approved migration.
+**Boundary rule:** `shared.worlds` is the current canonical World identity used across COMPASS/LAND, Passport and Universe V0. Future SIGNAL/platform work must not create a second competing World identity. A separately approved migration may evolve/relocate this table to `core.worlds`, preserving the existing World UUIDs, while LAND-specific acquisition/scoring configuration is split into `land.world_profiles`. SIGNAL, LAND, Passport, Bases and Universe associations must reference the same canonical World.
 
 The production migration history for Universe/Passport V0 is being reconciled back into Git so a fresh local database can reproduce the historical production baseline before SIGNAL schema work begins.
 
