@@ -259,3 +259,16 @@ Meaningful architecture decisions update this plan or the Decision Log.
 Database changes go through migrations.
 
 > **The Universe can be big. Each build step must be small.**
+
+
+---
+
+## Architecture note — SIGNAL boundary (2026-09-29)
+
+SIGNAL architecture adopts **one canonical World identity for the whole platform**. The existing `shared.worlds` rows and UUIDs are the starting identity set and must not be duplicated in a separate SIGNAL/LAND World table.
+
+A separately approved platform migration may evolve/relocate `shared.worlds` to `core.worlds` while preserving every existing World UUID. LAND-specific acquisition, radar, capital, area, scoring and due-diligence configuration should move behind the canonical identity (for example `land.world_profiles`) rather than defining a second World. SIGNAL, LAND, Passport, Bases and other capabilities reference the same canonical World.
+
+Universe is a separate thematic/context entity. A World may participate in multiple Universes through an association such as `core.universe_worlds`; Universe does not own or duplicate World identity. Historical `universe.nodes/frontiers/spots` and `passport.journeys/events` remain preserved as V0 history and must not be expanded opportunistically.
+
+The next schema phase will therefore evolve the existing World identity, define Universe associations, accommodation/Base concepts and independent geography, then add SIGNAL quest/gameplay entities without creating parallel World records.

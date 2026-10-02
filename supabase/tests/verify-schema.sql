@@ -10,8 +10,10 @@ declare
     'candidate_media', 'candidate_economics', 'evaluations',
     'evaluation_dimension_weights', 'evaluation_items', 'candidate_gates',
     'dd_items', 'documents', 'evidence_items', 'notes', 'visits', 'decisions',
-    'search_profiles', 'candidate_search_profiles'
+    'search_profiles', 'candidate_search_profiles', 'mobile_candidate_specs'
   ];
+  universe_entities text[] := array['nodes', 'frontiers', 'spots'];
+  passport_entities text[] := array['journeys', 'events'];
   entity_name text;
 begin
   foreach entity_name in array shared_entities loop
@@ -35,14 +37,16 @@ begin
     end if;
   end loop;
 
-  if (select count(*) from shared.worlds where code in (
-    'GREENHILL', 'LOST_SIGNAL', 'NAVIGATOR', 'LOST_VALLEY', 'RIVERKEEPER', 'WANDERER'
-  )) <> 6 then
-    raise exception 'The six required worlds were not seeded';
+  if not exists (select 1 from shared.worlds where code = 'GREENHILL' and radar_enabled = true) then
+    raise exception 'GREENHILL Compass world missing or Radar disabled';
   end if;
 
-  if not exists (select 1 from shared.worlds where code = 'WANDERER' and radar_enabled = false) then
-    raise exception 'WANDERER must be seeded with radar_enabled = false';
+  if not exists (select 1 from shared.worlds where code = 'RAFTER' and radar_enabled = true and asset_kind = 'FLOATING') then
+    raise exception 'RAFTER floating Compass world missing or Radar disabled';
+  end if;
+
+  if not exists (select 1 from shared.worlds where code = 'WANDERER' and radar_enabled = true and asset_kind = 'MOBILE') then
+    raise exception 'WANDERER mobile Radar configuration missing';
   end if;
 
   if not exists (
@@ -66,11 +70,51 @@ begin
     raise exception 'GREENHILL lacks land criteria or gate definitions';
   end if;
 
-  if (select count(*) from land.world_gate_definitions g join shared.worlds w on w.id = g.world_id where w.code = 'RIVERKEEPER' and g.code in (
+  if (select count(*) from land.world_gate_definitions g join shared.worlds w on w.id = g.world_id where w.code = 'RAFTER' and g.code in (
     'floating_ownership', 'registration', 'berth_right', 'commercial_use', 'water_envelope',
     'moorings', 'shore_access', 'emergency_access', 'wastewater'
   )) <> 9 then
-    raise exception 'RIVERKEEPER lacks its required floating/water gate template';
+    raise exception 'RAFTER lacks its required floating/water gate template';
+  end if;
+
+  foreach entity_name in array universe_entities loop
+    if to_regclass('universe.' || entity_name) is null then
+      raise exception 'Missing Universe V0 entity: %', entity_name;
+    end if;
+  end loop;
+
+  foreach entity_name in array passport_entities loop
+    if to_regclass('passport.' || entity_name) is null then
+      raise exception 'Missing Passport V0 entity: %', entity_name;
+    end if;
+  end loop;
+
+  if not exists (
+    select 1
+    from universe.nodes n
+    join shared.worlds w on w.id = n.world_id
+    where w.code = 'GREENHILL' and n.code = 'N.01' and n.node_type = 'stay'
+  ) then
+    raise exception 'GREENHILL N.01 Universe V0 node missing';
+  end if;
+
+  if (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'universe' and c.relname = any(universe_entities) and c.relrowsecurity)
+      <> array_length(universe_entities, 1) then
+    raise exception 'RLS is not enabled on every Universe V0 table';
+  end if;
+
+  if (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'passport' and c.relname = any(passport_entities) and c.relrowsecurity)
+      <> array_length(passport_entities, 1) then
+    raise exception 'RLS is not enabled on every Passport V0 table';
+  end if;
+
+  if has_schema_privilege('anon', 'universe', 'USAGE')
+     or has_schema_privilege('authenticated', 'universe', 'USAGE')
+     or has_schema_privilege('anon', 'passport', 'USAGE')
+     or has_schema_privilege('authenticated', 'passport', 'USAGE') then
+    raise exception 'Universe/Passport V0 schemas must remain private from anon/authenticated';
   end if;
 
   if not exists (select 1 from storage.buckets where id = 'compass-evidence' and public = false) then

@@ -28,10 +28,16 @@ insert into shared.worlds(
 ('LOST_VALLEY','LOST VALLEY','Primeval forest','SILENCE','LISTEN','LAND',true,
  'Sutjeska / Perućica / Bosnia & Herzegovina',10000,50000,50000,80000,null,
  '{"priority":{"wilderness":"VERY_HIGH","privacy":"VERY_HIGH","simple_infrastructure":"HIGH","overbuilding":"AVOID"}}'),
-('RIVERKEEPER','RIVERKEEPER','River','GUARDIAN','FLOW','FLOATING',true,
- 'Novi Sad / Danube / Dunavac / Ribarsko ostrvo',null,null,60000,70000,80000,
- '{"priority":{"berth_location_right":"GATE","registration":"GATE","commercial_use":"GATE","water_envelope":"GATE","wastewater":"GATE","quiet_water_experience":"VERY_HIGH"}}'),
-('WANDERER','WANDERER','Road','FREEDOM','GO','MOBILE',false,
+('RAFTER','RAFTER','River','GUARDIAN','FLOW','FLOATING',true,
+ 'Novi Sad / Danube / Dunavac / Ribarsko ostrvo',null,null,15000,20000,20000,
+ '{"capex":{"target_eur":15000,"stop_go_eur":25000,"working_max_eur":20000},"priority":{"wastewater":"GATE","registration":"GATE","commercial_use":"GATE","water_envelope":"GATE","berth_location_right":"GATE","quiet_water_experience":"VERY_HIGH"},"search_mode":"Prefer legal berth/location right first; existing cheaper floating asset with defensible berth may be evaluated, but do not assume an existing splav is commercially rentable","development_track":"FLOATING"}'),
+('ORIGIN','ORIGIN','Sea','ARCHAEOLOGICAL / COASTAL','ANCHOR','LAND',true,
+ 'Aliki, Thassos, Greece / strategically relevant nearby south-east Thassos locations',null,null,null,null,null,
+ '{"priority":{"privacy":"HIGH","hospitality_use":"HIGH","sea_relationship":"VERY_HIGH","legal_buildability":"GATE","archaeological_landscape":"VERY_HIGH","archaeological_restrictions":"GATE"},"development_track":"PERMANENT"}'),
+('OUTLAND_WORK','OUTLAND WORK','Forest edge / Fruška Gora','Nature Work Retreat','Outdoor-first distributed micro-spaces','LAND',true,
+ 'Fruška Gora / Serbia',1500,5000,20000,60000,null,
+ '{"concept":"Nature-first work retreat","capacity":"8-10 people","priority":{"privacy":"VERY_HIGH","forest_edge":"VERY_HIGH","mature_trees":"VERY_HIGH","year_round_access":"HIGH","legal_buildability":"GATE","internet_feasibility":"GATE","minimal_intervention":"VERY_HIGH"},"development_track":"LOW_IMPACT_WORK_RETREAT","v0_total_capex_target_eur":125000}'),
+('WANDERER','WANDERER','Road','FREEDOM','GO','MOBILE',true,
  'Mobile / network-wide',null,null,70000,90000,null,
  '{"priority":{"portfolio_mobility":"VERY_HIGH","scouting":"VERY_HIGH"}}')
 on conflict (code) do update set
@@ -48,6 +54,14 @@ on conflict (code) do update set
   target_capital_max_eur=excluded.target_capital_max_eur,
   reunderwrite_above_eur=excluded.reunderwrite_above_eur,
   target_profile=excluded.target_profile;
+
+-- Reproduce the historical Universe V0 GREENHILL node after World seed data exists.
+insert into universe.nodes(world_id,asset_id,code,name,node_type,status,metadata)
+select w.id,null,'N.01','GREENHILL N·01','stay','planned',
+  jsonb_build_object('display_code','N·01','implementation_order',1,'canon_status','working')
+from shared.worlds w
+where w.code='GREENHILL'
+on conflict (world_id,code) do nothing;
 
 -- Default dimension weights for every Radar-enabled world.
 insert into land.world_dimension_weights(world_id,dimension,weight)
@@ -104,8 +118,8 @@ from land_worlds lw cross join criteria c
 on conflict (world_id,code) do update set
  dimension=excluded.dimension,label=excluded.label,item_weight=excluded.item_weight,sort_order=excluded.sort_order,is_active=true;
 
--- RIVERKEEPER criteria.
-with rw as (select id from shared.worlds where code='RIVERKEEPER'),
+-- RAFTER criteria.
+with rw as (select id from shared.worlds where code='RAFTER'),
 criteria(dimension,code,label,item_weight,sort_order) as (values
  ('PLACE'::public.score_dimension,'water_experience','Water / reed / river experience quality',1.4,10),
  ('PLACE'::public.score_dimension,'quiet_privacy','Quiet / privacy from neighboring activity',1.4,20),
@@ -125,7 +139,7 @@ criteria(dimension,code,label,item_weight,sort_order) as (values
  ('ECONOMICS'::public.score_dimension,'operating_costs','Berth / marine / servicing cost profile',1.0,40),
  ('ECONOMICS'::public.score_dimension,'fast_to_bookable','Time / capital to first bookable state',1.0,50),
 
- ('OUTLAND'::public.score_dimension,'world_identity','RIVERKEEPER identity fit',1.4,10),
+ ('OUTLAND'::public.score_dimension,'world_identity','RAFTER identity fit',1.4,10),
  ('OUTLAND'::public.score_dimension,'story_potential','The Last Riverkeeper story potential',1.0,20),
  ('OUTLAND'::public.score_dimension,'mystery_potential','Mystery / Return the Mark potential',0.8,30),
  ('OUTLAND'::public.score_dimension,'water_room','Water Room / deck potential',1.1,40),
@@ -165,8 +179,8 @@ from land_worlds lw cross join gates g
 on conflict (world_id,code) do update set
  category=excluded.category,label=excluded.label,is_critical=excluded.is_critical,sort_order=excluded.sort_order,is_active=true;
 
--- RIVERKEEPER gate template.
-with rw as (select id from shared.worlds where code='RIVERKEEPER'),
+-- RAFTER gate template.
+with rw as (select id from shared.worlds where code='RAFTER'),
 gates(code,category,label,is_critical,sort_order) as (values
  ('floating_ownership','LEGAL & CONTROL','Floating-object ownership clean and verifiable',true,10),
  ('registration','LEGAL & CONTROL','Registration status / registrability verified',true,20),

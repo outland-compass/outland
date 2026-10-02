@@ -1,6 +1,6 @@
 # OUTLAND OS — Current State
 
-**Status date:** 2026-09-06  
+**Status date:** 2026-09-29  
 **Purpose:** Operational handover and current-state reference for OUTLAND OS development.
 
 > This document describes what exists now, what has been completed, what is intentionally deferred, and what should happen next.
@@ -157,6 +157,21 @@ Total:
 **20 tables + 5 views**
 
 ---
+
+
+### Database bounded-context clarification — 2026-09-29
+
+The current database contains several concepts that must remain explicitly separated while SIGNAL is introduced:
+
+- `shared` — cross-domain identity/assets plus the existing legacy COMPASS World configuration.
+- `land` — COMPASS acquisition/property intelligence.
+- `universe` — experimental Universe V0 structural model. `nodes/frontiers/spots` are retained as historical V0 and are **not** the final SIGNAL Universe/World model.
+- `passport` — experimental journey/event continuity V0.
+- `signal` — not implemented yet.
+
+**Boundary rule:** `shared.worlds` is the current canonical World identity used across COMPASS/LAND, Passport and Universe V0. Future SIGNAL/platform work must not create a second competing World identity. A separately approved migration may evolve/relocate this table to `core.worlds`, preserving the existing World UUIDs, while LAND-specific acquisition/scoring configuration is split into `land.world_profiles`. SIGNAL, LAND, Passport, Bases and Universe associations must reference the same canonical World.
+
+The production migration history for Universe/Passport V0 is being reconciled back into Git so a fresh local database can reproduce the historical production baseline before SIGNAL schema work begins.
 
 ## 5. Database naming standard
 
