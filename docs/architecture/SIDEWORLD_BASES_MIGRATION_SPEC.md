@@ -1,13 +1,16 @@
-# Phase 1B — Bases migration specification
+# Phase 1B — Bases migration
 
-Status: design only, not applied.
+Status: SQL and read-only verification staged in draft PR #29. NOT tested, merged or applied.
 
-- Create private `infrastructure.bases` with UUID PK, required `world_id` FK to `shared.worlds`, optional `asset_id` FK to `shared.assets`, name, status, optional positive guest capacity, metadata and timestamps. Defer `location_id` FK until `geography.locations` exists.
-- Keep a private migration audit with source table, source UUID, new Base UUID and complete source row JSON. It is provenance, not a second accommodation table.
-- Backfill only legacy `node_type='stay'` rows. Match rows using source UUID, not potentially duplicated names. Fail if unknown node types or unexpected nonempty frontier/spot tables appear.
-- Validate counts, world identity, metadata and timestamp parity before allowing legacy cleanup.
-- Enable RLS with no public grants or policies by default. Add only audited access policies when app needs them.
-- Preserve legacy tables and Passport FKs until all consumers are migrated and isolated regression tests pass.
-- Rollback before cleanup: drop only new private audit and Base tables after checking that no new application data has been written. After cutover use backup and mapping-based recovery, not blind DROP.
+Files:
+- `supabase/migrations/202610020001_sideworld_bases_foundation.sql`
+- `supabase/migrations/202610020002_sideworld_bases_legacy_backfill.sql`
+- `supabase/tests/verify-sideworld-bases.sql`
 
-Open verification: full deployed-client inventory, isolated migration replay, backup restore, security tests and explicit production approval.
+Creates private `infrastructure.bases` and migration audit; retains canonical `shared.worlds`, `shared.assets`, all legacy tables and Passport FKs. Guest capacity remains unknown for GREENHILL. Geographic FK deferred until geography.locations exists. Source UUID mapping and full original node snapshot are retained.
+
+**Required before merge:** Claude Code must independently review SQL correctness, migration order, RLS privileges, timestamp parity, empty and unexpected-data cases, audit completeness and rollback; replay from clean local database; run existing schema and security tests plus the new verification script. Existing `verify-schema.sql` intentionally still asserts legacy tables because cleanup is a later phase. Test and report any incompatibility rather than changing historic applied migrations.
+
+**Required before production:** inspect all deployed consumers and current live migration parity; restore-test a backup and obtain separate explicit approval. Do not drop legacy tables, alter Passport FKs, merge or deploy as part of this PR without review.
+
+Rollback before any new application writes: after confirming no dependent data, remove only newly introduced private infrastructure tables and schema if empty. After new writes, use audited mapping and backup-based recovery; never blind-drop.
