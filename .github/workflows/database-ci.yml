@@ -18,7 +18,7 @@ concurrency:
 jobs:
   local-migration-replay:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -26,17 +26,16 @@ jobs:
           version: 2.119.0
       - name: Start disposable local Supabase
         run: supabase start
-      - name: Replay repository migrations and seed locally
+      - name: Full clean migration replay
         run: supabase db reset --local
-      - name: Verify all SQL scripts independently
+      - name: Run legacy SQL checks independently
         shell: bash
         run: |
           set -uo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
-          test -n "$db_container" || { echo 'Local Supabase database container not found'; exit 1; }
           failures=0
-          for script in supabase/tests/verify-schema.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql; do
-            echo "::group::Running $script"
+          for script in supabase/tests/verify-schema.sql supabase/tests/verify-workflow-security.sql; do
+            echo "::group::$script"
             if docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
               echo "PASS: $script"
             else
@@ -46,6 +45,37 @@ jobs:
             echo '::endgroup::'
           done
           exit "$failures"
+      - name: Stop disposable stack
+        if: always()
+        run: supabase stop --no-backup
+
+  existing-data-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Prepare historical database with seeded GREENHILL
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/sideworld-pending
+          mv supabase/migrations/20261002000*_sideworld_*.sql /tmp/sideworld-pending/
+          supabase db reset --local
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          docker exec "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM universe.nodes WHERE node_type='stay') THEN RAISE EXCEPTION 'Missing pre-existing legacy stay fixture'; END IF; END \$\$;"
+          mv /tmp/sideworld-pending/*.sql supabase/migrations/
+          supabase migration up --local
+      - name: Verify SIDEWORLD upgrade with pre-existing data
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/verify-sideworld-bases.sql
       - name: Stop disposable stack
         if: always()
         run: supabase stop --no-backup
