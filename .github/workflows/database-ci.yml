@@ -108,7 +108,7 @@ jobs:
           # Seed only once the historical Universe tables exist. This is a
           # synthetic staging-shaped fixture, NOT a copy of staging data.
           docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/seed.sql
-          docker exec "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -c "DO \\\$\\\$ BEGIN IF NOT EXISTS (SELECT 1 FROM universe.nodes WHERE node_type='stay') THEN RAISE EXCEPTION 'Missing legacy stay after catch-up'; END IF; END \\\$\\\$;"
+          test "$(docker exec "$db_container" psql -X -A -t -v ON_ERROR_STOP=1 -U postgres -d postgres -c "select count(*) from universe.nodes where node_type='stay'")" -gt 0
           mv /tmp/sideworld-pending/*.sql supabase/migrations/
           supabase migration up --local
           docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/verify-sideworld-bases.sql
