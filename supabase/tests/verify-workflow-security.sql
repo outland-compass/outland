@@ -31,11 +31,11 @@ select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001
 do $$
 declare
   greenhill_id uuid;
-  riverkeeper_id uuid;
+  rafter_id uuid;
   v_signal_id uuid;
   v_candidate_id uuid;
-  v_river_signal_id uuid;
-  v_river_candidate_id uuid;
+  v_rafter_signal_id uuid;
+  v_rafter_candidate_id uuid;
   v_evaluation_id uuid;
   snapshot_weight numeric;
   expected_score numeric;
@@ -43,7 +43,8 @@ declare
   actual_confidence numeric;
 begin
   select id into greenhill_id from shared.worlds where code = 'GREENHILL';
-  select id into riverkeeper_id from shared.worlds where code = 'RIVERKEEPER';
+  select id into rafter_id from shared.worlds where code = 'RAFTER';
+  if greenhill_id is null or rafter_id is null then raise exception 'Required test worlds missing'; end if;
 
   insert into land.signals(world_id, source_name, source_url, raw_title, raw_description, raw_price, raw_currency, raw_area_m2)
   values (greenhill_id, 'workflow test', 'https://example.test/signal-promotion', 'Promotion test', 'Test signal', 100000, 'EUR', 10000)
@@ -93,14 +94,14 @@ begin
   end if;
 
   insert into land.signals(world_id, source_name, source_url, raw_title, extracted_payload)
-  values (riverkeeper_id, 'workflow test', 'https://example.test/riverkeeper', 'Riverkeeper test', '{"asset_kind":"FLOATING"}')
-  returning id into v_river_signal_id;
-  v_river_candidate_id := public.promote_signal_to_candidate(v_river_signal_id, riverkeeper_id, null);
-  if (select count(*) from land.candidate_gates where candidate_id = v_river_candidate_id and gate_code in (
+  values (rafter_id, 'workflow test', 'https://example.test/riverkeeper', 'RAFTER test', '{"asset_kind":"FLOATING"}')
+  returning id into v_rafter_signal_id;
+  v_rafter_candidate_id := public.promote_signal_to_candidate(v_rafter_signal_id, rafter_id, null);
+  if (select count(*) from land.candidate_gates where candidate_id = v_rafter_candidate_id and gate_code in (
     'floating_ownership', 'registration', 'berth_right', 'commercial_use', 'water_envelope',
     'moorings', 'shore_access', 'emergency_access', 'wastewater'
   )) <> 9 then
-    raise exception 'RIVERKEEPER gate template verification failed';
+    raise exception 'RAFTER gate template verification failed';
   end if;
 end;
 $$;
