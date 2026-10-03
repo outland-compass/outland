@@ -1,0 +1,39 @@
+name: Database CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/database-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-migration-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Replay repository migrations and seed locally
+        run: supabase db reset --local
+      - name: Verify existing schema
+        run: supabase db query --local --file supabase/tests/verify-schema.sql
+      - name: Verify workflow security
+        run: supabase db query --local --file supabase/tests/verify-workflow-security.sql
+      - name: Verify SIDEWORLD Bases migration
+        run: supabase db query --local --file supabase/tests/verify-sideworld-bases.sql
+      - name: Stop disposable stack
+        if: always()
+        run: supabase stop --no-backup
