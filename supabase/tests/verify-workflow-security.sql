@@ -1,5 +1,44 @@
 begin;
 
+-- Floating-world resolution (rolled back with the rest of this file).
+-- Default mode 'canonical' (clean installs): the floating world MUST be code RAFTER, exactly as before.
+-- Opt-in mode 'legacy_compatible' (upgraded databases whose world canon predates #27, e.g. staging):
+--   PGOPTIONS='-c outland.world_canon=legacy_compatible'
+-- uses RAFTER if present, otherwise resolves the single existing world with the floating River/GUARDIAN/FLOW
+-- profile (e.g. legacy RIVERKEEPER). No world IDs or records are created or changed.
+create function pg_temp.resolve_floating_world() returns uuid
+language plpgsql as $resolver$
+declare
+  v_mode text := coalesce(nullif(current_setting('outland.world_canon', true), ''), 'canonical');
+  v_id uuid;
+  v_code text;
+  v_matches integer;
+begin
+  if v_mode not in ('canonical', 'legacy_compatible') then
+    raise exception 'Unknown outland.world_canon mode: %', v_mode;
+  end if;
+  select id into v_id from shared.worlds where code = 'RAFTER';
+  if v_mode = 'canonical' then
+    return v_id; -- NULL when RAFTER is missing: the strict assertions below then fail.
+  end if;
+  if v_id is not null then
+    if exists (select 1 from shared.worlds where code <> 'RAFTER' and asset_kind = 'FLOATING'
+               and environment = 'River' and archetype = 'GUARDIAN' and inner_movement = 'FLOW') then
+      raise exception 'Ambiguous floating world: RAFTER coexists with another River/GUARDIAN/FLOW floating world';
+    end if;
+    return v_id;
+  end if;
+  select count(*), min(id::text)::uuid, min(code) into v_matches, v_id, v_code
+  from shared.worlds
+  where asset_kind = 'FLOATING' and environment = 'River' and archetype = 'GUARDIAN' and inner_movement = 'FLOW';
+  if v_matches <> 1 then
+    raise exception 'legacy_compatible: expected exactly one River/GUARDIAN/FLOW floating world, found %', v_matches;
+  end if;
+  raise notice 'legacy_compatible: floating world resolved by profile to % (%)', v_code, v_id;
+  return v_id;
+end;
+$resolver$;
+
 do $$
 declare
   owner_id uuid := '00000000-0000-4000-8000-000000000001';
@@ -43,7 +82,7 @@ declare
   actual_confidence numeric;
 begin
   select id into greenhill_id from shared.worlds where code = 'GREENHILL';
-  select id into rafter_id from shared.worlds where code = 'RAFTER';
+  rafter_id := pg_temp.resolve_floating_world();
   if greenhill_id is null or rafter_id is null then raise exception 'Required test worlds missing'; end if;
 
   insert into land.signals(world_id, source_name, source_url, raw_title, raw_description, raw_price, raw_currency, raw_area_m2)
