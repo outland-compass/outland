@@ -83,3 +83,24 @@ Claude reported that scratch copies of the two failing tests pass when the RAFTE
 ### Current gate and required evidence
 
 **LOCAL REHEARSAL: conditional GO for the additive migration path; REMOTE STAGING: HOLD pending explicit founder authorization and closing evidence gaps.** This is not approval to deploy. Before staging: (1) archive a sanitized ten-version migration ledger and pre/post comparison; (2) explicitly disposition the two failing RAFTER-dependent tests without running the full seed; (3) review backfill failure/retry and hosted rollback procedure; (4) confirm the preserved local backup is accessible; (5) obtain founder approval for the exact staging-only execution plan. PR #29 remains Draft; production remains untouched.
+
+## Closing evidence — Phase 1B pre-deployment verification (2026-10-03, second pass)
+
+Full sanitized evidence: [`SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`](SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md). The migration and test files are byte-identical at `0ec4221` and at the current head, because `1532075` is docs-only. Status of the evidence gaps listed above:
+
+1. **Ten-version ledger and pre/post comparison: CLOSED.**
+   - Versions were applied one at a time on a fresh restore. Each has its file SHA-256, git blob, exit code, timing, and recorded statement count with md5.
+   - All 7 candidate IDs are shown hash-identical across staging, the restore and the post-migration state (excluding the added `development_model` column). All keep the same `world_id` (`OUTLAND_WORK`).
+2. **RAFTER-dependent tests: DOCUMENTED, still FAIL, not marked green.**
+   - The cause is the seed-only RAFTER/ORIGIN canon against staging's legacy RIVERKEEPER/ALIKI records.
+   - No seed was run and no world record was modified.
+   - A founder disposition is required; the options are in the evidence file, section 5.
+3. **Backfill failure/retry and rollback: CLOSED (local).**
+   - The CLI applies each migration atomically. A failed backfill leaves no partial objects but leaves the foundation committed.
+   - Retry after fixing the cause succeeds.
+   - The SIDEWORLD rollback SQL was verified from both the full and the partial state. It is exact (schema identical to the 8-migration state), and its guard aborts safely.
+   - Historical migrations roll back only by backup restore. Restoring the hosted project was not rehearsed.
+4. **Preserved backup: CONFIRMED.** Integrity checks passed 28/28 after the final teardown. The backup is stored outside Git and nothing from it is committed.
+5. **Founder approval for the exact staging-only plan: OPEN.**
+
+**Gate:** the migration path is technically GO. Remote staging remains on HOLD until items 2 (disposition) and 5 (approval) are signed off. This is not deployment approval, and production remains untouched.
