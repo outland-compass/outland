@@ -79,3 +79,39 @@ jobs:
       - name: Stop disposable stack
         if: always()
         run: supabase stop --no-backup
+
+  staging-history-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Replay eight-migration staging baseline and historical catch-up
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/staging-history /tmp/sideworld-pending
+          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql /tmp/staging-history/
+          mv supabase/migrations/20261002000*_sideworld_*.sql /tmp/sideworld-pending/
+          # The actual staging has eight recorded migrations. Start with precisely
+          # those eight on an EMPTY disposable local database, without final seed.
+          supabase db reset --local --no-seed
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          docker exec "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -c "select count(*) from shared.worlds"
+          # Reproduce the eight historical migrations missing from staging.
+          mv /tmp/staging-history/*.sql supabase/migrations/
+          supabase migration up --local
+          # Seed only once the historical Universe tables exist. This is a
+          # synthetic staging-shaped fixture, NOT a copy of staging data.
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/seed.sql
+          docker exec "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -c "DO \\\$\\\$ BEGIN IF NOT EXISTS (SELECT 1 FROM universe.nodes WHERE node_type='stay') THEN RAISE EXCEPTION 'Missing legacy stay after catch-up'; END IF; END \\\$\\\$;"
+          mv /tmp/sideworld-pending/*.sql supabase/migrations/
+          supabase migration up --local
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/verify-sideworld-bases.sql
+      - name: Stop disposable stack
+        if: always()
+        run: supabase stop --no-backup
