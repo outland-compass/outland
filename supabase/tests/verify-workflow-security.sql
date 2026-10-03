@@ -48,7 +48,9 @@ begin
   insert into land.signals(world_id, source_name, source_url, raw_title, raw_description, raw_price, raw_currency, raw_area_m2)
   values (greenhill_id, 'workflow test', 'https://example.test/signal-promotion', 'Promotion test', 'Test signal', 100000, 'EUR', 10000)
   returning id into v_signal_id;
+  raise notice 'COMPASS pre-promotion: signal %, GREENHILL world %, existing promoted candidate %', v_signal_id, greenhill_id, (select promoted_candidate_id from land.signals where id=v_signal_id);
   v_candidate_id := public.promote_signal_to_candidate(v_signal_id, greenhill_id, null);
+  raise notice 'COMPASS post-promotion: candidate %, world %', v_candidate_id, (select world_id from land.candidates where id=v_candidate_id);
 
   if not exists (select 1 from land.candidates where id = v_candidate_id)
     or not exists (select 1 from land.signals where id = v_signal_id and status = 'PROMOTED' and promoted_candidate_id = v_candidate_id)
