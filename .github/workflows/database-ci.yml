@@ -28,12 +28,16 @@ jobs:
         run: supabase start
       - name: Replay repository migrations and seed locally
         run: supabase db reset --local
-      - name: Verify existing schema
-        run: supabase db query --local --file supabase/tests/verify-schema.sql
-      - name: Verify workflow security
-        run: supabase db query --local --file supabase/tests/verify-workflow-security.sql
-      - name: Verify SIDEWORLD Bases migration
-        run: supabase db query --local --file supabase/tests/verify-sideworld-bases.sql
+      - name: Verify SQL scripts against local Postgres
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          test -n "$db_container" || { echo 'Local Supabase database container not found'; exit 1; }
+          for script in supabase/tests/verify-schema.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql; do
+            echo "Running $script"
+            docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"
+          done
       - name: Stop disposable stack
         if: always()
         run: supabase stop --no-backup
