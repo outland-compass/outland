@@ -39,3 +39,47 @@ Before migration, export full staging database with roles/schema/data and store 
 ## Follow-up hardening
 
 Clean-install SIDEWORLD post-seed parity remains distinct from upgrade validation. Decide whether to change the seed fixture or add an explicit, idempotent post-seed reconciliation path; do not weaken the upgrade assertions.
+
+## Real staging-snapshot rehearsal — founder-provided Claude Code report (2026-10-03)
+
+**Evidence provenance:** The following is transcribed from the founder's Claude Code terminal report. It has NOT been independently verified by this GitHub update: the backup and local rehearsal logs are on the founder's machine, outside this repository. No backup files, inventory rows, secrets, or credentials are committed here.
+
+### Backup and isolated restore
+
+- Local backup directory reported: `C:\Users\ThinkPad\outland-backups\staging-20261003-222200` (outside Git).
+- Backup script reported completion and `inventory ok: True`. Files shown included `roles.sql`, `schema.sql`, `data.sql`, `staging-full.dump`, inventory CSVs and `SHA256SUMS.txt`.
+- Claude subsequently reported that the original backup passed all 28 integrity checks and that a full restore into the disposable local environment took approximately 40 seconds. This is **not** a measured recovery time for the hosted Supabase staging project.
+- The disposable environment was reported stopped after the rehearsal; the original backup was retained locally.
+
+### Migration and data evidence
+
+- Baseline: eight recorded staging migrations. Planned catch-up: eight historical versions listed above **plus two SIDEWORLD versions**, for ten pending versions in total.
+- Claude's report states that `infrastructure.bases` contained one `GREENHILL N·01` row with matching source-node fields and timestamps; `infrastructure.base_legacy_migration_audit` contained one row with an exact source snapshot and no orphans. These observations support execution of both SIDEWORLD migrations in the local rehearsal.
+- Claude reported all seven existing candidates and their world links intact after the historical migration rehearsal. Obtain and attach a sanitized version-by-version migration ledger and pre/post inventory comparison before treating the full ten-version rehearsal as independently auditable; the supplied excerpt does not include the full ledger.
+- RLS was reported enabled on both new tables, with no policies; `anon`, `authenticated`, and `service_role` had no access to the new private schema/tables. Legacy Universe and Passport tables remained in place. Application access to bases is therefore **not** enabled by this phase.
+
+### Reported SQL verification results
+
+| Test | Result on restored staging snapshot |
+| --- | --- |
+| `verify-sideworld-bases` (PR branch) | PASS |
+| `diagnose-compass-promotion` (PR branch) | PASS |
+| `verify-workflow-security` (main) | PASS |
+| `verify-workflow-security` (PR branch) | FAIL: required test worlds missing |
+| `verify-schema` | FAIL: RAFTER floating Compass world missing |
+
+Claude reported that scratch copies of the two failing tests pass when the RAFTER-specific assumptions are changed or removed. **The original test files were not modified.** This is evidence of a fixture/canonical-data mismatch, not a passing original suite; do not mark these checks green.
+
+### Canonical-data discrepancy and deployment constraints
+
+- The staging snapshot retains legacy world codes including `RIVERKEEPER` and `ALIKI`; the newer seed uses `RAFTER` and `ORIGIN`. Claude reported that the corresponding existing staging world records should preserve their UUIDs, and that blindly running the full seed could insert duplicate canonical worlds and modify unrelated existing rows. No full seed was run in the rehearsal.
+- Resolve canonical naming as a **separate reviewed migration** or make staging-aware verification assertions without weakening clean-install checks. Do not rename world codes or alter existing world rows in this Phase 1B deployment.
+- Backup connection was reported to use encrypted transport (`sslmode=require`) without certificate verification; improve this separately where supported.
+- Concurrent application traffic and hosted-staging restore time were **not** tested. Recheck all live counts and migration versions immediately before any remote operation.
+- The repository's local Supabase CLI linkage reportedly points to **production**. Any future authorized staging deployment must explicitly target the verified staging database; never rely on `--linked`. Do not put database credentials in shell history or CI logs.
+- Migration versions must be ordered lexicographically as repository migration filenames, not converted to numbers.
+- The backfill's retry/partial-failure behavior has not been independently validated; require a controlled transaction/failure and rollback review before deployment.
+
+### Current gate and required evidence
+
+**LOCAL REHEARSAL: conditional GO for the additive migration path; REMOTE STAGING: HOLD pending explicit founder authorization and closing evidence gaps.** This is not approval to deploy. Before staging: (1) archive a sanitized ten-version migration ledger and pre/post comparison; (2) explicitly disposition the two failing RAFTER-dependent tests without running the full seed; (3) review backfill failure/retry and hosted rollback procedure; (4) confirm the preserved local backup is accessible; (5) obtain founder approval for the exact staging-only execution plan. PR #29 remains Draft; production remains untouched.
