@@ -1,5 +1,44 @@
 begin;
 
+-- Floating-world resolution (rolled back with the rest of this file).
+-- Default mode 'canonical' (clean installs): the floating world MUST be code RAFTER, exactly as before.
+-- Opt-in mode 'legacy_compatible' (upgraded databases whose world canon predates #27, e.g. staging):
+--   PGOPTIONS='-c outland.world_canon=legacy_compatible'
+-- uses RAFTER if present, otherwise resolves the single existing world with the floating River/GUARDIAN/FLOW
+-- profile (e.g. legacy RIVERKEEPER). No world IDs or records are created or changed.
+create function pg_temp.resolve_floating_world() returns uuid
+language plpgsql as $resolver$
+declare
+  v_mode text := coalesce(nullif(current_setting('outland.world_canon', true), ''), 'canonical');
+  v_id uuid;
+  v_code text;
+  v_matches integer;
+begin
+  if v_mode not in ('canonical', 'legacy_compatible') then
+    raise exception 'Unknown outland.world_canon mode: %', v_mode;
+  end if;
+  select id into v_id from shared.worlds where code = 'RAFTER';
+  if v_mode = 'canonical' then
+    return v_id; -- NULL when RAFTER is missing: the strict assertions below then fail.
+  end if;
+  if v_id is not null then
+    if exists (select 1 from shared.worlds where code <> 'RAFTER' and asset_kind = 'FLOATING'
+               and environment = 'River' and archetype = 'GUARDIAN' and inner_movement = 'FLOW') then
+      raise exception 'Ambiguous floating world: RAFTER coexists with another River/GUARDIAN/FLOW floating world';
+    end if;
+    return v_id;
+  end if;
+  select count(*), min(id::text)::uuid, min(code) into v_matches, v_id, v_code
+  from shared.worlds
+  where asset_kind = 'FLOATING' and environment = 'River' and archetype = 'GUARDIAN' and inner_movement = 'FLOW';
+  if v_matches <> 1 then
+    raise exception 'legacy_compatible: expected exactly one River/GUARDIAN/FLOW floating world, found %', v_matches;
+  end if;
+  raise notice 'legacy_compatible: floating world resolved by profile to % (%)', v_code, v_id;
+  return v_id;
+end;
+$resolver$;
+
 do $$
 declare
   owner_id uuid := '00000000-0000-4000-8000-000000000001';
@@ -31,11 +70,11 @@ select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001
 do $$
 declare
   greenhill_id uuid;
-  riverkeeper_id uuid;
+  rafter_id uuid;
   v_signal_id uuid;
   v_candidate_id uuid;
-  v_river_signal_id uuid;
-  v_river_candidate_id uuid;
+  v_rafter_signal_id uuid;
+  v_rafter_candidate_id uuid;
   v_evaluation_id uuid;
   snapshot_weight numeric;
   expected_score numeric;
@@ -43,12 +82,15 @@ declare
   actual_confidence numeric;
 begin
   select id into greenhill_id from shared.worlds where code = 'GREENHILL';
-  select id into riverkeeper_id from shared.worlds where code = 'RIVERKEEPER';
+  rafter_id := pg_temp.resolve_floating_world();
+  if greenhill_id is null or rafter_id is null then raise exception 'Required test worlds missing'; end if;
 
   insert into land.signals(world_id, source_name, source_url, raw_title, raw_description, raw_price, raw_currency, raw_area_m2)
   values (greenhill_id, 'workflow test', 'https://example.test/signal-promotion', 'Promotion test', 'Test signal', 100000, 'EUR', 10000)
   returning id into v_signal_id;
+  raise notice 'COMPASS pre-promotion: signal %, GREENHILL world %, existing promoted candidate %', v_signal_id, greenhill_id, (select promoted_candidate_id from land.signals where id=v_signal_id);
   v_candidate_id := public.promote_signal_to_candidate(v_signal_id, greenhill_id, null);
+  raise notice 'COMPASS post-promotion: candidate %, world %', v_candidate_id, (select world_id from land.candidates where id=v_candidate_id);
 
   if not exists (select 1 from land.candidates where id = v_candidate_id)
     or not exists (select 1 from land.signals where id = v_signal_id and status = 'PROMOTED' and promoted_candidate_id = v_candidate_id)
@@ -91,14 +133,14 @@ begin
   end if;
 
   insert into land.signals(world_id, source_name, source_url, raw_title, extracted_payload)
-  values (riverkeeper_id, 'workflow test', 'https://example.test/riverkeeper', 'Riverkeeper test', '{"asset_kind":"FLOATING"}')
-  returning id into v_river_signal_id;
-  v_river_candidate_id := public.promote_signal_to_candidate(v_river_signal_id, riverkeeper_id, null);
-  if (select count(*) from land.candidate_gates where candidate_id = v_river_candidate_id and gate_code in (
+  values (rafter_id, 'workflow test', 'https://example.test/riverkeeper', 'RAFTER test', '{"asset_kind":"FLOATING"}')
+  returning id into v_rafter_signal_id;
+  v_rafter_candidate_id := public.promote_signal_to_candidate(v_rafter_signal_id, rafter_id, null);
+  if (select count(*) from land.candidate_gates where candidate_id = v_rafter_candidate_id and gate_code in (
     'floating_ownership', 'registration', 'berth_right', 'commercial_use', 'water_envelope',
     'moorings', 'shore_access', 'emergency_access', 'wastewater'
   )) <> 9 then
-    raise exception 'RIVERKEEPER gate template verification failed';
+    raise exception 'RAFTER gate template verification failed';
   end if;
 end;
 $$;
