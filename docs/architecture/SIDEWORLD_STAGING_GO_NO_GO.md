@@ -104,3 +104,16 @@ Full sanitized evidence: [`SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`](SIDEWORLD_S
 5. **Founder approval for the exact staging-only plan: OPEN.**
 
 **Gate:** the migration path is technically GO. Remote staging remains on HOLD until items 2 (disposition) and 5 (approval) are signed off. This is not deployment approval, and production remains untouched.
+
+## Test compatibility and deployment runbook (2026-10-03, third pass)
+
+- **RAFTER test disposition: RESOLVED by option (b) in `119432c`.**
+  - Clean installs keep strict RAFTER assertions (default `canonical` mode).
+  - Upgraded legacy-canon databases opt in to `legacy_compatible`, which resolves the single River/GUARDIAN/FLOW floating world by profile, with no hardcoded ID.
+  - Duplicate floating identities are rejected.
+  - No security assertion was weakened, and no world record was changed.
+- **Full Database CI, run `37155548122`: 4/4 jobs green.** That includes the clean-install canonical replay and the new `legacy-world-canon-upgrade` job, which seeds with the pre-#27 seed, runs every suite in `legacy_compatible` mode, and proves canonical mode still rejects the legacy canon.
+- **Restored staging snapshot:** all 4 suites PASS in `legacy_compatible` mode (RIVERKEEPER resolved by profile). Canonical mode fails as intended. The 7 candidates and all world records are unchanged.
+- **Staging-only runbook:** [`SIDEWORLD_STAGING_DEPLOYMENT_RUNBOOK.md`](SIDEWORLD_STAGING_DEPLOYMENT_RUNBOOK.md), with guarded scripts in `scripts/staging/`. Steps 3–8, including rollback and re-apply, were drilled end-to-end on a fresh snapshot restore with the committed scripts.
+
+**Gate:** technically **GO**, and ready to deploy to staging. Remote execution remains on **HOLD** until written founder approval names the exact PR #29 SHA. A fresh backup (runbook step 2) is mandatory immediately before deployment. Production is untouched.

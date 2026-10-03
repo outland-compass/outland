@@ -89,6 +89,39 @@ The final ledger has 18 versions. Two independent full runs gave the same result
 
 ## 5. Verification tests (restored snapshot, after all ten migrations)
 
+### Current results: test compatibility in `119432c` (supersedes the table below)
+
+**Change:**
+- `verify-schema.sql` and `verify-workflow-security.sql` resolve the floating world through `pg_temp.resolve_floating_world()`.
+- **Default mode `canonical`** (clean installs; the setting is unset in the CI clean replay): the world **must** be code `RAFTER`. The assertions are unchanged.
+- **Opt-in mode `legacy_compatible`** (`set outland.world_canon = legacy_compatible`, or `PGOPTIONS`):
+  - RAFTER is used if it exists.
+  - Otherwise, the single existing world with the floating River/GUARDIAN/FLOW profile is resolved. That is staging's `RIVERKEEPER`, `3fa8b58a…`, resolved by profile, never hardcoded.
+  - RAFTER coexisting with another world of that profile is rejected as ambiguous.
+- No security, gate or promotion assertion was removed or relaxed. No world record is created or changed.
+
+| Suite (at `119432c`) | Staging snapshot, `legacy_compatible` | Staging snapshot, `canonical` |
+| --- | --- | --- |
+| `verify-schema.sql` | **PASS** (RIVERKEEPER by profile) | **FAIL, as intended**: `RAFTER floating Compass world missing` |
+| `verify-workflow-security.sql` | **PASS** (RIVERKEEPER by profile; full security suite, rolled back) | **FAIL, as intended**: `Required test worlds missing` |
+| `diagnose-compass-promotion.sql` | **PASS** | n/a (no world canon dependency) |
+| `verify-sideworld-bases.sql` | **PASS** | n/a |
+| Ambiguity guard (RAFTER inserted next to RIVERKEEPER, rolled back) | **Rejected as intended**: `Ambiguous floating world`; 0 RAFTER rows afterwards | n/a |
+
+After all of these runs, the world records and the 7 candidates were unchanged (re-run comparison: 0 changes).
+
+**GitHub Database CI run `37155548122` on `119432c`: success, 4/4 jobs:**
+- `local-migration-replay` (clean install, **canonical**): `verify-schema`, `diagnose-compass-promotion` and `verify-workflow-security` all PASS, with no legacy resolution.
+- `existing-data-upgrade`: PASS.
+- `staging-history-rehearsal`: PASS.
+- **New `legacy-world-canon-upgrade`:**
+  - Builds the 8-version baseline, seeded with the pre-#27 `seed.sql`, as staging was, then catches up all 10.
+  - All 4 suites PASS in `legacy_compatible` mode.
+  - Canonical mode still rejects the legacy canon.
+  - The ambiguous identity is rejected.
+
+### Earlier results (tests before `119432c`)
+
 | Test | Result |
 | --- | --- |
 | `verify-sideworld-bases.sql` (PR) | **PASS**: two full runs, after the failure-recovery run, after rollback and re-apply |
@@ -97,7 +130,7 @@ The final ledger has 18 versions. Two independent full runs gave the same result
 | `verify-workflow-security.sql` (PR, RAFTER fixture) | **FAIL**: `Required test worlds missing` (no check runs) |
 | `verify-schema.sql` (main = PR) | **FAIL**: `RAFTER floating Compass world missing or Radar disabled` |
 
-### RAFTER discrepancy (documented, not resolved)
+### RAFTER discrepancy: test compatibility implemented in `119432c` (option b); the world canon is still unreconciled
 
 - **Cause:**
   - `#27` (`26eb571`) changed `seed.sql` to match production's world codes, renaming `RIVERKEEPER` to `RAFTER` and `ALIKI` to `ORIGIN`.
@@ -109,12 +142,25 @@ The final ledger has 18 versions. Two independent full runs gave the same result
   - `verify-schema` passes when its two seed-only RAFTER assertions are removed.
   - These are diagnostics, **not** green results.
 - **Why no seed was run:** `seed.sql` upserts worlds `on conflict (code)`. On staging it would overwrite 6 existing world rows, including `OUTLAND_WORK`. It would also insert RAFTER and ORIGIN as **new UUIDs** next to RIVERKEEPER and ALIKI, creating duplicate canonical worlds. No seed was run, and no staging world record was modified.
-- **Disposition (founder decision required):** both failures are a fixture/canonical-data mismatch, not a migration defect. The options are:
-  - (a) accept them as known staging exceptions for Phase 1B;
-  - (b) make the tests resolve the floating world by `asset_kind`/profile on upgraded databases while keeping the clean-install assertions;
-  - (c) write a separate reviewed migration that renames codes and preserves UUIDs.
+- **Disposition:** option (b) is implemented in `119432c`. Staging's legacy world codes remain as they are. Reconciling them (option c: rename codes, preserve UUIDs) stays a separate, reviewed decision outside Phase 1B. Do not rename worlds as part of Phase 1B.
 
-  Do not rename worlds as part of Phase 1B.
+## 5b. Runbook drill (`SIDEWORLD_STAGING_DEPLOYMENT_RUNBOOK.md`, steps 3–8)
+
+- **Setup:**
+  - Run on a fresh restore of the staging snapshot.
+  - Uses the committed `scripts/staging/*` files and the real deployment path (`db push --db-url` from an unlinked checkout).
+  - Only three things differed from the runbook: the password prompt was scripted, the target was the local restore, and `--yes` was passed.
+- **Results:**
+  - Target check: `TARGET VERIFIED`.
+  - Phase A dry-run and push: exactly the 8 historical versions, `"seeds":[]`.
+  - Checkpoint: `CHECKPOINT PASSED` (16 versions, 1 stay node, no frontiers or spots).
+  - Phase B: exactly the 2 SIDEWORLD versions.
+  - Post-deployment: `POST-DEPLOY VALIDATION PASSED`. `verify-sideworld-bases` PASS; `verify-schema` and `verify-workflow-security` PASS with `-PreSql "set outland.world_canon = legacy_compatible"`, which works through the pooler.
+  - Ledger: 18 remote, 0 local-only, 0 remote-only.
+  - SIDEWORLD rollback: back to 16 versions, checkpoint passes again. Re-push and re-validation PASS.
+  - The target check on a deployed DB correctly STOPs.
+- **Bug found by the drill and fixed:** Windows PowerShell 5.1 turned `psql` NOTICEs on stderr into terminating errors under `$ErrorActionPreference = 'Stop'`. `Invoke-StagingSql` now treats native output as text and decides success only from `psql`'s exit code.
+- **Observed:** `db push --db-url` treats the target as remote and requires TLS. That's correct for staging; the local drill used `sslmode=disable`.
 
 ## 6. Failure handling and rollback (tested locally)
 
