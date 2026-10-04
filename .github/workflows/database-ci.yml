@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'supabase/**'
+      - 'scripts/legacy-cleanup/**'
       - '.github/workflows/database-ci.yml'
   workflow_dispatch:
 
@@ -21,6 +22,8 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: supabase/setup-cli@v1
         with:
           version: 2.119.0
@@ -34,7 +37,7 @@ jobs:
           set -uo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           failures=0
-          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql; do
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql; do
             echo "::group::$script"
             if docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
               echo "PASS: $script"
@@ -54,6 +57,8 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: supabase/setup-cli@v1
         with:
           version: 2.119.0
@@ -64,11 +69,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/sideworld-pending
-          mv supabase/migrations/20261002000*_sideworld_*.sql /tmp/sideworld-pending/
-          supabase db reset --local
+          mv supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql /tmp/sideworld-pending/
+          supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          git show 05105f7:supabase/seed.sql | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
           docker exec "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM universe.nodes WHERE node_type='stay') THEN RAISE EXCEPTION 'Missing pre-existing legacy stay fixture'; END IF; END \$\$;"
-          mv /tmp/sideworld-pending/*.sql supabase/migrations/
+          mv /tmp/sideworld-pending/20261002000*_sideworld_*.sql supabase/migrations/
+          supabase migration up --local
+          bash scripts/legacy-cleanup/drill.sh /tmp/sideworld-pending/*_retire_legacy_universe_v0.sql
+          mv /tmp/sideworld-pending/*_retire_legacy_universe_v0.sql supabase/migrations/
           supabase migration up --local
       - name: Verify SIDEWORLD upgrade with pre-existing data
         shell: bash
@@ -85,6 +94,8 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: supabase/setup-cli@v1
         with:
           version: 2.119.0
@@ -96,7 +107,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/staging-history /tmp/sideworld-pending
           mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql /tmp/staging-history/
-          mv supabase/migrations/20261002000*_sideworld_*.sql /tmp/sideworld-pending/
+          mv supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql /tmp/sideworld-pending/
           # The actual staging has eight recorded migrations. Start with precisely
           # those eight on an EMPTY disposable local database, without final seed.
           supabase db reset --local --no-seed
@@ -107,7 +118,7 @@ jobs:
           supabase migration up --local
           # Seed only once the historical Universe tables exist. This is a
           # synthetic staging-shaped fixture, NOT a copy of staging data.
-          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/seed.sql
+          git show 05105f7:supabase/seed.sql | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
           test "$(docker exec "$db_container" psql -X -A -t -v ON_ERROR_STOP=1 -U postgres -d postgres -c "select count(*) from universe.nodes where node_type='stay'")" -gt 0
           mv /tmp/sideworld-pending/*.sql supabase/migrations/
           supabase migration up --local
@@ -136,7 +147,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/pending
-          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql supabase/migrations/20261002000*_sideworld_*.sql /tmp/pending/
+          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql /tmp/pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           # Seed exactly as staging was seeded: seed.sql as it was before #27 (26eb571) renamed RIVERKEEPER.

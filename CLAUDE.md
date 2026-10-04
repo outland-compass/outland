@@ -12,7 +12,7 @@ For existing OUTLAND OS code, preserve working operational boundaries. For new S
 - `shared.worlds` is the EXISTING OUTLAND/COMPASS operational World registry, NOT an approved permanent canonical registry for SIDEWORLD narrative worlds. Preserve existing UUIDs, data and COMPASS dependencies; do not rename, repurpose or delete it in PR #29.
 - ARCHITECTURE DIRECTION UNDER EVALUATION: decouple SIDEWORLD narrative worlds from OUTLAND operational/investment records. A separate `core.worlds` and explicit mapping may be appropriate, but their precise semantics, ownership, cardinality and naming are NOT approved. Do not create `core.worlds`, `signal.worlds` or a mapping table without a separate founder-approved design and dependency audit. Do not describe `shared.worlds` as a parcel wishlist: `land.candidates` already represents investment candidates.
 - One canonical Universe registry is planned; never duplicate universes across schemas. `core.universe_worlds` was an earlier proposal tied to the old world-registry assumption and must be revisited, not automatically implemented.
-- `infrastructure.bases` is the accommodation-capacity entity, separate from businesses, physical POIs and collectibles/discoveries. Its two additive Phase 1B migrations have been applied and validated on staging only.
+- `infrastructure.bases` is the accommodation-capacity entity, separate from businesses, physical POIs and collectibles/discoveries. Its two additive Phase 1B migrations have been applied and validated on staging and production.
 - Geography, quests, themes, recurring characters, publication/versioning and player progress are planned domains; do not bulk-create speculative tables.
 - Founder builds software; AI produces content; Darko and Sara field-test initial quests. Initial market validation: Novi Sad, Belgrade and Dubai. ~1,000 cities after year one is a capability TARGET, not a projection.
 
@@ -35,5 +35,8 @@ The two additive `infrastructure.bases` foundation/backfill migrations are deplo
 - Do not change historical applied migrations. Create new additive migrations.
 - Do not use CASCADE for cleanup shortcuts.
 - Do not expose credentials, service keys or private user data in docs, tests or output.
-- Commit changes on the existing feature branch and update PR #29, not a competing PR; keep draft until independently reviewed.
+- PR #29 and #30 are merged. Subsequent legacy cleanup belongs on a separate bounded branch/PR; keep draft until reviewed.
 - Report file diffs, exact executed tests and results, blockers and commit SHA. If a check was not run, say so.
+
+## Legacy cleanup preparation (2026-10-04)
+The founder authorized preparation and testing of removal of the three legacy Universe V0 tables and their unused Passport references. The new cleanup migration is NOT deployed. Production deletion still requires separate approval of the reviewed commit. Keep Base/audit records and Passport tables; no narrative model, new registry or application grants are in scope. `universe.set_updated_at` remains because the existing Passport journey trigger uses it.
