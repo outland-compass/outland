@@ -1,5 +1,44 @@
 begin;
 
+-- Floating-world resolution (rolled back with the rest of this file).
+-- Default mode 'canonical' (clean installs): the floating world MUST be code RAFTER, exactly as before.
+-- Opt-in mode 'legacy_compatible' (upgraded databases whose world canon predates #27, e.g. staging):
+--   PGOPTIONS='-c outland.world_canon=legacy_compatible'
+-- uses RAFTER if present, otherwise resolves the single existing world with the floating River/GUARDIAN/FLOW
+-- profile (e.g. legacy RIVERKEEPER). No world IDs or records are created or changed.
+create function pg_temp.resolve_floating_world() returns uuid
+language plpgsql as $resolver$
+declare
+  v_mode text := coalesce(nullif(current_setting('outland.world_canon', true), ''), 'canonical');
+  v_id uuid;
+  v_code text;
+  v_matches integer;
+begin
+  if v_mode not in ('canonical', 'legacy_compatible') then
+    raise exception 'Unknown outland.world_canon mode: %', v_mode;
+  end if;
+  select id into v_id from shared.worlds where code = 'RAFTER';
+  if v_mode = 'canonical' then
+    return v_id; -- NULL when RAFTER is missing: the strict assertions below then fail.
+  end if;
+  if v_id is not null then
+    if exists (select 1 from shared.worlds where code <> 'RAFTER' and asset_kind = 'FLOATING'
+               and environment = 'River' and archetype = 'GUARDIAN' and inner_movement = 'FLOW') then
+      raise exception 'Ambiguous floating world: RAFTER coexists with another River/GUARDIAN/FLOW floating world';
+    end if;
+    return v_id;
+  end if;
+  select count(*), min(id::text)::uuid, min(code) into v_matches, v_id, v_code
+  from shared.worlds
+  where asset_kind = 'FLOATING' and environment = 'River' and archetype = 'GUARDIAN' and inner_movement = 'FLOW';
+  if v_matches <> 1 then
+    raise exception 'legacy_compatible: expected exactly one River/GUARDIAN/FLOW floating world, found %', v_matches;
+  end if;
+  raise notice 'legacy_compatible: floating world resolved by profile to % (%)', v_code, v_id;
+  return v_id;
+end;
+$resolver$;
+
 do $$
 declare
   shared_entities text[] := array[
@@ -15,6 +54,7 @@ declare
   universe_entities text[] := array['nodes', 'frontiers', 'spots'];
   passport_entities text[] := array['journeys', 'events'];
   entity_name text;
+  floating_world_id uuid := pg_temp.resolve_floating_world();
 begin
   foreach entity_name in array shared_entities loop
     if to_regclass('shared.' || entity_name) is null then
@@ -41,7 +81,7 @@ begin
     raise exception 'GREENHILL Compass world missing or Radar disabled';
   end if;
 
-  if not exists (select 1 from shared.worlds where code = 'RAFTER' and radar_enabled = true and asset_kind = 'FLOATING') then
+  if not exists (select 1 from shared.worlds where id = floating_world_id and radar_enabled = true and asset_kind = 'FLOATING') then
     raise exception 'RAFTER floating Compass world missing or Radar disabled';
   end if;
 
@@ -70,7 +110,7 @@ begin
     raise exception 'GREENHILL lacks land criteria or gate definitions';
   end if;
 
-  if (select count(*) from land.world_gate_definitions g join shared.worlds w on w.id = g.world_id where w.code = 'RAFTER' and g.code in (
+  if (select count(*) from land.world_gate_definitions g join shared.worlds w on w.id = g.world_id where w.id = floating_world_id and g.code in (
     'floating_ownership', 'registration', 'berth_right', 'commercial_use', 'water_envelope',
     'moorings', 'shore_access', 'emergency_access', 'wastewater'
   )) <> 9 then

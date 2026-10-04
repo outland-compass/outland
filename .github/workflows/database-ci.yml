@@ -1,0 +1,199 @@
+name: Database CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/database-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-migration-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Full clean migration replay
+        run: supabase db reset --local
+      - name: Run legacy SQL checks independently
+        shell: bash
+        run: |
+          set -uo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          failures=0
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql; do
+            echo "::group::$script"
+            if docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
+              echo "PASS: $script"
+            else
+              echo "::error file=$script::SQL verification failed"
+              failures=$((failures+1))
+            fi
+            echo '::endgroup::'
+          done
+          exit "$failures"
+      - name: Stop disposable stack
+        if: always()
+        run: supabase stop --no-backup
+
+  existing-data-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Prepare historical database with seeded GREENHILL
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/sideworld-pending
+          mv supabase/migrations/20261002000*_sideworld_*.sql /tmp/sideworld-pending/
+          supabase db reset --local
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          docker exec "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM universe.nodes WHERE node_type='stay') THEN RAISE EXCEPTION 'Missing pre-existing legacy stay fixture'; END IF; END \$\$;"
+          mv /tmp/sideworld-pending/*.sql supabase/migrations/
+          supabase migration up --local
+      - name: Verify SIDEWORLD upgrade with pre-existing data
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/verify-sideworld-bases.sql
+      - name: Stop disposable stack
+        if: always()
+        run: supabase stop --no-backup
+
+  staging-history-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Replay eight-migration staging baseline and historical catch-up
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/staging-history /tmp/sideworld-pending
+          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql /tmp/staging-history/
+          mv supabase/migrations/20261002000*_sideworld_*.sql /tmp/sideworld-pending/
+          # The actual staging has eight recorded migrations. Start with precisely
+          # those eight on an EMPTY disposable local database, without final seed.
+          supabase db reset --local --no-seed
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          docker exec "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -c "select count(*) from shared.worlds"
+          # Reproduce the eight historical migrations missing from staging.
+          mv /tmp/staging-history/*.sql supabase/migrations/
+          supabase migration up --local
+          # Seed only once the historical Universe tables exist. This is a
+          # synthetic staging-shaped fixture, NOT a copy of staging data.
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/seed.sql
+          test "$(docker exec "$db_container" psql -X -A -t -v ON_ERROR_STOP=1 -U postgres -d postgres -c "select count(*) from universe.nodes where node_type='stay'")" -gt 0
+          mv /tmp/sideworld-pending/*.sql supabase/migrations/
+          supabase migration up --local
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/verify-sideworld-bases.sql
+      - name: Stop disposable stack
+        if: always()
+        run: supabase stop --no-backup
+
+  legacy-world-canon-upgrade:
+    # Staging-shaped upgrade whose worlds predate #27 (RIVERKEEPER/ALIKI, no RAFTER).
+    # Proves: all suites pass in opt-in legacy_compatible mode, canonical mode still
+    # rejects the legacy canon, and RAFTER coexisting with a legacy duplicate is rejected.
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Build eight-migration baseline seeded with the pre-#27 world canon, then catch up
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pending
+          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql supabase/migrations/20261002000*_sideworld_*.sql /tmp/pending/
+          supabase db reset --local --no-seed
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          # Seed exactly as staging was seeded: seed.sql as it was before #27 (26eb571) renamed RIVERKEEPER.
+          git show 26eb571^:supabase/seed.sql | docker exec -i "$db_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres
+          test "$(docker exec "$db_container" psql -X -A -t -U postgres -d postgres -c "select count(*) from shared.worlds where code='RIVERKEEPER'")" -eq 1
+          test "$(docker exec "$db_container" psql -X -A -t -U postgres -d postgres -c "select count(*) from shared.worlds where code='RAFTER'")" -eq 0
+          mv /tmp/pending/*.sql supabase/migrations/
+          supabase migration up --local
+          test "$(docker exec "$db_container" psql -X -A -t -U postgres -d postgres -c "select count(*) from supabase_migrations.schema_migrations")" -eq "$(ls supabase/migrations/*.sql | wc -l)"
+      - name: All SQL suites in legacy_compatible mode
+        shell: bash
+        run: |
+          set -uo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          failures=0
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql; do
+            echo "::group::$script (legacy_compatible)"
+            if docker exec -i -e PGOPTIONS='-c outland.world_canon=legacy_compatible' "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
+              echo "PASS: $script"
+            else
+              echo "::error file=$script::SQL verification failed in legacy_compatible mode"
+              failures=$((failures+1))
+            fi
+            echo '::endgroup::'
+          done
+          exit "$failures"
+      - name: Canonical mode must still reject the legacy canon (strictness guard)
+        shell: bash
+        run: |
+          set -uo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          failures=0
+          for spec in "supabase/tests/verify-schema.sql|RAFTER floating Compass world missing" "supabase/tests/verify-workflow-security.sql|Required test worlds missing"; do
+            script=${spec%%|*}; expected=${spec#*|}
+            if out=$(docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script" 2>&1); then
+              echo "::error file=$script::canonical mode unexpectedly passed without RAFTER"; failures=$((failures+1))
+            elif grep -q "$expected" <<<"$out"; then
+              echo "PASS (expected rejection): $script"
+            else
+              echo "$out"; echo "::error file=$script::failed for an unexpected reason"; failures=$((failures+1))
+            fi
+          done
+          exit "$failures"
+      - name: Ambiguous floating identity must be rejected (rolled back)
+        shell: bash
+        run: |
+          set -uo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          # Simulate a full seed on the legacy canon: RAFTER inserted next to RIVERKEEPER. The test file's
+          # own rollback discards the inserted row.
+          if out=$( { echo "begin;"; echo "insert into shared.worlds(code,name,environment,archetype,inner_movement,asset_kind) values ('RAFTER','RAFTER','River','GUARDIAN','FLOW','FLOATING');"; tail -n +2 supabase/tests/verify-schema.sql; } \
+                | docker exec -i -e PGOPTIONS='-c outland.world_canon=legacy_compatible' "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres 2>&1); then
+            echo "::error::duplicate RAFTER/RIVERKEEPER identity was accepted"; exit 1
+          fi
+          grep -q "Ambiguous floating world" <<<"$out" || { echo "$out"; echo "::error::failed for an unexpected reason"; exit 1; }
+          test "$(docker exec "$db_container" psql -X -A -t -U postgres -d postgres -c "select count(*) from shared.worlds where code='RAFTER'")" -eq 0
+          echo "PASS (expected rejection): ambiguous floating identity"
+      - name: Stop disposable stack
+        if: always()
+        run: supabase stop --no-backup
