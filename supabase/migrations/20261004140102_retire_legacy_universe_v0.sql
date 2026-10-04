@@ -1,7 +1,9 @@
 -- Bounded cleanup after the Phase 1B audited backfill. No seed or new domain model.
--- Run as one transaction (Supabase migrations are transactional).
-set local lock_timeout = '5s';
-set local statement_timeout = '60s';
+-- One atomic statement: the CLI can execute separate SQL statements independently.
+-- lock_timeout applies immediately; statement timeout is enforced by the caller.
+do $cleanup$
+begin
+perform set_config('lock_timeout', '5s', true);
 
 -- Freeze the source, mapping and Passport references through validation and removal.
 lock table universe.nodes, universe.frontiers, universe.spots,
@@ -9,8 +11,6 @@ lock table universe.nodes, universe.frontiers, universe.spots,
   infrastructure.bases, infrastructure.base_legacy_migration_audit
   in access exclusive mode;
 
-do $$
-begin
   if exists (select 1 from universe.nodes where node_type <> 'stay')
      or exists (select 1 from universe.frontiers)
      or exists (select 1 from universe.spots) then
@@ -40,7 +40,6 @@ begin
      ) then
     raise exception 'Legacy cleanup STOP: Base/audit parity failure';
   end if;
-end $$;
 
 -- Drop only empty legacy reference columns, including their own indexes/FKs.
 -- RESTRICT deliberately rejects any additional database dependencies.
@@ -54,3 +53,5 @@ drop table universe.nodes restrict;
 -- universe.set_updated_at is retained: Passport's existing trigger still uses it.
 comment on schema universe is 'Legacy OUTLAND V0 tables retired; set_updated_at remains for Passport. Not a Universe registry.';
 comment on table passport.events is 'Append-oriented World journey events. Legacy node/frontier/spot references retired; no new gameplay model introduced.';
+
+end $cleanup$;

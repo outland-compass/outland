@@ -20,7 +20,7 @@ Historical migrations remain byte-identical. Historical Phase 1B checkpoint/depl
 2. Before staging execution, take and verify a fresh backup and rehearse the new migration and recovery against its restored copy. Capture worlds/candidates, Bases/audit and Passport fingerprints. No hosted staging or production DDL has been executed by this preparation.
 3. Pin an isolated, unlinked checkout to the reviewed SHA. Freeze edits for the short execution window. Use an explicit database URL; never `db push --linked`.
 4. Verify target identity and migration history. Dry run must list exactly `20261004140102_retire_legacy_universe_v0.sql`; stop for any other version or unexpected target.
-5. Execute the single migration only on the authorized target, without seed. It locks source/mapping/Passport tables, checks parity and unused references, and drops with RESTRICT. Lock timeout is five seconds, statement timeout sixty seconds. Execute as one transaction.
+5. Execute the single migration only on the authorized target, without seed. It locks source/mapping/Passport tables, checks parity and unused references, and drops with RESTRICT. Lock timeout is five seconds. Set a sixty-second statement timeout on the deployment connection. All DDL and guards are one atomic DO statement, including when the CLI executes migration statements independently.
 6. Run `verify-sideworld-bases.sql` and `verify-schema.sql` (staging uses `outland.world_canon=legacy_compatible`). Require 19 ledger versions, no legacy tables/reference columns, preserved Base/audit/Passport fingerprints and unchanged shared/land fingerprints. Test the existing COMPASS flows.
 7. Archive evidence and restore results. Production requires a separate exact-commit approval, fresh verified production backup and successful restored-production rehearsal. A staging pass is not production authorization.
 
@@ -35,3 +35,5 @@ Only after successful recovery and its checks, reconcile the cleanup migration l
 ## Validation status
 
 Local isolated PostgreSQL drills passed normal cleanup/recovery, missing audit, modified Base, modified snapshot, unexpected frontier, Passport reference, unknown dependent view, and preservation of Passport rows without legacy references. Full local schema/seed replay checks use a lightweight Auth/Storage bootstrap in the isolated runtime; these are supplementary and do not replace real Supabase CI. Live staging execution, restored hosted snapshot rehearsals and production execution remain pending.
+
+The first real CI run caught an outer LOCK TABLE outside a transaction. The migration now uses one atomic DO statement; isolated drills must also run it without an outer transaction. No live DDL was performed.
