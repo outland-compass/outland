@@ -1,5 +1,7 @@
 # SIDEWORLD Phase 1B — staging-snapshot rehearsal evidence (2026-10-03)
 
+> **Status (2026-10-04):** the rehearsed migrations were deployed to staging; the execution record is section 8. Earlier sections describe the rehearsal state.
+
 Sanitized evidence from the local rehearsal of the ten pending staging migrations against a restored
 snapshot of `outland-staging` (`clgpxvyflycudzhdzjlv`). This file contains identifiers, hashes, versions
 and test results only. It contains no credentials, no backup files, and no candidate or world business data.
@@ -199,7 +201,7 @@ commit;
 
 ## 7. Remaining risks
 
-- **Production link:** the repository's Supabase CLI link points to **production**. Target staging only with an explicit `--db-url`; never use `--linked`.
+- **Production link:** the normal checkout's Supabase CLI link to **production** was removed on 2026-10-04. Keep it unlinked; target databases only with an explicit `--db-url`; never use `--linked`.
 - **Version ordering:** versions mix 12 and 14 digits, and only lexicographic filename order is correct. A numeric sort would put `202609190001`, `202610020001` and `202610020002` first, and they would fail.
 - **Version gap:** the rehearsal used PG 17.11 with local platform services; staging runs 17.6. Concurrent application traffic was not simulated.
 - **Backup transport:** the backup used `sslmode=require` without certificate verification.
@@ -226,7 +228,9 @@ commit;
 **Final staging migration ledger:** 18 versions, all applied on staging, with 0 local-only and 0 remote-only:
 `202608180001, 202608180002, 202608180003, 202608180004, 202608200001, 202608210001, 202609020001, 202609030001, 20260912141712, 20260912141742, 20260912145301, 20260913141314, 20260913141954, 20260917110721, 202609190001, 20260919100334, 202610020001, 202610020002`.
 
-**Not run (no separate authorization):** the write-path suites `verify-workflow-security.sql` and `diagnose-compass-promotion.sql`. No `seed.sql` was run and no world record was changed.
+**Not run (no separate authorization):** the write-path suites `verify-workflow-security.sql` and `diagnose-compass-promotion.sql`. No `seed.sql` was run, and no world record was renamed or changed outside the approved migrations.
+
+**Intended world change:** `20260912141712_wanderer_mobile_radar` updated the existing `WANDERER` world row (`radar_enabled`, `target_capital_min_eur`, `target_capital_max_eur`, `reunderwrite_above_eur`, `target_profile`, `search_notes`, `updated_at`). This is the historical migration's design, and it matched the rehearsal exactly (section 2: only WANDERER changed, in exactly these columns). The post-deployment gate verifies the 7 candidates, the `OUTLAND_WORK` identity and the single floating world; it does not compare WANDERER column values on live staging.
 
 **Evidence custody:**
 - The full evidence is held outside Git with an owner-only ACL and a SHA-256 manifest. It covers the transcript, the dry runs and pushes, the before/after migration lists, the validation outputs and the summary, plus copies of the operator wrapper that was run.

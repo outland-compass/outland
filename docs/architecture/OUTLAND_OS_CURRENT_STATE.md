@@ -68,11 +68,9 @@ For this phase, the main OUTLAND Supabase project serves as both:
 - production database;
 - active development database.
 
-The local Supabase CLI is linked to:
+The local Supabase CLI was linked to `huzcukdovavejejwohey` until 2026-10-04. That link was removed from the normal checkout as deployment protection; it must stay unlinked, and remote databases are only ever targeted with an explicit, verified `--db-url`.
 
-`huzcukdovavejejwohey`
-
-The local COMPASS environment also targets this project.
+The local COMPASS application environment still targets this project (app configuration, not the CLI link).
 
 ### Staging
 
@@ -84,6 +82,8 @@ A separate project exists:
 It was used to validate the database namespace migration.
 
 It is currently **not part of the normal development workflow** and does not need to remain synchronized with the main database.
+
+On 2026-10-04 staging received SIDEWORLD Phase 1B (18 recorded migrations, including `infrastructure.bases`) from PR #29 SHA `63b0012`. Staging is therefore **ahead of production** for the two SIDEWORLD versions; see `SIDEWORLD_STAGING_GO_NO_GO.md`.
 
 Reintroduce active staging discipline when justified by real operational risk, such as:
 

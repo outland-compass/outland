@@ -1,5 +1,7 @@
 # SIDEWORLD — staging go/no-go checklist (2026-10-03)
 
+> **Current status (2026-10-04): DEPLOYED to staging and validated** (see the final section). The sections below are kept as the chronological decision record; their HOLD and "pending" statements are superseded. Production remains unmigrated and PR #29 unmerged.
+
 ## Verified read-only inventory
 
 - Staging Supabase project: `clgpxvyflycudzhdzjlv` (`outland-staging`), ACTIVE_HEALTHY.
@@ -122,7 +124,7 @@ Full sanitized evidence: [`SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`](SIDEWORLD_S
 
 - **Status:** Phase 1B was deployed to `outland-staging` from the approved SHA `63b0012839baa71c3922debaa4c3970b131333dd` and validated. All mandatory gates passed.
 - **Ledger:** 18 versions.
-- **Data:** the 7 candidates are unchanged and still linked to `OUTLAND_WORK`.
+- **Data:** the 7 candidates are unchanged and still linked to `OUTLAND_WORK`. No world record was renamed or changed outside the approved migrations; `20260912141712_wanderer_mobile_radar` intentionally updated the existing `WANDERER` world row (`radar_enabled`, `target_capital_min_eur`, `target_capital_max_eur`, `reunderwrite_above_eur`, `target_profile`, `search_notes`, `updated_at`), exactly as rehearsed on the restored snapshot.
 - **Bases and access:** 1 base with exact audit provenance; RLS deny-by-default.
 - **Backups:** a pre-deployment backup was taken and verified (`staging-full.dump` SHA-256 `0adc2c23…1310`, stored outside Git).
 - **Full record:** [`SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`](SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md), section 8.
@@ -130,6 +132,7 @@ Full sanitized evidence: [`SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`](SIDEWORLD_S
 
 **Outstanding, outside this deployment:**
 - Production rollout needs separate approval, a backup and a plan. Production already records the historical versions; the two SIDEWORLD versions are new there.
+- Deployment protection: the normal checkout's CLI link to production was removed on 2026-10-04 and verified (no `supabase/.temp/project-ref` in any local worktree).
 - Reconciling the staging world codes (RIVERKEEPER/ALIKI) is a separate decision.
 - The optional write-path suites were not run on staging.
 - A hosted restore has never been rehearsed.

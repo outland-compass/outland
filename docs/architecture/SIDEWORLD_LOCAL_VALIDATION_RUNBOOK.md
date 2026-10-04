@@ -1,6 +1,6 @@
 # SIDEWORLD Phase 1B: local validation runbook
 
-Status: pending execution. Do not run against production.
+Status: superseded. Local validation was executed as the staging-snapshot rehearsal (`SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`), and staging was deployed on 2026-10-04 (`SIDEWORLD_STAGING_DEPLOYMENT_RUNBOOK.md`). Do not run against production.
 
 1. Check out the existing PR #29 branch and ensure working tree is clean.
 2. Inspect current CLI project link and credentials. Verify local Docker/Supabase instance is isolated from remote production.

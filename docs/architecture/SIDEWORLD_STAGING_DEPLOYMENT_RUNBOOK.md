@@ -1,5 +1,7 @@
 # SIDEWORLD Phase 1B: staging-only deployment runbook
 
+**Status: EXECUTED on 2026-10-04** from approved SHA `63b0012` (record: `SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`, section 8). Kept as the reference procedure.
+
 **Scope:** apply the 10 pending migrations to **outland-staging** (`clgpxvyflycudzhdzjlv`) only.
 **This runbook does not authorize execution.** Run it only after written founder approval that names the exact PR #29 commit SHA.
 Production (`huzcukdovavejejwohey`) is out of scope. Every script below refuses that ref.
@@ -12,7 +14,7 @@ The whole sequence below, steps 2–7 plus the rollback, was rehearsed on a rest
 
 ## 0. Ground rules
 
-- **Never use `--linked`, never run `supabase link`, and never run from your everyday repo checkout.** That checkout's CLI link (`supabase/.temp/project-ref`) points at **production**. Always pass an explicit `--db-url`.
+- **Never use `--linked`, never run `supabase link`, and never run from your everyday repo checkout.** That checkout's CLI link (`supabase/.temp/project-ref`) pointed at **production** until it was removed on 2026-10-04; never re-link it. Always pass an explicit `--db-url`.
 - **Keep the password out of everything except `PGPASSWORD`.** Never put it in a URL, on a command line, in shell history, in a file or in a log. `scripts/staging/staging-session.ps1` reads it as a SecureString into `PGPASSWORD` only. Don't run with `Set-PSDebug -Trace`.
 - **Never** pass `--include-seed`, `--include-roles` or `--include-all` to `db push`, and never run `seed.sql` against staging.
 - **Do not rename, insert or update world records.** Staging intentionally keeps its legacy `RIVERKEEPER` and `ALIKI` codes.
