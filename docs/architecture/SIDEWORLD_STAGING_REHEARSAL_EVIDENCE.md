@@ -203,3 +203,39 @@ commit;
 - **Version ordering:** versions mix 12 and 14 digits, and only lexicographic filename order is correct. A numeric sort would put `202609190001`, `202610020001` and `202610020002` first, and they would fail.
 - **Version gap:** the rehearsal used PG 17.11 with local platform services; staging runs 17.6. Concurrent application traffic was not simulated.
 - **Backup transport:** the backup used `sslmode=require` without certificate verification.
+
+## 8. Staging deployment execution record (2026-10-04)
+
+**Result: DEPLOYED AND VALIDATED.**
+- Target: `outland-staging` (`clgpxvyflycudzhdzjlv`) only. Production was not contacted.
+- Executed from approved commit `63b0012839baa71c3922debaa4c3970b131333dd`, following `SIDEWORLD_STAGING_DEPLOYMENT_RUNBOOK.md` with the committed `scripts/staging/*`.
+- Window: 2026-10-04 11:13:27 to 11:17:55 (+02:00).
+- The operator entered the password at masked prompts and typed explicit confirmations for both write phases.
+
+| Runbook step | Evidence |
+| --- | --- |
+| 1. Checkout | HEAD = approved SHA, not linked, clean, 18 migration files. Database CI on the SHA: success. |
+| 2. Backup | New backup `staging-20261004-111328`, a read-only export at 09:14:42 UTC, PG 17.6. `verify-backup`: ALL CHECKS PASSED. `staging-full.dump` SHA-256 `0adc2c239c6d162fefed99dfe884af6417cbae5dc9d5db1734944b4fc0ae1310`. Its candidates, worlds and migration ledger are byte-identical to the rehearsed snapshot of 2026-10-03. |
+| 3. Target | The URL is exactly the staging pooler URL and contains no password. `TARGET VERIFIED` (8 versions, 7 candidates, legacy world canon). |
+| 4. Phase A | The dry run listed exactly the 8 historical versions, in order. The operator confirmed. All 8 were applied once each; `Finished supabase db push.`; no seeding. |
+| 5. Checkpoint | `CHECKPOINT PASSED`: 16 versions, 1 stay node, no frontiers or spots. |
+| 6. Phase B | The dry run listed exactly `202610020001`, `202610020002`. The operator confirmed. Both were applied once; no seeding. |
+| 7. Validation | `POST-DEPLOY VALIDATION PASSED`: 18 versions, 7/7 candidates unchanged with the same `OUTLAND_WORK` world, 1 base with exact audit, RLS deny-by-default. `verify-sideworld-bases.sql` PASS. `verify-schema.sql` PASS (`legacy_compatible`; RIVERKEEPER `3fa8b58a…` resolved by profile). |
+| 9. Cleanup | The deployment worktree was removed. |
+
+**Final staging migration ledger:** 18 versions, all applied on staging, with 0 local-only and 0 remote-only:
+`202608180001, 202608180002, 202608180003, 202608180004, 202608200001, 202608210001, 202609020001, 202609030001, 20260912141712, 20260912141742, 20260912145301, 20260913141314, 20260913141954, 20260917110721, 202609190001, 20260919100334, 202610020001, 202610020002`.
+
+**Not run (no separate authorization):** the write-path suites `verify-workflow-security.sql` and `diagnose-compass-promotion.sql`. No `seed.sql` was run and no world record was changed.
+
+**Evidence custody:**
+- The full evidence is held outside Git with an owner-only ACL and a SHA-256 manifest. It covers the transcript, the dry runs and pushes, the before/after migration lists, the validation outputs and the summary, plus copies of the operator wrapper that was run.
+- The backup is kept outside Git. A scan found no credentials in the transcript. No backup data is committed here.
+
+**Earlier attempt, 00:12 the same day (stopped safely, no staging changes):**
+- The local operator wrapper, which drives the runbook's steps, refused a correct Phase A dry run.
+- **Why the drill missed it:** the Supabase CLI adds a JSON summary only when it detects AI-agent environment variables. The drill had run with them set, so a real console took the untested human-readable path.
+- **Why it failed:** Windows PowerShell decoded the CLI's UTF-8 bullet (`•`) with code page 437, turning it into `ΓÇó`, so the list parser matched nothing.
+- **Fix:** the wrapper now decodes UTF-8 and parses both output modes strictly (header, exact order, no unlisted filenames, text and JSON must agree). Its no-seed check no longer depends on the JSON line.
+- The fix was drilled in text and JSON modes on the restored snapshot before the successful run.
+- The approved migrations and the committed scripts were not changed.

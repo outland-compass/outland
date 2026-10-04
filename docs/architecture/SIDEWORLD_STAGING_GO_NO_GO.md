@@ -117,3 +117,20 @@ Full sanitized evidence: [`SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`](SIDEWORLD_S
 - **Staging-only runbook:** [`SIDEWORLD_STAGING_DEPLOYMENT_RUNBOOK.md`](SIDEWORLD_STAGING_DEPLOYMENT_RUNBOOK.md), with guarded scripts in `scripts/staging/`. Steps 3–8, including rollback and re-apply, were drilled end-to-end on a fresh snapshot restore with the committed scripts.
 
 **Gate:** technically **GO**, and ready to deploy to staging. Remote execution remains on **HOLD** until written founder approval names the exact PR #29 SHA. A fresh backup (runbook step 2) is mandatory immediately before deployment. Production is untouched.
+
+## Staging deployment: EXECUTED (2026-10-04)
+
+- **Status:** Phase 1B was deployed to `outland-staging` from the approved SHA `63b0012839baa71c3922debaa4c3970b131333dd` and validated. All mandatory gates passed.
+- **Ledger:** 18 versions.
+- **Data:** the 7 candidates are unchanged and still linked to `OUTLAND_WORK`.
+- **Bases and access:** 1 base with exact audit provenance; RLS deny-by-default.
+- **Backups:** a pre-deployment backup was taken and verified (`staging-full.dump` SHA-256 `0adc2c23…1310`, stored outside Git).
+- **Full record:** [`SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`](SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md), section 8.
+- **Untouched:** production; PR #29 remains unmerged.
+
+**Outstanding, outside this deployment:**
+- Production rollout needs separate approval, a backup and a plan. Production already records the historical versions; the two SIDEWORLD versions are new there.
+- Reconciling the staging world codes (RIVERKEEPER/ALIKI) is a separate decision.
+- The optional write-path suites were not run on staging.
+- A hosted restore has never been rehearsed.
+- `infrastructure.*` grants nothing to `service_role`, so app access requires a future migration.
