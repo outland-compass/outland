@@ -1,6 +1,6 @@
 # SIDEWORLD — staging go/no-go checklist (2026-10-03)
 
-> **Current status (2026-10-04): DEPLOYED to staging and validated** (see the final section). The sections below are kept as the chronological decision record; their HOLD and "pending" statements are superseded. Production remains unmigrated and PR #29 unmerged.
+> **Current status (2026-10-04): Phase 1B CLOSED — deployed and validated on staging and production** (see the last two sections). The sections below are kept as the chronological decision record; their HOLD, "pending" and "production unmigrated" statements are superseded.
 
 ## Verified read-only inventory
 
@@ -137,3 +137,19 @@ Full sanitized evidence: [`SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`](SIDEWORLD_S
 - The optional write-path suites were not run on staging.
 - A hosted restore has never been rehearsed.
 - `infrastructure.*` grants nothing to `service_role`, so app access requires a future migration.
+
+## Production deployment: EXECUTED (2026-10-04) — Phase 1B closed
+
+- **Status:** Phase 1B was deployed to production (`huzcukdovavejejwohey`) and validated, 14:26:39–14:32:17 (+02:00). It was run from the PR #29 merge commit `0e91c7eb977c63b27ee570d9760bc939fd5ea7bf`, after separate founder approval, with a read-only Prepare run first. All gates passed. Applied: exactly `202610020001` and `202610020002`, once each, with no seed.
+- **Ledger:** 18 versions. All are recorded on production, with 0 local-only and 0 remote-only.
+- **Data:** per-row fingerprints of worlds, candidates, Universe nodes, frontiers and spots, and Passport journeys and events are byte-identical before and after (7/7).
+- **Bases and access:** one base per legacy stay node, with an exact audit snapshot and no orphans. RLS is on, and `anon`, `authenticated` and `service_role` have no access to `infrastructure.*`. `verify-sideworld-bases` passed.
+- **Backup:** pre-deployment `staging-full.dump` SHA-256 `e7e900c58a8d2c78b9008f9d8d77e9f8f05ef2e58b66ab57e0f619015b0942c1`. It was verified and is stored outside Git.
+- **Founder smoke test:** passed after deployment.
+- **Full record:** [`SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md`](SIDEWORLD_STAGING_REHEARSAL_EVIDENCE.md), section 9.
+
+**Remaining, outside Phase 1B:**
+- Application or `service_role` grants for `infrastructure.*`, which require a future migration.
+- Reconciling staging's legacy world codes (RIVERKEEPER/ALIKI).
+- Restoring into a hosted project has never been rehearsed.
+- The optional write-path suites were not run on staging or production.

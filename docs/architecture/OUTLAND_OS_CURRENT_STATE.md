@@ -83,7 +83,7 @@ It was used to validate the database namespace migration.
 
 It is currently **not part of the normal development workflow** and does not need to remain synchronized with the main database.
 
-On 2026-10-04 staging received SIDEWORLD Phase 1B (18 recorded migrations, including `infrastructure.bases`) from PR #29 SHA `63b0012`. Staging is therefore **ahead of production** for the two SIDEWORLD versions; see `SIDEWORLD_STAGING_GO_NO_GO.md`.
+On 2026-10-04 staging received SIDEWORLD Phase 1B (18 recorded migrations, including `infrastructure.bases`) from PR #29 SHA `63b0012`. Production received the same two SIDEWORLD versions on 2026-10-04 from the PR #29 merge `0e91c7e`, so staging and production both record 18 migrations; see `SIDEWORLD_STAGING_GO_NO_GO.md`.
 
 Reintroduce active staging discipline when justified by real operational risk, such as:
 

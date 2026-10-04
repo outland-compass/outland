@@ -1,6 +1,6 @@
 # SIDEWORLD Phase 1B — staging-snapshot rehearsal evidence (2026-10-03)
 
-> **Status (2026-10-04):** the rehearsed migrations were deployed to staging; the execution record is section 8. Earlier sections describe the rehearsal state.
+> **Status (2026-10-04):** Phase 1B is closed. It was deployed to staging (section 8) and to production (section 9). Earlier sections describe the rehearsal state.
 
 Sanitized evidence from the local rehearsal of the ten pending staging migrations against a restored
 snapshot of `outland-staging` (`clgpxvyflycudzhdzjlv`). This file contains identifiers, hashes, versions
@@ -243,3 +243,34 @@ commit;
 - **Fix:** the wrapper now decodes UTF-8 and parses both output modes strictly (header, exact order, no unlisted filenames, text and JSON must agree). Its no-seed check no longer depends on the JSON line.
 - The fix was drilled in text and JSON modes on the restored snapshot before the successful run.
 - The approved migrations and the committed scripts were not changed.
+
+## 9. Production deployment execution record (2026-10-04)
+
+**Result: DEPLOYED AND VALIDATED.**
+- **Target:** production (`huzcukdovavejejwohey`) only.
+- **Source:** the PR #29 merge `0e91c7eb977c63b27ee570d9760bc939fd5ea7bf`. Its `supabase/`, `scripts/` and CI files are identical to the staging-deployed `63b0012`, and Database CI run `37198756127` on it passed 4/4 jobs.
+- **Window:** 14:26:39 to 14:32:17 (+02:00).
+- **Operator tooling:** production-only adaptations of the committed staging scripts (the committed scripts themselves were unchanged), plus a read-only target gate, per-row fingerprints and a post-deployment validation. The tooling is kept outside Git as local operator tooling.
+
+**Validation before execution:**
+- A read-only Prepare run against production passed (backup `staging-full.dump` SHA-256 `9b7a5c31a348607a1140396b6e452d11fdea26fc15a9fd9cd8d50af4d13f7a09`).
+- That backup was restored locally, byte-identical to the production baseline. On the restore:
+  - the Execute drill passed;
+  - rollback from the full state and from the partial state returned to 16 versions with the fingerprints identical to the baseline.
+- Production data at deployment time was byte-identical to that validated snapshot.
+
+| Gate | Evidence |
+| --- | --- |
+| Checkout | The isolated checkout was pinned to `0e91c7e`, unlinked and clean, with 18 files. Database CI on the SHA: success. |
+| Backup | A new read-only pre-deployment backup (PG 17.6) passed `verify-backup`. `staging-full.dump` SHA-256 `e7e900c58a8d2c78b9008f9d8d77e9f8f05ef2e58b66ab57e0f619015b0942c1`. |
+| Target | The URL was exactly the production pooler URL, with no password. `PRODUCTION TARGET VERIFIED`: the 16 repository versions, no `infrastructure` objects, stay-only legacy nodes, no frontiers or spots, valid world and asset references. Live fingerprints matched the backup baseline (7/7). |
+| Dry run | Exactly `202610020001`, then `202610020002`. |
+| Apply | The operator typed the confirmation. Exactly those two were applied, once each; `Finished supabase db push.`; no seeding. |
+| Post-deployment | `PRODUCTION POST-DEPLOY VALIDATION PASSED`: 18 versions; 1 base with exact audit; RLS on; no `anon`, `authenticated` or `service_role` grants. `verify-sideworld-bases.sql` PASS. Fingerprints of worlds, candidates, Universe and Passport are byte-identical to the baseline (7/7). |
+| Smoke test | The founder reported the production smoke test passed after deployment. |
+| Cleanup | The deployment checkout was removed. The everyday checkout remains unlinked. |
+
+**Final production migration ledger:** 18 versions, all recorded on production, with 0 local-only and 0 remote-only:
+`202608180001, 202608180002, 202608180003, 202608180004, 202608200001, 202608210001, 202609020001, 202609030001, 20260912141712, 20260912141742, 20260912145301, 20260913141314, 20260913141954, 20260917110721, 202609190001, 20260919100334, 202610020001, 202610020002`.
+
+**Evidence custody:** the execution evidence passed its own SHA-256 manifest at closure (24/24 files). It covers the transcript, target gate, dry run, push, validations, before and after migration lists, before and after fingerprints, and the summary. The evidence and backups are held outside Git with an owner-only ACL. A scan found no credentials in the transcript. No backup data is committed.
