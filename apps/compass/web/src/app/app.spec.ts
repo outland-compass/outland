@@ -23,6 +23,14 @@ describe('OUTLAND routes', () => {
     }
   });
 
+  it('keeps password recovery pages public', () => {
+    for (const path of ['sign-in', 'forgot-password', 'reset-password']) {
+      const route = routes.find((candidate) => candidate.path === path);
+      expect(route).toBeDefined();
+      expect(route?.canActivate).toBeUndefined();
+    }
+  });
+
   it('protects the COMPASS layout with auth', () => {
     expect(compassLayout?.canActivate?.length).toBe(1);
   });
