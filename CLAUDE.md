@@ -8,17 +8,23 @@ For existing OUTLAND OS code, preserve working operational boundaries. For new S
 ## Approved SIDEWORLD direction
 - Consumer brand/app: SIDEWORLD; tagline: FOLLOW THE SIGNAL; positioning: Real-world adventures.
 - OUTLAND is one universe among many. MVP may temporarily use sideworld.outland.one; that URL does not imply brand ownership.
-- One canonical Universe registry is PLANNED at `core.universes`, not verified as deployed.
-- `shared.worlds` is the EXISTING OUTLAND/COMPASS operational World registry, NOT an approved permanent canonical registry for SIDEWORLD narrative worlds. Preserve existing UUIDs, data and COMPASS dependencies; do not rename, repurpose or delete it in PR #29.
-- ARCHITECTURE DIRECTION UNDER EVALUATION: decouple SIDEWORLD narrative worlds from OUTLAND operational/investment records. A separate `core.worlds` and explicit mapping may be appropriate, but their precise semantics, ownership, cardinality and naming are NOT approved. Do not create `core.worlds`, `signal.worlds` or a mapping table without a separate founder-approved design and dependency audit. Do not describe `shared.worlds` as a parcel wishlist: `land.candidates` already represents investment candidates.
-- One canonical Universe registry is planned; never duplicate universes across schemas. `core.universe_worlds` was an earlier proposal tied to the old world-registry assumption and must be revisited, not automatically implemented.
-- `infrastructure.bases` is the accommodation-capacity entity, separate from businesses, physical POIs and collectibles/discoveries. Its two additive Phase 1B migrations have been applied and validated on staging only.
-- Geography, quests, themes, recurring characters, publication/versioning and player progress are planned domains; do not bulk-create speculative tables.
+- One canonical SIDEWORLD Universe registry is planned; never duplicate Universe identity across schemas.
+- Narrative hierarchy: Universe → Franchise → Story, with canonical Characters, Factions and Lore. Theme is a reusable creative/gameplay treatment, not canonical story/character ownership.
+- APPROVED V3.1 WORLD SPLIT: SIDEWORLD experience/content/demand Worlds and OUTLAND operational/investment Worlds are distinct concepts and may have distinct UUIDs:
+  - planned `universe.worlds` = SIDEWORLD experience/content/demand contexts;
+  - existing `shared.worlds` = OUTLAND operational/investment Worlds used by COMPASS/LAND, assets, Passport V0 and physical operations.
+- Do not rename, repurpose or delete existing `shared.worlds`; preserve all UUIDs and dependencies. A future SIDEWORLD World must not silently replace an OUTLAND operational World.
+- The two World registries may be linked M:N through an explicit reviewed bridge (working name `universe.world_operational_links`).
+- Demand/capacity gaps in a SIDEWORLD Universe World may create an expansion signal. Creation of a new `shared.worlds` row requires explicit review/approval and then enters COMPASS/LAND; never auto-create operational Worlds from a metric threshold alone.
+- Planned geography is City → Location, with Universe World ↔ City as M:N. Do not reuse legacy `universe.spots` as the new global Location model.
+- `infrastructure.bases` is the accommodation-capacity entity, separate from businesses, physical POIs and collectibles/discoveries. Its two additive Phase 1B migrations are deployed and validated on both staging and production.
+- Quest, video/YouTube and future game generation should share one canonical story/character/lore source rather than duplicate narrative truth per medium.
+- Geography, quests, publication/versioning, player progress and generator metadata remain planned domains; do not bulk-create speculative tables.
 - Founder builds software; AI produces content; Darko and Sara field-test initial quests. Initial market validation: Novi Sad, Belgrade and Dubai. ~1,000 cities after year one is a capability TARGET, not a projection.
 
 ## Existing implementation versus proposal
-As verified during Phase 1B, production has `shared.worlds`, `shared.assets`, `universe.nodes/frontiers/spots` and `passport.journeys/events`; refresh live state before relying on this snapshot. The universe schema is LEGACY OUTLAND V0, not the new core.universes registry. A historical GREENHILL N·01 stay node must be preserved and auditable. Do not invent accommodation capacity, bookings or completed quests.
-Read current docs/architecture/OUTLAND_OS_CURRENT_STATE.md and docs/architecture/OUTLAND_PLATFORM_MASTER_PLAN.md as scoped OUTLAND OS references, not overriding SIDEWORLD brand architecture. Check docs/architecture/SIDEWORLD_* on your working branch. The root README currently says OUTLAND is platform root: interpret this within existing OUTLAND OS, not as SIDEWORLD brand governance.
+Read-only reconciliation refreshed on 2026-10-05: production has `shared.worlds`, `shared.assets`, `infrastructure.bases`, legacy `universe.nodes/frontiers/spots` and `passport.journeys/events`; refresh live state again before implementation. The existing `universe` schema is LEGACY OUTLAND V0 and creates a naming collision with the planned SIDEWORLD Universe/World domain; do not overwrite, reinterpret or drop V0 tables without a separately approved compatibility plan. A historical GREENHILL N·01 stay node remains preserved and auditable, with its accommodation representation already backfilled to `infrastructure.bases`.
+Read current docs/architecture/OUTLAND_OS_CURRENT_STATE.md and docs/architecture/OUTLAND_PLATFORM_MASTER_PLAN.md as scoped OUTLAND OS references, not overriding SIDEWORLD brand architecture. Use `docs/architecture/SIDEWORLD_ARCHITECTURE_DATA_MODEL_V3_1.md` for the current cross-universe SIDEWORLD direction. The root README currently says OUTLAND is platform root: interpret this within existing OUTLAND OS, not as SIDEWORLD brand governance.
 
 ## Before editing
 1. Confirm current branch, latest main, PR #29, working tree and migration history. Never overwrite uncommitted changes.
@@ -35,5 +41,5 @@ The two additive `infrastructure.bases` foundation/backfill migrations are deplo
 - Do not change historical applied migrations. Create new additive migrations.
 - Do not use CASCADE for cleanup shortcuts.
 - Do not expose credentials, service keys or private user data in docs, tests or output.
-- Commit changes on the existing feature branch and update PR #29, not a competing PR; keep draft until independently reviewed.
+- For new architecture work, use a dedicated reviewed branch/PR. Do not append unrelated changes to closed historical PRs. Keep implementation PRs unmerged until independently reviewed and explicitly approved where production impact exists.
 - Report file diffs, exact executed tests and results, blockers and commit SHA. If a check was not run, say so.

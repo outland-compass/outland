@@ -169,9 +169,13 @@ The current database contains several concepts that must remain explicitly separ
 - `passport` — experimental journey/event continuity V0.
 - `signal` — not implemented yet.
 
-**Boundary rule:** `shared.worlds` is the current canonical World identity used across COMPASS/LAND, Passport and Universe V0. Future SIGNAL/platform work must not create a second competing World identity. A separately approved migration may evolve/relocate this table to `core.worlds`, preserving the existing World UUIDs, while LAND-specific acquisition/scoring configuration is split into `land.world_profiles`. SIGNAL, LAND, Passport, Bases and Universe associations must reference the same canonical World.
+**OUTLAND operational boundary:** `shared.worlds` remains the canonical OUTLAND operational/investment World identity used across COMPASS/LAND, Passport V0, Universe V0, assets and Bases. Preserve its existing UUIDs and dependencies.
 
-The production migration history for Universe/Passport V0 is being reconciled back into Git so a fresh local database can reproduce the historical production baseline before SIGNAL schema work begins.
+**SIDEWORLD V3.1 clarification — approved 2026-10-05:** SIDEWORLD also requires a distinct experience/content/demand World concept, planned as `universe.worlds`. This is not a competing duplicate of `shared.worlds`: the two registries have different semantics and lifecycles and may be linked explicitly M:N. A SIDEWORLD Universe World may exist without any OUTLAND operational World. Demand/capacity gaps may create a reviewed expansion signal; only an approved workflow may create a new `shared.worlds` record and enter COMPASS/LAND. See `SIDEWORLD_ARCHITECTURE_DATA_MODEL_V3_1.md`.
+
+The historical `universe.nodes/frontiers/spots` model remains OUTLAND V0. Do not reuse those tables as the new SIDEWORLD City/Location model, and do not remove them until Passport/dependency compatibility is separately approved.
+
+The production migration history for Universe/Passport V0 is reconciled in Git; refresh live state before future schema work.
 
 ## 5. Database naming standard
 

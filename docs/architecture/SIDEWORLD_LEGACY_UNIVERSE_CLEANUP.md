@@ -1,13 +1,17 @@
 # SIDEWORLD legacy Universe cleanup — execution gate
 
-Status: approved direction; NOT deployed. Do not run destructive DDL before the gates below pass.
+> **V3.1 supersession note (2026-10-05):** The original "single World registry" assumption in this historical cleanup plan is superseded by `SIDEWORLD_ARCHITECTURE_DATA_MODEL_V3_1.md`. Existing `shared.worlds` remains the OUTLAND operational/investment registry, while planned `universe.worlds` is a distinct SIDEWORLD experience/content/demand registry. They may be linked M:N and must not be conflated. This note changes architecture direction only; it does not authorize destructive cleanup.
 
-## Canonical ownership
-- `shared.worlds` is the sole World registry; retain existing UUIDs and Compass fields.
-- `core.universes` is the planned sole Universe registry; `core.universe_worlds` joins it to `shared.worlds`.
-- `infrastructure.bases` is the sole new accommodation table; no replacement `nodes` table.
+Status: legacy cleanup still NOT deployed. Phase 1B `infrastructure.bases` foundation/backfill is deployed; destructive removal of legacy Universe/Passport structures remains separately gated.
+
+## Canonical ownership — updated V3.1
+- `shared.worlds` is the existing OUTLAND operational/investment World registry; retain existing UUIDs and Compass fields.
+- planned `universe.worlds` is the separate SIDEWORLD experience/content/demand World registry.
+- one canonical SIDEWORLD Universe identity registry is still required; exact additive placement uses the V3.1 migration plan and must respect the existing legacy `universe` schema.
+- an explicit M:N bridge may relate `universe.worlds` to `shared.worlds`; no automatic one-to-one identity assumption.
+- `infrastructure.bases` is the accommodation-capacity table and is already deployed; no replacement `nodes` table.
 - `shared.assets` remains the physical-asset source of truth.
-- `geography.locations` stores physical POIs; `signal.stops` uses locations in quests; `signal.artifacts` stores gameplay collectibles.
+- `geography.locations` stores physical POIs; `signal.stops` uses locations in quests; gameplay collectibles remain separate.
 - Legacy `universe.nodes/frontiers/spots` are frozen for new SIDEWORLD development, but remain physically present until compatibility is verified.
 
 ## Verified read-only production snapshot (2026-10-02)
@@ -19,7 +23,7 @@ Status: approved direction; NOT deployed. Do not run destructive DDL before the 
 
 ## Ordered gates
 1. Confirm PR #27 migration reconciliation, clean local reset, and current production/staging migration parity. Inventory all repo and deployed application queries, API consumers, functions, views, policies and grants before deletion.
-2. Add `core.universes` / `core.universe_worlds` and, when required, `infrastructure.bases` in separate additive migrations. Never create `core.worlds` or `infrastructure.assets`.
+2. Follow the separately reviewed V3.1 additive migration plan for canonical Universe/Franchise/Story, `universe.worlds`, geography and quest foundations. Preserve `shared.worlds` and deployed `infrastructure.bases`; never create a replacement operational World registry or `infrastructure.assets`.
 3. Backfill GREENHILL N.01 into `infrastructure.bases` with an explicit one-to-one migration mapping and preserved metadata. Validate world_id and source UUID mapping.
 4. Adapt Passport foreign keys and consumers without losing historical semantics. Keep legacy tables while old consumers may still exist.
 5. Replace legacy-specific checks in `supabase/tests/verify-schema.sql` with checks for canonical models, data parity and RLS; retain Compass regression assertions.
