@@ -31,6 +31,7 @@ export function newPasswordProblem(password: string, confirmation: string): stri
             <input name="confirmation" type="password" autocomplete="new-password" [(ngModel)]="confirmation" required>
           </label>
           <button class="primary" type="submit" [disabled]="saving()">Save new password</button>
+          <button class="quiet" type="button" [disabled]="saving()" (click)="cancel()">Cancel and sign out</button>
         </form>
         @if (error()) {
           <p class="state error" role="alert">{{ error() }}</p>
@@ -78,5 +79,18 @@ export default class ResetPasswordPage {
     this.password = '';
     this.confirmation = '';
     await this.router.navigate(['/sign-in'], { queryParams: { reset: 'done' }, replaceUrl: true });
+  }
+
+  /** Leaves recovery without changing the password; the recovery session is revoked. */
+  async cancel(): Promise<void> {
+    this.saving.set(true);
+    try {
+      await this.auth.signOut();
+    } finally {
+      this.saving.set(false);
+      this.password = '';
+      this.confirmation = '';
+    }
+    await this.router.navigate(['/sign-in'], { replaceUrl: true });
   }
 }
