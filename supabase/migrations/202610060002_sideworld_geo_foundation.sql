@@ -4,7 +4,6 @@
 -- Validated locally; not yet deployed to staging or production.
 -- Purpose: add reusable real-world city/location/fact/source knowledge.
 
-begin;
 
 create schema if not exists geo;
 
@@ -159,4 +158,3 @@ alter table geo.fact_sources enable row level security;
 revoke all on schema geo from public, anon, authenticated, service_role;
 revoke all on all tables in schema geo from public, anon, authenticated, service_role;
 
-commit;
