@@ -8,16 +8,22 @@ For existing OUTLAND OS code, preserve working operational boundaries. For new S
 ## Approved SIDEWORLD direction
 - Consumer brand/app: SIDEWORLD; tagline: FOLLOW THE SIGNAL; positioning: Real-world adventures.
 - OUTLAND is one universe among many. MVP may temporarily use sideworld.outland.one; that URL does not imply brand ownership.
-- One canonical Universe registry is PLANNED at `core.universes`, not verified as deployed.
-- `shared.worlds` is the EXISTING OUTLAND/COMPASS operational World registry, NOT an approved permanent canonical registry for SIDEWORLD narrative worlds. Preserve existing UUIDs, data and COMPASS dependencies; do not rename, repurpose or delete it in PR #29.
-- ARCHITECTURE DIRECTION UNDER EVALUATION: decouple SIDEWORLD narrative worlds from OUTLAND operational/investment records. A separate `core.worlds` and explicit mapping may be appropriate, but their precise semantics, ownership, cardinality and naming are NOT approved. Do not create `core.worlds`, `signal.worlds` or a mapping table without a separate founder-approved design and dependency audit. Do not describe `shared.worlds` as a parcel wishlist: `land.candidates` already represents investment candidates.
-- One canonical Universe registry is planned; never duplicate universes across schemas. `core.universe_worlds` was an earlier proposal tied to the old world-registry assumption and must be revisited, not automatically implemented.
+- **SIDEWORLD Schema V3.2 (founder-approved 2026-10-06; see `docs/architecture/SIDEWORLD_SCHEMA_V3_2_CANONICAL_ARCHITECTURE.md`):**
+  - `universe.universes` is the canonical SIDEWORLD Universe registry. SIDEWORLD itself is the platform, not a row.
+  - `universe.worlds` is the canonical SIDEWORLD World registry.
+  - `shared.worlds` is the EXISTING OUTLAND/COMPASS operational World registry. It is not a SIDEWORLD identity. Never rename, repurpose, delete or repoint it. `land.*`, `shared.assets`, `infrastructure.bases`, `passport.journeys/events` and `shared.activities` keep referencing OUTLAND operational records.
+  - `universe.world_outland_map` is the only, explicit bridge between a SIDEWORLD World and an OUTLAND operational World. Never infer identity from matching UUIDs or names, and never backfill it automatically.
+  - Domains: `universe` (topology/themes), `geo` (real-world geography and provenance), `canon` (fictional IP truth). `signal` and SIDEWORLD Passport additions come later, by separate approval.
+  - `universe`, `geo` and `canon` are private authoring schemas: RLS on, no grants to `anon`/`authenticated`/`service_role`, not in the Compass Data API schemas. Exposure is a separate reviewed step.
+  - Do not create `places.base`; `infrastructure.bases` remains OUTLAND accommodation capacity.
+- SUPERSEDED: the earlier `core.universes` / possible `core.worlds` / `core.universe_worlds` proposal. `core.*` is not used for SIDEWORLD topology. Older text that treats `shared.worlds` as the SIDEWORLD World identity is superseded too; it remains valid only as OUTLAND OS history. Do not create `signal.worlds` or other World registries.
+- Do not describe `shared.worlds` as a parcel wishlist: `land.candidates` already represents investment candidates.
 - `infrastructure.bases` is the accommodation-capacity entity, separate from businesses, physical POIs and collectibles/discoveries. Its two additive Phase 1B migrations have been applied and validated on staging and production.
 - Geography, quests, themes, recurring characters, publication/versioning and player progress are planned domains; do not bulk-create speculative tables.
 - Founder builds software; AI produces content; Darko and Sara field-test initial quests. Initial market validation: Novi Sad, Belgrade and Dubai. ~1,000 cities after year one is a capability TARGET, not a projection.
 
 ## Existing implementation versus proposal
-As verified during Phase 1B, production has `shared.worlds`, `shared.assets`, `universe.nodes/frontiers/spots` and `passport.journeys/events`; refresh live state before relying on this snapshot. The universe schema is LEGACY OUTLAND V0, not the new core.universes registry. A historical GREENHILL N·01 stay node must be preserved and auditable. Do not invent accommodation capacity, bookings or completed quests.
+Production and staging have `shared.worlds`, `shared.assets`, `infrastructure.bases` (+ legacy migration audit) and `passport.journeys/events`; refresh live state before relying on this snapshot. The legacy OUTLAND V0 tables `universe.nodes/frontiers/spots` and their four Passport columns are RETIRED (PR #31, deployed to staging and production on 2026-10-06, 19 migrations). The historical GREENHILL N·01 stay node survives only as its Base and audit snapshot, which must stay preserved and auditable. `universe.set_updated_at()` must remain: the `passport.journeys` trigger still depends on it. The V3.2 canonical tables in `universe`/`geo`/`canon` exist only on the branch until separately approved and deployed. Do not invent accommodation capacity, bookings or completed quests.
 Read current docs/architecture/OUTLAND_OS_CURRENT_STATE.md and docs/architecture/OUTLAND_PLATFORM_MASTER_PLAN.md as scoped OUTLAND OS references, not overriding SIDEWORLD brand architecture. Check docs/architecture/SIDEWORLD_* on your working branch. The root README currently says OUTLAND is platform root: interpret this within existing OUTLAND OS, not as SIDEWORLD brand governance.
 
 ## Before editing
@@ -38,5 +44,5 @@ The two additive `infrastructure.bases` foundation/backfill migrations are deplo
 - PR #29 and #30 are merged. Subsequent legacy cleanup belongs on a separate bounded branch/PR; keep draft until reviewed.
 - Report file diffs, exact executed tests and results, blockers and commit SHA. If a check was not run, say so.
 
-## Legacy cleanup preparation (2026-10-04)
-The founder authorized preparation and testing of removal of the three legacy Universe V0 tables and their unused Passport references. The new cleanup migration is NOT deployed. Production deletion still requires separate approval of the reviewed commit. Keep Base/audit records and Passport tables; no narrative model, new registry or application grants are in scope. `universe.set_updated_at` remains because the existing Passport journey trigger uses it.
+## Legacy Universe V0 cleanup — CLOSED (2026-10-06)
+`20261004140102_retire_legacy_universe_v0.sql` removed `universe.nodes/frontiers/spots` and the four Passport columns. It is deployed and validated on staging and production, and PR #31 is merged (`f6ec8a7`). Do not rework it unless a new regression proves it necessary. Base/audit records are now the only copy of the node data: never run `scripts/staging/sideworld-1b-rollback.sql` (it refuses), and never `migration repair --status reverted` the cleanup while its file is in the repository. `universe.set_updated_at` remains for the Passport journey trigger.
