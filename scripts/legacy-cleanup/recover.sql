@@ -1,5 +1,8 @@
 -- Run only after separate recovery approval, in one transaction: psql -1 -v ON_ERROR_STOP=1.
--- Recreates exactly the retired structures; preserves Base/audit and Passport rows.
+-- Recreates the retired structures and restores exact nodes; preserves Base/audit and Passport rows.
+-- The four Passport columns are re-added at the end of their tables (original position is not restored).
+-- Ledger: never `migration repair --status reverted` while the migration file remains in the repository;
+-- see docs/architecture/LEGACY_UNIVERSE_CLEANUP.md (Recovery).
 set local lock_timeout='5s';
 set local statement_timeout='60s';
 lock table infrastructure.bases, infrastructure.base_legacy_migration_audit,

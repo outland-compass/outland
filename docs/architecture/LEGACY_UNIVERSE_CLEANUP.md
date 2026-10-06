@@ -20,17 +20,36 @@ Historical migrations remain byte-identical. Historical Phase 1B checkpoint/depl
 2. Before staging execution, take and verify a fresh backup and rehearse the new migration and recovery against its restored copy. Capture worlds/candidates, Bases/audit and Passport fingerprints. No hosted staging or production DDL has been executed by this preparation.
 3. Pin an isolated, unlinked checkout to the reviewed SHA. Freeze edits for the short execution window. Use an explicit database URL; never `db push --linked`.
 4. Verify target identity and migration history. Dry run must list exactly `20261004140102_retire_legacy_universe_v0.sql`; stop for any other version or unexpected target.
-5. Execute the single migration only on the authorized target, without seed. It locks source/mapping/Passport tables, checks parity and unused references, and drops with RESTRICT. Lock timeout is five seconds. Set a sixty-second statement timeout on the deployment connection. All DDL and guards are one atomic DO statement, including when the CLI executes migration statements independently.
+5. Execute the single migration only on the authorized target, without seed. It locks source/mapping/Passport tables, checks parity and unused references, and drops with RESTRICT. Lock timeout is five seconds. The statement timeout is sixty seconds. All DDL and guards are one atomic DO statement.
+   - The Supabase session pooler does not apply startup options (`options=-c statement_timeout=…`): production Prepare on 2026-10-06 saw the server default `2min`. The CLI also runs `RESET ALL` before each migration, so `db push` cannot carry the timeout.
+   - Apply the unchanged migration file with `psql -X -1 -v ON_ERROR_STOP=1` after `SET LOCAL statement_timeout = '60s'`, asserting `current_setting('statement_timeout') = '1min'` in the same transaction.
+   - Then record the version with `supabase migration repair --status applied 20261004140102 --db-url <target>`. A restored-production rehearsal confirmed this writes the same ledger row as `db push`.
+   - If the transaction committed but the repair failed, re-run only the repair. Never run `db push`.
+   - The final DROP also takes ACCESS EXCLUSIVE locks on `shared.worlds` and `shared.assets` (their FK triggers). Execute in a quiet window with COMPASS writes paused.
 6. Run `verify-sideworld-bases.sql` and `verify-schema.sql` (staging uses `outland.world_canon=legacy_compatible`). Require 19 ledger versions, no legacy tables/reference columns, preserved Base/audit/Passport fingerprints and unchanged shared/land fingerprints. Test the existing COMPASS flows.
 7. Archive evidence and restore results. Production requires a separate exact-commit approval, fresh verified production backup and successful restored-production rehearsal. A staging pass is not production authorization.
 
 ## Recovery
 
-A migration error rolls back the entire transaction. Stop on the first failed gate; do not rerun blindly or roll back Phase 1B.
+A migration error rolls back the entire transaction. Stop on the first failed gate; do not rerun blindly.
 
-If cleanup committed and approved recovery is needed, use `scripts/legacy-cleanup/recover.sql` with `psql -X -1 -v ON_ERROR_STOP=1` on the explicitly verified target. It recreates the three original tables, restores exact nodes from audit snapshots and recreates the four empty Passport columns, FKs and indexes. It preserves existing Passport/Base/audit rows and rejects pre-existing legacy tables. Compare restored rows with the verified pre-cleanup backup and verify RLS/FKs. A full verified backup remains necessary if audit records have been lost or changed.
+**Never roll back Phase 1B after the cleanup.** Once the legacy tables are gone, the Bases and audit snapshots are the only copy of the node data. `scripts/staging/sideworld-1b-rollback.sql` refuses to run when `universe.nodes` is absent.
 
-Only after successful recovery and its checks, reconcile the cleanup migration ledger using the CLI's documented `migration repair` command for this exact version. Do not delete history rows by hand. Recovery is operator tooling, not an automatically applied migration.
+If the cleanup committed and approved recovery is needed:
+1. Run `scripts/legacy-cleanup/recover.sql` with `psql -X -1 -v ON_ERROR_STOP=1` on the explicitly verified target.
+   - It recreates the three original tables with their constraints, indexes, triggers, RLS, revokes and comments.
+   - It restores exact nodes from the audit snapshots.
+   - It re-adds the four empty Passport columns with their FKs and indexes. They come back at the end of their tables, not in their original position.
+   - It preserves existing Passport, Base and audit rows, and rejects pre-existing legacy tables.
+2. Compare the restored rows with the verified pre-cleanup backup, and verify RLS and FKs.
+   - A restored-production rehearsal found full rows identical; only the column position differed.
+   - A full verified backup remains necessary if audit records have been lost or changed.
+
+Ledger after recovery: **do not run `migration repair --status reverted 20261004140102` while the migration file is still in the repository.** A rehearsal confirmed that the next `db push` would then apply the cleanup again. Choose one of these as a separate, approved decision:
+- **Preferred:** keep the version recorded as applied, and record the recovered state with a new forward migration.
+- **Otherwise:** remove the migration file from the repository in the same change, then repair with `--db-url` (never `--linked`).
+
+Never delete history rows by hand. Recovery is operator tooling, not an automatically applied migration.
 
 ## Validation status
 
