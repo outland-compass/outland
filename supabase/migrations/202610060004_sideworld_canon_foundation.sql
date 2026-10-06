@@ -4,7 +4,6 @@
 -- Validated locally; not yet deployed to staging or production.
 -- Purpose: add structured cross-media fictional canon for SIDEWORLD Studio.
 
-begin;
 
 create schema if not exists canon;
 
@@ -212,4 +211,3 @@ alter table canon.canon_rules enable row level security;
 revoke all on schema canon from public, anon, authenticated, service_role;
 revoke all on all tables in schema canon from public, anon, authenticated, service_role;
 
-commit;

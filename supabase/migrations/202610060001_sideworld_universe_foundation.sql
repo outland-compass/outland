@@ -5,7 +5,6 @@
 -- Purpose: add canonical SIDEWORLD Universe/World/Theme entities without changing
 --          the existing OUTLAND operational shared.worlds registry.
 
-begin;
 
 create schema if not exists universe;
 
@@ -111,4 +110,3 @@ comment on table universe.worlds is
 comment on table universe.themes is
   'Reusable SIDEWORLD creative/gameplay theme identity; not a substitute for canon.franchises.';
 
-commit;

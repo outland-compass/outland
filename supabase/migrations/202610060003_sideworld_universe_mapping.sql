@@ -5,7 +5,6 @@
 -- Purpose: map canonical SIDEWORLD Worlds to cities and optionally to OUTLAND
 --          operational Worlds without repurposing shared.worlds.
 
-begin;
 
 create table universe.world_cities (
   world_id uuid not null
@@ -45,4 +44,3 @@ comment on table universe.world_outland_map is
 -- Intentionally no automatic backfill or seed in this migration.
 -- Existing shared.worlds rows must not be promoted to SIDEWORLD Worlds implicitly.
 
-commit;
