@@ -51,7 +51,6 @@ declare
     'dd_items', 'documents', 'evidence_items', 'notes', 'visits', 'decisions',
     'search_profiles', 'candidate_search_profiles', 'mobile_candidate_specs'
   ];
-  universe_entities text[] := array['nodes', 'frontiers', 'spots'];
   passport_entities text[] := array['journeys', 'events'];
   entity_name text;
   floating_world_id uuid := pg_temp.resolve_floating_world();
@@ -117,11 +116,11 @@ begin
     raise exception 'RAFTER lacks its required floating/water gate template';
   end if;
 
-  foreach entity_name in array universe_entities loop
-    if to_regclass('universe.' || entity_name) is null then
-      raise exception 'Missing Universe V0 entity: %', entity_name;
-    end if;
-  end loop;
+  if to_regclass('universe.nodes') is not null
+     or to_regclass('universe.frontiers') is not null
+     or to_regclass('universe.spots') is not null then
+    raise exception 'Legacy Universe V0 tables remain after cleanup';
+  end if;
 
   foreach entity_name in array passport_entities loop
     if to_regclass('passport.' || entity_name) is null then
@@ -130,18 +129,11 @@ begin
   end loop;
 
   if not exists (
-    select 1
-    from universe.nodes n
-    join shared.worlds w on w.id = n.world_id
-    where w.code = 'GREENHILL' and n.code = 'N.01' and n.node_type = 'stay'
+    select 1 from infrastructure.bases b
+    join shared.worlds w on w.id=b.world_id
+    where w.code='GREENHILL' and b.name='GREENHILL N·01'
   ) then
-    raise exception 'GREENHILL N.01 Universe V0 node missing';
-  end if;
-
-  if (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'universe' and c.relname = any(universe_entities) and c.relrowsecurity)
-      <> array_length(universe_entities, 1) then
-    raise exception 'RLS is not enabled on every Universe V0 table';
+    raise exception 'GREENHILL accommodation Base missing';
   end if;
 
   if (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
