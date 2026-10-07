@@ -162,7 +162,7 @@ begin
   foreach fn in array array[
     'public.sideworld_studio_save_universe(uuid,text,text,text,text,text)'::regprocedure,
     'public.sideworld_studio_save_franchise(uuid,uuid,text,text,text,text,integer)'::regprocedure,
-    'public.sideworld_studio_save_series(uuid,uuid,uuid,text,text,text,integer)'::regprocedure,
+    'public.sideworld_studio_save_series(uuid,uuid,uuid,text,text,text,text,integer)'::regprocedure,
     'public.sideworld_studio_save_lore_fact(uuid,uuid,uuid,text,text,text,text,text)'::regprocedure,
     'public.sideworld_studio_save_canon_rule(uuid,uuid,uuid,uuid,text,text,text,text)'::regprocedure
   ] loop
