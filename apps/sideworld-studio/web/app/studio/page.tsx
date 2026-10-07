@@ -13,12 +13,13 @@ export default function Studio() {
     <main className="shell">
       <aside>
         <p className="brand small">SIDE<span>WORLD</span></p>
-        <p className="eyebrow">Studio V0</p>
+        <p className="eyebrow">Studio V0-D1</p>
         <nav>
-          {spaces.map(([name]) => <span key={name}>{name}</span>)}
+          <Link href="/studio/canon">Canon Editor</Link>
           <Link href="/studio/inspector">Canon Inspector</Link>
+          {spaces.filter(([name]) => name !== 'Canon').map(([name]) => <span key={name}>{name}</span>)}
         </nav>
-        <p className="phase">V0-B · read contract<br/>NO DATABASE WRITES</p>
+        <p className="phase">PRIVATE AUTHORING<br/>SERVER-ONLY WRITES</p>
       </aside>
 
       <section className="work">
@@ -34,24 +35,29 @@ export default function Studio() {
           <p className="eyebrow">FOLLOW THE SIGNAL.</p>
           <h2>Structure canon first. Then let AI build from approved context.</h2>
           <p className="muted">
-            V0-B now has a typed, server-only read contract and a Canon Inspector using a non-production fixture.
+            V0-D1 adds protected authoring for Universe, Franchise, Series, Lore and Canon Rules.
           </p>
-          <Link className="button" href="/studio/inspector">Open Canon Inspector</Link>
+          <Link className="button" href="/studio/canon">Open Canon Editor</Link>
         </article>
 
         <section className="grid">
-          {spaces.map(([name, description]) => (
+          <article>
+            <em>Available now</em>
+            <h3>Canon Editor</h3>
+            <p>Bootstrap the first canonical hierarchy through validated server-only writes.</p>
+          </article>
+          <article>
+            <em>Available now</em>
+            <h3>Canon Inspector</h3>
+            <p>Review the selected read model before building Canon Context.</p>
+          </article>
+          {spaces.filter(([name]) => name !== 'Canon').map(([name, description]) => (
             <article key={name}>
-              <em>Read model next</em>
+              <em>Next slices</em>
               <h3>{name}</h3>
               <p>{description}</p>
             </article>
           ))}
-          <article>
-            <em>Available now</em>
-            <h3>Canon Inspector</h3>
-            <p>Review the V3.2 read contract without touching production data.</p>
-          </article>
         </section>
       </section>
     </main>
