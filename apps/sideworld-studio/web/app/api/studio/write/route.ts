@@ -36,6 +36,15 @@ function integer(value: unknown, field: string, fallback: number) {
   return n;
 }
 
+function decimalOrNull(value: unknown, field: string, min: number, max: number) {
+  if (value === '' || value == null) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < min || n > max) {
+    throw new Error(`${field} must be between ${min} and ${max}`);
+  }
+  return n;
+}
+
 function oneOf(value: unknown, field: string, allowed: readonly string[], fallback: string) {
   const v = text(value, 64) || fallback;
   if (!allowed.includes(v)) throw new Error(`${field} is invalid`);
@@ -184,8 +193,8 @@ function buildRpc(entity: Entity, input: Record<string, unknown>) {
           p_region: text(input.region, 160),
           p_timezone: requiredText(input.timezone, 'timezone', 80),
           p_default_locale: requiredText(input.defaultLocale, 'defaultLocale', 32),
-          p_latitude: input.latitude === '' || input.latitude == null ? null : Number(input.latitude),
-          p_longitude: input.longitude === '' || input.longitude == null ? null : Number(input.longitude),
+          p_latitude: decimalOrNull(input.latitude, 'latitude', -90, 90),
+          p_longitude: decimalOrNull(input.longitude, 'longitude', -180, 180),
           p_status: oneOf(input.status, 'status', ['draft','active','archived'], 'draft'),
           p_verification_status: oneOf(input.verificationStatus, 'verificationStatus', ['unverified','partially_verified','verified','disputed'], 'unverified')
         }
