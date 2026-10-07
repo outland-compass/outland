@@ -13,7 +13,7 @@ export default function Studio() {
     <main className="shell">
       <aside>
         <p className="brand small">SIDE<span>WORLD</span></p>
-        <p className="eyebrow">Studio V0-D2</p>
+        <p className="eyebrow">Studio V0-D3</p>
         <nav>
           <Link href="/studio/canon">Canon Editor</Link>
           <Link href="/studio/inspector">Canon Inspector</Link>
@@ -35,7 +35,7 @@ export default function Studio() {
           <p className="eyebrow">FOLLOW THE SIGNAL.</p>
           <h2>Structure canon first. Then let AI build from approved context.</h2>
           <p className="muted">
-            V0-D2 extends protected authoring across Worlds, Themes, Characters, Factions and real City truth.
+            V0-D3 completes structured canon authoring and the read contract required by Canon Context Builder.
           </p>
           <Link className="button" href="/studio/canon">Open Canon Editor</Link>
         </article>
