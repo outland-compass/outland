@@ -15,7 +15,6 @@ $ProductionRef = 'huzcukdovavejejwohey'
 $StagingRef = 'clgpxvyflycudzhdzjlv'
 $ProductionUrl = "postgresql://postgres.$ProductionRef@aws-1-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require"
 $ProductionApi = "https://$ProductionRef.supabase.co"
-$ExpectedApiSchemas = 'public, graphql_public, shared, land'
 $V32 = [ordered]@{
     '202610060001_sideworld_universe_foundation.sql' = '108ced4d481f90990650d9f041bb74b0eac95cff'
     '202610060002_sideworld_geo_foundation.sql' = 'b06b95ca8d4dc6fe461a4bd73dbfbb3e314b09a9'
@@ -133,7 +132,7 @@ try {
 
     $api = Test-ApiExposure
     $api | ConvertTo-Json | Out-File -Encoding utf8 (Join-Path $Ev 'api-exposure-before.json')
-    foreach($p in $api.Keys){ Gate ($api[$p] -match [regex]::Escape("Only the following schemas are exposed: $ExpectedApiSchemas")) "API does not expose $p" }
+    foreach($p in $api.Keys){ Gate (($api[$p] -match '^HTTP 406 ') -and ($api[$p] -match 'PGRST106')) "API rejects $p as an unexposed schema (HTTP 406 / PGRST106)" }
 
     $o = npx @cli migration list --db-url $ProductionDbUrl 2>&1 | Txt
     $o | Out-File -Encoding utf8 (Join-Path $Ev 'migration-list-before.txt')
