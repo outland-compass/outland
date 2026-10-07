@@ -9,6 +9,8 @@ export const studioReadContractFixture: CanonReadModel = {
     status: 'draft',
     description: 'Placeholder only. Choose the canonical owning Universe before saving; BEYOND THE ATLAS is a franchise.'
   },
+  worlds: [],
+  themes: [],
   franchises: [
     {
       id: 'f-beyond-atlas',
@@ -33,6 +35,7 @@ export const studioReadContractFixture: CanonReadModel = {
     }
   ],
   characters: [],
+  relationships: [],
   factions: [],
   lore: [
     {
