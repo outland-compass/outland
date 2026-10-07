@@ -13,14 +13,14 @@ export default async function CanonInspectorPage() {
     <main className="work">
       <header>
         <div>
-          <p className="eyebrow">Studio V0-B</p>
+          <p className="eyebrow">Studio V0-D2</p>
           <h1>Canon Inspector</h1>
         </div>
         <b>READ CONTRACT</b>
       </header>
 
       <p className="muted">
-        Development fixture only. No production database reads or writes are enabled yet.
+        Shows the configured Studio read source. Fixture mode is non-production; Supabase mode reads through the private server boundary.
       </p>
 
       <section className="inspector-stack">
