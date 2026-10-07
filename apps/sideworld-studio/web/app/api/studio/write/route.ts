@@ -14,7 +14,7 @@ function text(value: unknown, max = 4000) {
 
 function nullableUuid(value: unknown) {
   const v = text(value, 64);
-  return v || null;
+  return v ? requiredUuid(v, 'optional UUID') : null;
 }
 
 function requiredUuid(value: unknown, field: string) {
