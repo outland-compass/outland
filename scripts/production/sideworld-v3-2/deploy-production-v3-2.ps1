@@ -7,15 +7,15 @@
 #                   Requires separate written founder approval naming -SourceSha.
 #   -Mode CompleteLedger : recovery only after the schema transaction committed but one or more V3.2 ledger repairs
 #                   failed. Verifies the committed empty/private schema before repairing ONLY missing V3.2 versions.
-# The target is hard-coded to production clgpxvyflycudzhdzjlv; any staging reference aborts. One password prompt.
+# The target is hard-coded to production huzcukdovavejejwohey; any staging reference aborts. One password prompt.
 # Stops at the first failed gate. No automatic rollback (see docs/architecture/SIDEWORLD_V3_2_PRODUCTION_REHEARSAL_PLAN.md).
 #   powershell -ExecutionPolicy Bypass -File <checkout>\scripts\production\sideworld-v3-2\deploy-production-v3-2.ps1 -Mode Prepare
 param(
     [Parameter(Mandatory)][ValidateSet('Prepare', 'Execute', 'CompleteLedger')][string]$Mode,
-    [string]$Repo         = 'C:\deploy\outland-sideworld-v3-2',
+    [string]$Repo         = 'C:\deploy\outland-sideworld-v3-2-production',
     [Parameter(Mandatory)][string]$SourceSha,
     [string]$FeatureSha   = 'e8634721dc46cb6735e320a441ec45eb8bc5167c',
-    [string]$AnonKeyFile  = 'C:\deploy\outland-legacy-cleanup\apps\compass\web\src\environments\environment.local.ts',
+    [string]$AnonKeyFile  = 'C:\deploy\sideworld-production-api-probe.ts',
     [switch]$IncludeWritePathSuites,
     [string]$EvidenceRoot = (Join-Path $HOME 'outland-backups')
 )
