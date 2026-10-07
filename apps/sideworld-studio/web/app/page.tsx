@@ -8,13 +8,16 @@ export const dynamic = 'force-dynamic';
 
 export default async function AccessPage() {
   const cookieStore = await cookies();
+  let authenticated = false;
 
   try {
-    if (verifyStudioSession(cookieStore.get(STUDIO_SESSION_COOKIE)?.value)) {
-      redirect('/studio');
-    }
+    authenticated = verifyStudioSession(cookieStore.get(STUDIO_SESSION_COOKIE)?.value);
   } catch {
-    // Missing server configuration is presented by the access form.
+    authenticated = false;
+  }
+
+  if (authenticated) {
+    redirect('/studio');
   }
 
   return <StudioAccessGate />;
