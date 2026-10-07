@@ -13,7 +13,7 @@ export default function Studio() {
     <main className="shell">
       <aside>
         <p className="brand small">SIDE<span>WORLD</span></p>
-        <p className="eyebrow">Studio V0-D1</p>
+        <p className="eyebrow">Studio V0-D2</p>
         <nav>
           <Link href="/studio/canon">Canon Editor</Link>
           <Link href="/studio/inspector">Canon Inspector</Link>
@@ -35,7 +35,7 @@ export default function Studio() {
           <p className="eyebrow">FOLLOW THE SIGNAL.</p>
           <h2>Structure canon first. Then let AI build from approved context.</h2>
           <p className="muted">
-            V0-D1 adds protected authoring for Universe, Franchise, Series, Lore and Canon Rules.
+            V0-D2 extends protected authoring across Worlds, Themes, Characters, Factions and real City truth.
           </p>
           <Link className="button" href="/studio/canon">Open Canon Editor</Link>
         </article>
@@ -43,8 +43,8 @@ export default function Studio() {
         <section className="grid">
           <article>
             <em>Available now</em>
-            <h3>Canon Editor</h3>
-            <p>Bootstrap the first canonical hierarchy through validated server-only writes.</p>
+            <h3>Foundation Editor</h3>
+            <p>Bootstrap Universe → World/Theme → Canon → City through validated server-only writes.</p>
           </article>
           <article>
             <em>Available now</em>
