@@ -2,15 +2,22 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 
-test('Studio shell remains explicitly non-writing in V0-B', async () => {
+test('Studio V0-C remains non-writing', async () => {
   const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
-  assert.match(readme, /no production database (grants|reads)/i);
+  assert.match(readme, /no authoring writes/i);
 });
 
-test('Canon Inspector uses the server-only read contract', async () => {
+test('Studio RPC reader stays server-only and keeps the service key private', async () => {
   const source = await readFile(new URL('../lib/studio/read-model.ts', import.meta.url), 'utf8');
   assert.match(source, /server-only/);
-  assert.doesNotMatch(source, /service_role|SUPABASE_SERVICE/i);
+  assert.match(source, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.doesNotMatch(source, /NEXT_PUBLIC_/);
+  assert.match(source, /STUDIO_DATA_SOURCE/);
+});
+
+test('fixture is still the default data source', async () => {
+  const source = await readFile(new URL('../lib/studio/read-model.ts', import.meta.url), 'utf8');
+  assert.match(source, /process\.env\.STUDIO_DATA_SOURCE \?\? 'fixture'/);
 });
 
 test('fixture marks itself as non-production canon', async () => {
