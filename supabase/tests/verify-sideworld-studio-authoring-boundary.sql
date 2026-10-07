@@ -58,24 +58,29 @@ begin
   perform public.sideworld_studio_save_series(s,f,null,'ci-series','CI Series Updated','temporary','draft',100);
   perform public.sideworld_studio_save_lore_fact(l,f,s,'ci.fact','Temporary lore fact updated','draft',null,'internal');
   perform public.sideworld_studio_save_canon_rule(r,f,s,null,'continuity','Temporary rule updated','error','draft');
-
-  if not exists (select 1 from universe.universes where id=u and name='CI Studio Universe Updated') then
-    raise exception 'Universe authoring smoke failed';
-  end if;
-  if not exists (select 1 from canon.franchises where id=f and name='CI Franchise Updated') then
-    raise exception 'Franchise authoring smoke failed';
-  end if;
-  if not exists (select 1 from canon.series where id=s and name='CI Series Updated') then
-    raise exception 'Series authoring smoke failed';
-  end if;
-  if not exists (select 1 from canon.lore_facts where id=l and statement='Temporary lore fact updated') then
-    raise exception 'Lore authoring smoke failed';
-  end if;
-  if not exists (select 1 from canon.canon_rules where id=r and rule_text='Temporary rule updated') then
-    raise exception 'Rule authoring smoke failed';
-  end if;
 end
 $smoke$;
 
 reset role;
+
+do $assert$
+begin
+  if not exists (select 1 from universe.universes where slug='ci-studio-universe' and name='CI Studio Universe Updated') then
+    raise exception 'Universe authoring smoke failed';
+  end if;
+  if not exists (select 1 from canon.franchises where slug='ci-franchise' and name='CI Franchise Updated') then
+    raise exception 'Franchise authoring smoke failed';
+  end if;
+  if not exists (select 1 from canon.series where slug='ci-series' and name='CI Series Updated') then
+    raise exception 'Series authoring smoke failed';
+  end if;
+  if not exists (select 1 from canon.lore_facts where fact_key='ci.fact' and statement='Temporary lore fact updated') then
+    raise exception 'Lore authoring smoke failed';
+  end if;
+  if not exists (select 1 from canon.canon_rules where rule_type='continuity' and rule_text='Temporary rule updated') then
+    raise exception 'Rule authoring smoke failed';
+  end if;
+end
+$assert$;
+
 rollback;
