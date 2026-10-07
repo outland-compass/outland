@@ -1,18 +1,19 @@
-# SIDEWORLD Studio V0-D1
+# SIDEWORLD Studio V0-D2
 
 Private SIDEWORLD authoring application.
 
-V0-D1 adds the first **real authoring path**:
+V0-D2 extends the real authoring path across the V3.2 foundation:
 
-- private signed Studio access session;
-- server-only Supabase service-role RPC client;
-- validated authoring API;
-- narrow SECURITY DEFINER save RPCs for Universe, Franchise, Series, Lore Facts and Canon Rules;
-- Canon Editor bootstrap UI;
-- no direct browser access to private `universe`, `geo` or `canon` schemas;
-- no hard delete flow;
-- approval/status remains an explicit editor action.
+- Universe;
+- World and World ↔ City relationship;
+- Theme;
+- Franchise and Series;
+- Character and Faction;
+- Lore Facts and Canon Rules;
+- Country and City truth.
 
-Reads still default to the non-production fixture unless `STUDIO_DATA_SOURCE=supabase` is explicitly configured.
+All writes pass through validated server endpoints and narrow `SECURITY DEFINER` RPCs executable only by `service_role`. The browser receives neither private-schema access nor the service-role credential. `universe`, `geo` and `canon` remain outside Data API exposure and have no direct API-role USAGE.
 
-Production deployment and production database changes are not part of V0-D1.
+The development fixture no longer pretends that BEYOND THE ATLAS is a Universe. BEYOND THE ATLAS remains the approved Franchise; its owning Universe must be chosen explicitly before real canon is seeded.
+
+There is still no hard-delete flow. Production remains untouched.

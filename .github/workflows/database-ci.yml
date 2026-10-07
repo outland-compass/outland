@@ -46,7 +46,7 @@ jobs:
           set -uo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           failures=0
-          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql; do
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql; do
             echo "::group::$script"
             if docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
               echo "PASS: $script"
@@ -100,7 +100,7 @@ jobs:
         run: |
           set -euo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
-          for script in supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql; do
+          for script in supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql; do
             docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"
             echo "PASS: $script"
           done
@@ -149,7 +149,7 @@ jobs:
           supabase migration up --local
           mv /tmp/studio-v0c-pending/*.sql supabase/migrations/
           supabase migration up --local
-          for script in supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql; do
+          for script in supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql; do
             docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"
             echo "PASS: $script"
           done
@@ -193,7 +193,7 @@ jobs:
           set -uo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           failures=0
-          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql; do
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql; do
             echo "::group::$script (legacy_compatible)"
             if docker exec -i -e PGOPTIONS='-c outland.world_canon=legacy_compatible' "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
               echo "PASS: $script"

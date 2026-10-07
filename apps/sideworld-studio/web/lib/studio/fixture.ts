@@ -2,17 +2,17 @@ import type { CanonReadModel } from './types';
 
 export const studioReadContractFixture: CanonReadModel = {
   universe: {
-    id: 'u-beyond-atlas',
-    slug: 'beyond-the-atlas',
-    name: 'BEYOND THE ATLAS',
+    id: 'u-development',
+    slug: 'development-universe',
+    name: 'Development Universe',
     visibility: 'private',
     status: 'draft',
-    description: 'Development fixture for Studio V0-B. Not production canon.'
+    description: 'Placeholder only. Choose the canonical owning Universe before saving; BEYOND THE ATLAS is a franchise.'
   },
   franchises: [
     {
       id: 'f-beyond-atlas',
-      universeId: 'u-beyond-atlas',
+      universeId: 'u-development',
       slug: 'beyond-the-atlas',
       name: 'BEYOND THE ATLAS',
       description: 'Development fixture only.',

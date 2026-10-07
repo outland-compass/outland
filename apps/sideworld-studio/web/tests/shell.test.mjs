@@ -14,6 +14,9 @@ test('Studio authoring API verifies the private session', async () => {
   assert.match(source, /verifyStudioSession/);
   assert.match(source, /sideworld_studio_save_universe/);
   assert.match(source, /sideworld_studio_save_canon_rule/);
+  assert.match(source, /sideworld_studio_save_world/);
+  assert.match(source, /sideworld_studio_save_city/);
+  assert.match(source, /sideworld_studio_save_character/);
 });
 
 test('Studio RPC client keeps the service key server-only', async () => {
@@ -31,5 +34,7 @@ test('fixture is still the default read source', async () => {
 test('fixture preserves the initial narrative structure', async () => {
   const source = await readFile(new URL('../lib/studio/fixture.ts', import.meta.url), 'utf8');
   assert.match(source, /The Lost Cartographers/);
+  assert.match(source, /Placeholder only/);
+  assert.doesNotMatch(source, /id: 'u-beyond-atlas'/);
   assert.match(source, /The Unbroken Line is an overarching mystery, not a series/);
 });

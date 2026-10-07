@@ -5,7 +5,7 @@ import { callStudioRpc } from '@/lib/studio/rpc';
 
 export const runtime = 'nodejs';
 
-type Entity = 'universe' | 'franchise' | 'series' | 'lore' | 'rule';
+type Entity = 'universe' | 'franchise' | 'series' | 'lore' | 'rule' | 'world' | 'theme' | 'character' | 'faction' | 'country' | 'city' | 'worldCity';
 
 function text(value: unknown, max = 4000) {
   if (typeof value !== 'string') return '';
@@ -33,6 +33,15 @@ function optionalId(value: unknown) {
 function integer(value: unknown, field: string, fallback: number) {
   const n = Number(value ?? fallback);
   if (!Number.isInteger(n) || n <= 0) throw new Error(`${field} must be a positive integer`);
+  return n;
+}
+
+function decimalOrNull(value: unknown, field: string, min: number, max: number) {
+  if (value === '' || value == null) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < min || n > max) {
+    throw new Error(`${field} must be between ${min} and ${max}`);
+  }
   return n;
 }
 
@@ -111,6 +120,94 @@ function buildRpc(entity: Entity, input: Record<string, unknown>) {
           p_visibility: oneOf(input.visibility, 'visibility', ['internal','hidden','player_known','public'], 'internal')
         }
       };
+    case 'world':
+      return {
+        name: 'sideworld_studio_save_world',
+        body: {
+          p_id: optionalId(input.id),
+          p_universe_id: requiredUuid(input.universeId, 'universeId'),
+          p_slug: slug(input.slug),
+          p_name: requiredText(input.name, 'name', 160),
+          p_status: oneOf(input.status, 'status', ['draft','active','archived'], 'draft'),
+          p_summary: text(input.summary)
+        }
+      };
+    case 'theme':
+      return {
+        name: 'sideworld_studio_save_theme',
+        body: {
+          p_id: optionalId(input.id),
+          p_universe_id: nullableUuid(input.universeId),
+          p_slug: slug(input.slug),
+          p_name: requiredText(input.name, 'name', 160),
+          p_description: text(input.description),
+          p_status: oneOf(input.status, 'status', ['draft','active','archived'], 'draft')
+        }
+      };
+    case 'character':
+      return {
+        name: 'sideworld_studio_save_character',
+        body: {
+          p_id: optionalId(input.id),
+          p_franchise_id: requiredUuid(input.franchiseId, 'franchiseId'),
+          p_slug: slug(input.slug),
+          p_name: requiredText(input.name, 'name', 160),
+          p_display_name: text(input.displayName, 160),
+          p_role: text(input.role, 160),
+          p_age: input.age === '' || input.age == null ? null : integer(input.age, 'age', 1),
+          p_bio: text(input.bio),
+          p_canon_status: oneOf(input.canonStatus, 'canonStatus', ['draft','proposed','approved','retired'], 'draft')
+        }
+      };
+    case 'faction':
+      return {
+        name: 'sideworld_studio_save_faction',
+        body: {
+          p_id: optionalId(input.id),
+          p_franchise_id: requiredUuid(input.franchiseId, 'franchiseId'),
+          p_slug: slug(input.slug),
+          p_name: requiredText(input.name, 'name', 160),
+          p_faction_type: text(input.factionType, 160),
+          p_description: text(input.description),
+          p_visibility: oneOf(input.visibility, 'visibility', ['hidden','partial','public'], 'hidden'),
+          p_canon_status: oneOf(input.canonStatus, 'canonStatus', ['draft','proposed','approved','retired'], 'draft')
+        }
+      };
+    case 'country':
+      return {
+        name: 'sideworld_studio_save_country',
+        body: {
+          p_code: requiredText(input.code, 'code', 2).toUpperCase(),
+          p_name: requiredText(input.name, 'name', 160),
+          p_default_locale: text(input.defaultLocale, 32)
+        }
+      };
+    case 'city':
+      return {
+        name: 'sideworld_studio_save_city',
+        body: {
+          p_id: optionalId(input.id),
+          p_country_code: requiredText(input.countryCode, 'countryCode', 2).toUpperCase(),
+          p_slug: slug(input.slug),
+          p_name: requiredText(input.name, 'name', 160),
+          p_region: text(input.region, 160),
+          p_timezone: requiredText(input.timezone, 'timezone', 80),
+          p_default_locale: requiredText(input.defaultLocale, 'defaultLocale', 32),
+          p_latitude: decimalOrNull(input.latitude, 'latitude', -90, 90),
+          p_longitude: decimalOrNull(input.longitude, 'longitude', -180, 180),
+          p_status: oneOf(input.status, 'status', ['draft','active','archived'], 'draft'),
+          p_verification_status: oneOf(input.verificationStatus, 'verificationStatus', ['unverified','partially_verified','verified','disputed'], 'unverified')
+        }
+      };
+    case 'worldCity':
+      return {
+        name: 'sideworld_studio_save_world_city',
+        body: {
+          p_world_id: requiredUuid(input.worldId, 'worldId'),
+          p_city_id: requiredUuid(input.cityId, 'cityId'),
+          p_relationship_type: oneOf(input.relationshipType, 'relationshipType', ['primary','story','operational','expansion'], 'story')
+        }
+      };
     case 'rule':
       return {
         name: 'sideworld_studio_save_canon_rule',
@@ -151,7 +248,7 @@ export async function POST(request: NextRequest) {
   }
 
   const entity = text(body.entity, 32) as Entity;
-  if (!['universe','franchise','series','lore','rule'].includes(entity)) {
+  if (!['universe','franchise','series','lore','rule','world','theme','character','faction','country','city','worldCity'].includes(entity)) {
     return NextResponse.json({ error: 'Unsupported entity' }, { status: 400 });
   }
 
