@@ -15,8 +15,7 @@ const generated = execFileSync(
     'types',
     'typescript',
     '--local',
-    '--schema',
-    apiSchemas.join(','),
+    ...apiSchemas.flatMap((schema) => ['--schema', schema]),
   ],
   {
     encoding: 'utf8',
@@ -26,13 +25,13 @@ const generated = execFileSync(
 );
 
 for (const required of ['public', 'shared', 'land']) {
-  if (!new RegExp(`\\n  ${required}: \\{`).test(generated)) {
+  if (!new RegExp(`^\\s*${required}\\s*:\\s*\\{`, 'm').test(generated)) {
     throw new Error(`Generated database types are missing exposed schema: ${required}`);
   }
 }
 
 for (const privateSchema of ['universe', 'geo', 'canon']) {
-  if (new RegExp(`\\n  ${privateSchema}: \\{`).test(generated)) {
+  if (new RegExp(`^\\s*${privateSchema}\\s*:\\s*\\{`, 'm').test(generated)) {
     throw new Error(`Private SIDEWORLD schema leaked into client database types: ${privateSchema}`);
   }
 }
