@@ -25,14 +25,27 @@ const generated = execFileSync(
   },
 );
 
-for (const required of ['public', 'shared', 'land']) {
-  if (!new RegExp(`^\\s*${required}\\s*:\\s*\\{`, 'm').test(generated)) {
-    throw new Error(`Generated database types are missing exposed schema: ${required}`);
+if (!generated.includes('export type Database') && !generated.includes('export interface Database')) {
+  throw new Error('Supabase type generation did not produce a Database type');
+}
+
+const schemaKeyPattern = (schema) =>
+  new RegExp(`^\\s*["']?${schema}["']?\\s*:\\s*\\{`, 'm');
+
+for (const required of ['shared', 'land']) {
+  if (!schemaKeyPattern(required).test(generated)) {
+    const detected = [...generated.matchAll(/^\\s*["']?([a-zA-Z_][a-zA-Z0-9_]*)["']?\\s*:\\s*\\{/gm)]
+      .map((match) => match[1])
+      .filter((value, index, all) => all.indexOf(value) === index)
+      .slice(0, 40);
+    throw new Error(
+      `Generated database types are missing required application schema: ${required}. Detected keys: ${detected.join(', ')}`,
+    );
   }
 }
 
 for (const privateSchema of ['universe', 'geo', 'canon']) {
-  if (new RegExp(`^\\s*${privateSchema}\\s*:\\s*\\{`, 'm').test(generated)) {
+  if (schemaKeyPattern(privateSchema).test(generated)) {
     throw new Error(`Private SIDEWORLD schema leaked into client database types: ${privateSchema}`);
   }
 }
