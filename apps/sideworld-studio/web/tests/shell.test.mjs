@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 test('Studio shell remains explicitly non-writing in V0-B', async () => {
   const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
-  assert.match(readme, /no database/i);
+  assert.match(readme, /no production database (grants|reads)/i);
 });
 
 test('Canon Inspector uses the server-only read contract', async () => {
