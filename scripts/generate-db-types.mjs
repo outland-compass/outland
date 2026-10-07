@@ -15,7 +15,8 @@ const generated = execFileSync(
     'types',
     'typescript',
     '--local',
-    ...apiSchemas.flatMap((schema) => ['--schema', schema]),
+    '--schema',
+    apiSchemas.join(','),
   ],
   {
     encoding: 'utf8',
