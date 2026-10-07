@@ -46,7 +46,7 @@ jobs:
           set -uo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           failures=0
-          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql; do
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql; do
             echo "::group::$script"
             if docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
               echo "PASS: $script"
@@ -81,7 +81,7 @@ jobs:
           mv supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql /tmp/sideworld-pending/
           # SIDEWORLD Schema V3.2 is newer than 1B and the cleanup: apply it before Studio V0-C.
           mv supabase/migrations/20261006000*_sideworld_*.sql /tmp/v32-pending/
-          mv supabase/migrations/202610070001_sideworld_studio_read_boundary.sql /tmp/studio-v0c-pending/
+          mv supabase/migrations/20261007000*_sideworld_studio_*.sql /tmp/studio-v0c-pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           git show 05105f7:supabase/seed.sql | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
@@ -100,7 +100,7 @@ jobs:
         run: |
           set -euo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
-          for script in supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql; do
+          for script in supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql; do
             docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"
             echo "PASS: $script"
           done
@@ -128,7 +128,7 @@ jobs:
           mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql /tmp/staging-history/
           mv supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql /tmp/sideworld-pending/
           mv supabase/migrations/20261006000*_sideworld_*.sql /tmp/v32-pending/
-          mv supabase/migrations/202610070001_sideworld_studio_read_boundary.sql /tmp/studio-v0c-pending/
+          mv supabase/migrations/20261007000*_sideworld_studio_*.sql /tmp/studio-v0c-pending/
           # The actual staging has eight recorded migrations. Start with precisely
           # those eight on an EMPTY disposable local database, without final seed.
           supabase db reset --local --no-seed
@@ -149,7 +149,7 @@ jobs:
           supabase migration up --local
           mv /tmp/studio-v0c-pending/*.sql supabase/migrations/
           supabase migration up --local
-          for script in supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql; do
+          for script in supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql; do
             docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"
             echo "PASS: $script"
           done
@@ -177,7 +177,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/pending
-          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql supabase/migrations/20261006000*_sideworld_*.sql supabase/migrations/202610070001_sideworld_studio_read_boundary.sql /tmp/pending/
+          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql supabase/migrations/20261006000*_sideworld_*.sql supabase/migrations/20261007000*_sideworld_studio_*.sql /tmp/pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           # Seed exactly as staging was seeded: seed.sql as it was before #27 (26eb571) renamed RIVERKEEPER.
@@ -193,7 +193,7 @@ jobs:
           set -uo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           failures=0
-          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql; do
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql; do
             echo "::group::$script (legacy_compatible)"
             if docker exec -i -e PGOPTIONS='-c outland.world_canon=legacy_compatible' "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
               echo "PASS: $script"
