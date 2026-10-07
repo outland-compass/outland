@@ -170,7 +170,7 @@ try {
     $new = @(Get-ChildItem $EvidenceRoot -Directory -Filter 'production-2*' | Where-Object { $before -notcontains $_.FullName })
     Gate ($new.Count -eq 1) 'exactly one new backup folder'
     $bk = $new[0].FullName
-    $vout = powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Here '..\verify-backup.ps1') -BackupDir $bk 2>&1 | Txt
+    $vout = powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Here '..\verify-production-backup.ps1') -BackupDir $bk 2>&1 | Txt
     $vout | Out-File -Encoding utf8 (Join-Path $Ev 'backup-verification.txt'); $vout | Select-Object -Last 3
     Gate (($LASTEXITCODE -eq 0) -and ($vout -match 'VERIFY: ALL CHECKS PASSED')) 'backup verification ALL CHECKS PASSED'
     $Summary.backup_dir = $bk
