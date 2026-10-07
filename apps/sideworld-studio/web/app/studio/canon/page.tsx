@@ -7,15 +7,16 @@ export default function CanonAuthoringPage() {
     <main className="work">
       <header>
         <div>
-          <p className="eyebrow">Studio V0-D1</p>
-          <h1>Canon Editor</h1>
+          <p className="eyebrow">Studio V0-D2</p>
+          <h1>Foundation Editor</h1>
         </div>
         <b>SERVER-WRITE</b>
       </header>
 
       <p className="muted">
-        Bootstrap authoring for Universe → Franchise → Series → Lore → Canon Rules.
-        Writes go through validated server-only RPCs. Approval remains explicit.
+        Bootstrap the first real hierarchy across Universe, World, Theme, Franchise, Series,
+        Characters, Factions, Lore, Canon Rules and real City truth. Writes use validated,
+        service-role-only server RPCs.
       </p>
 
       <CanonBootstrapEditor />
