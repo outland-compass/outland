@@ -68,8 +68,7 @@ const generated = execFileSync(
     'typescript',
     '--db-url',
     dbUrl,
-    '--schema',
-    configuredApiSchemas.join(','),
+    ...configuredApiSchemas.flatMap((schema) => ['--schema', schema]),
   ],
   {
     encoding: 'utf8',
