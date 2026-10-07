@@ -40,13 +40,40 @@ for (const privateSchema of privateSchemas) {
   }
 }
 
-const generated = execFileSync(
-  'npx',
-  ['--yes', 'supabase@2.119.0', 'gen', 'types', 'typescript', '--local'],
+const cli = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+const cliPrefix = ['--yes', 'supabase@2.119.0'];
+
+const statusEnv = execFileSync(
+  cli,
+  [...cliPrefix, 'status', '-o', 'env'],
   {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'inherit'],
-    shell: process.platform === 'win32',
+  },
+);
+
+const dbUrlMatch = statusEnv.match(/^DB_URL=(?:"([^"]+)"|'([^']+)'|(\\S+))$/m);
+const dbUrl = dbUrlMatch?.[1] ?? dbUrlMatch?.[2] ?? dbUrlMatch?.[3];
+
+if (!dbUrl) {
+  throw new Error('Could not resolve local Supabase DB_URL from supabase status');
+}
+
+const generated = execFileSync(
+  cli,
+  [
+    ...cliPrefix,
+    'gen',
+    'types',
+    'typescript',
+    '--db-url',
+    dbUrl,
+    '--schema',
+    configuredApiSchemas.join(','),
+  ],
+  {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'inherit'],
   },
 );
 
