@@ -2,7 +2,10 @@
   "name": "outland",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["apps/*/*", "packages/*"],
+  "workspaces": [
+    "apps/*/*",
+    "packages/*"
+  ],
   "scripts": {
     "build": "npm run build --workspace=@outland/compass-web",
     "build:world": "npm run build --workspace=@outland/world-web",
@@ -14,6 +17,9 @@
     "db:reset": "npx --yes supabase db reset",
     "db:types": "node scripts/generate-db-types.mjs",
     "db:verify:schema": "npx --yes supabase db query --local --file supabase/tests/verify-schema.sql",
-    "db:verify:workflow-security": "npx --yes supabase db query --local --file supabase/tests/verify-workflow-security.sql"
+    "db:verify:workflow-security": "npx --yes supabase db query --local --file supabase/tests/verify-workflow-security.sql",
+    "build:studio": "npm run build --workspace=@sideworld/studio-web",
+    "typecheck:studio": "npm run typecheck --workspace=@sideworld/studio-web",
+    "test:studio": "npm run test --workspace=@sideworld/studio-web"
   }
 }
