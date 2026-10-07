@@ -1,6 +1,6 @@
 # SIDEWORLD Schema V3.2 — Production Rehearsal Plan
 
-Status: PREPARE TOOLING ONLY / NO PRODUCTION WRITE PATH
+Status: PRODUCTION PREPARED READ-ONLY; EXECUTE TOOLING CANDIDATE UNDER REVIEW / NO PRODUCTION EXECUTION AUTHORIZED
 Production target: huzcukdovavejejwohey
 Staging ref clgpxvyflycudzhdzjlv is explicitly rejected by production tooling.
 Approved source baseline before this tooling branch: 50ae523eb1b2f5806eade62f6a62d5cde356592a.
@@ -42,20 +42,30 @@ A successful result must be:
 
 PREPARED - production read-only checks passed, no production changes
 
-## Before any production Execute tooling is created
+## Production Execute tooling review gate
 
-Required:
+Completed before the Execute-tooling PR:
 
-1. merge and CI-review this Prepare-only tooling;
-2. run it against production and review complete evidence;
-3. confirm fresh backup integrity and preserved fingerprints;
-4. independently re-check production baseline through the Supabase connector;
-5. define the production quiet window and Compass write-pause procedure;
-6. prepare a separate production Execute operator by adapting the proven staging atomic path;
-7. review and locally/static validate that operator;
-8. run another production Prepare at the exact Execute-tooling merge SHA;
-9. obtain separate explicit founder approval naming that exact SHA.
+1. Prepare-only tooling merged and CI-green;
+2. production Prepare run completed with `PREPARED` on source SHA `3954929627c86cada3b7b4ed0233943f9a275b48`;
+3. fresh production backup verified;
+4. all nine preserved fingerprints matched the backup baseline;
+5. production API rejected `universe`, `geo`, and `canon` as unexposed profiles (HTTP 406 / PGRST106);
+6. dry-run listed exactly V3.2 migrations 0001..0004 in order;
+7. independent read-only connector check still showed the 19-version baseline and no V3.2 objects.
+
+Still required before any production Execute:
+
+1. merge and CI-review the production Execute-tooling candidate;
+2. review/static-validate the exact operator and recovery path;
+3. define the short production quiet window and Compass write-pause procedure;
+4. run another production Prepare at the exact Execute-tooling merge SHA;
+5. obtain separate explicit founder approval naming that exact SHA.
 
 Production Execute must remain atomic: all four wrapperless migrations under one outer psql -1 transaction, with 60s statement timeout, 5s lock timeout, committed-state verification before ledger repair, one-version-at-a-time ledger recording, deterministic CompleteLedger recovery, and post-apply fingerprint/API/ledger validation.
 
 No production write is authorized by this document or by a successful Prepare.
+
+## Execute-tooling candidate
+
+`scripts/production/sideworld-v3-2/deploy-production-v3-2.ps1` is intended to mirror the already-proven staging operator with production-only target guards. It provides `Prepare`, `Execute`, and `CompleteLedger` modes. The presence or merge of this script does not authorize `Execute` or `CompleteLedger`; both require a separate explicit founder approval for the final merge SHA and the production quiet window.
