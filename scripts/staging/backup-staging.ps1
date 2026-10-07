@@ -3,13 +3,17 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\staging\backup-staging.ps1 [-OutRoot <dir outside any Git repo>]
 # Only pg_dump / supabase db dump / READ ONLY psql are used. Nothing is written to staging.
 # The password is only ever held in PGPASSWORD (process env) - never in a URL or on a command line.
+# Optional (used by scripts/staging/sideworld-v3-2): if PGPASSWORD is already set by a guarded staging session
+# it is reused instead of prompting again, and -FingerprintSql runs one more READ ONLY psql file (writing to
+# /out) before the checksums, so its CSVs are covered by SHA256SUMS.txt.
 param(
     [string]$Ref        = 'clgpxvyflycudzhdzjlv',
     [string]$PoolerHost = 'aws-1-eu-west-1.pooler.supabase.com',
     [int]   $Port       = 5432,
     [string]$DbUser     = '',
     [string]$SslMode    = 'require',
-    [string]$OutRoot    = (Join-Path $HOME 'outland-backups')
+    [string]$OutRoot    = (Join-Path $HOME 'outland-backups'),
+    [string]$FingerprintSql = ''
 )
 $ErrorActionPreference = 'Stop'
 if (-not $DbUser) { $DbUser = "postgres.$Ref" }
@@ -36,12 +40,16 @@ icacls $Out /inheritance:r /grant:r "*${sid}:(OI)(CI)F" | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Failed to restrict backup folder ACL.' }
 
 Write-Host "Target: $DbUser @ ${PoolerHost}:$Port (ref $Ref) - READ ONLY"
-$sec = Read-Host 'Staging database password' -AsSecureString
-if ($sec.Length -eq 0) { throw 'Empty password - aborting.' }
-$bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+$ownPassword = -not $env:PGPASSWORD
+$bstr = [IntPtr]::Zero
+if ($ownPassword) {
+    $sec = Read-Host 'Staging database password' -AsSecureString
+    if ($sec.Length -eq 0) { throw 'Empty password - aborting.' }
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+}
 $inventoryOk = $false
 try {
-    $env:PGPASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+    if ($ownPassword) { $env:PGPASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
     # No password in the URL: the Supabase CLI and libpq both read PGPASSWORD from the environment.
     $dbUrl = "postgresql://${DbUser}@${PoolerHost}:${Port}/postgres?sslmode=$SslMode"
 
@@ -67,10 +75,19 @@ try {
     Write-Host '[5/5] Read-only inventory'
     docker @dockerArgs psql -X -h $PoolerHost -p $Port -U $DbUser -d postgres -f /scripts/inventory.sql
     if ($LASTEXITCODE -eq 0) { $inventoryOk = $true } else { Write-Warning 'Inventory failed; dumps are still valid. Report the error above.' }
+    if ($FingerprintSql) {
+        Write-Host '[+] Read-only fingerprints'
+        $fpDir = Split-Path (Resolve-Path $FingerprintSql) -Parent
+        $fpName = Split-Path $FingerprintSql -Leaf
+        docker run --rm -e PGPASSWORD -e "PGSSLMODE=$SslMode" -v "${Out}:/out" -v "${fpDir}:/fp:ro" $PgImage psql -X -q -h $PoolerHost -p $Port -U $DbUser -d postgres -f "/fp/$fpName"
+        if ($LASTEXITCODE -ne 0) { $inventoryOk = $false; Write-Warning 'Fingerprints failed. Report the error above.' }
+    }
 }
 finally {
-    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
-    Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+    if ($ownPassword) {
+        if ($bstr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+        Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+    }
     $dbUrl = $null
 }
 
