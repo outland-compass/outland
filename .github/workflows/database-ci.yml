@@ -7,6 +7,7 @@ on:
       - 'supabase/**'
       - 'scripts/legacy-cleanup/**'
       - '.github/workflows/database-ci.yml'
+      - 'scripts/generate-db-types.mjs'
   workflow_dispatch:
 
 permissions:
@@ -31,6 +32,14 @@ jobs:
         run: supabase start
       - name: Full clean migration replay
         run: supabase db reset --local
+      - name: Verify SIDEWORLD Data API exposure contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          schemas=$(sed -n '/^\[api\]/,/^\[/p' supabase/config.toml | grep '^schemas = ' | head -n 1)
+          test "$schemas" = 'schemas = ["public", "graphql_public", "shared", "land"]'
+          ! grep -Eq 'schemas = .*"(universe|geo|canon)"' supabase/config.toml
+          echo "PASS: public/graphql_public/shared/land exposed; universe/geo/canon remain private"
       - name: Run legacy SQL checks independently
         shell: bash
         run: |
