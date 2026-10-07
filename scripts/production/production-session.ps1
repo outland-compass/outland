@@ -17,7 +17,7 @@ $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
 try { $env:PGPASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
 finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
 
-$global:ProductionDbUrl = "postgresql://\${DbUser}@\${PoolerHost}:\${Port}/postgres?sslmode=$SslMode"
+$global:ProductionDbUrl = "postgresql://${DbUser}@${PoolerHost}:${Port}/postgres?sslmode=$SslMode"
 $global:ProductionConn  = @{ Host = $PoolerHost; Port = $Port; User = $DbUser; SslMode = $SslMode }
 Write-Host "Production session open: $global:ProductionDbUrl (password held in PGPASSWORD only)"
 
