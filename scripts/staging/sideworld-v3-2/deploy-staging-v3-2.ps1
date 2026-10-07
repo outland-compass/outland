@@ -106,6 +106,7 @@ function Test-ApiExposure {
 }
 
 $Summary = [ordered]@{ mode = $Mode; target = $StagingRef; source_sha = $SourceSha; started = (Get-Date).ToString('o') }
+$scriptExitCode = 0
 try {
     Set-Location $Repo
     Step '1 pinned deployment checkout'
@@ -256,6 +257,7 @@ try {
     }
 }
 catch {
+    $scriptExitCode = 1
     $Summary.result = 'STOPPED'
     $Summary.stop_reason = $_.Exception.Message
     Write-Host "`nSTOPPED: $($_.Exception.Message)" -ForegroundColor Red
@@ -273,3 +275,4 @@ finally {
         ForEach-Object { "{0}  {1}" -f $_.Hash.ToLower(), $_.Path.Substring($Ev.Length + 1) } |
         Set-Content -Encoding ascii (Join-Path $Ev 'ARCHIVE-SHA256SUMS.txt')
 }
+if ($scriptExitCode -ne 0) { exit $scriptExitCode }
