@@ -34,7 +34,7 @@ scripts/production/sideworld-v3-2/prepare-production-v3-2.ps1 performs only:
 6. offline backup verification;
 7. production-specific read-only preflight: RAFTER identity, exact 19-version ledger, no V3.2 objects;
 8. fresh preserved-data and privilege fingerprints and equality against the backup baseline;
-9. PostgREST exposure probe requiring universe/geo/canon to remain unexposed;
+9. PostgREST exposure probe requiring universe/geo/canon to be rejected as unexposed schemas (HTTP 406 / PGRST106), without depending on brittle error-message wording or schema ordering;
 10. migration-list check;
 11. db push --dry-run requiring exactly 202610060001..0004 in order.
 
