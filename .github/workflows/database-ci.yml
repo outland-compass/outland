@@ -77,10 +77,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/sideworld-pending /tmp/v32-pending
+          mkdir -p /tmp/sideworld-pending /tmp/v32-pending /tmp/studio-v0c-pending
           mv supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql /tmp/sideworld-pending/
-          # SIDEWORLD Schema V3.2 is newer than 1B and the cleanup: apply it last, in history order.
+          # SIDEWORLD Schema V3.2 is newer than 1B and the cleanup: apply it before Studio V0-C.
           mv supabase/migrations/20261006000*_sideworld_*.sql /tmp/v32-pending/
+          mv supabase/migrations/202610070001_sideworld_studio_read_boundary.sql /tmp/studio-v0c-pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           git show 05105f7:supabase/seed.sql | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
@@ -91,6 +92,8 @@ jobs:
           mv /tmp/sideworld-pending/*_retire_legacy_universe_v0.sql supabase/migrations/
           supabase migration up --local
           mv /tmp/v32-pending/*.sql supabase/migrations/
+          supabase migration up --local
+          mv /tmp/studio-v0c-pending/*.sql supabase/migrations/
           supabase migration up --local
       - name: Verify SIDEWORLD upgrade with pre-existing data
         shell: bash
@@ -121,10 +124,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/staging-history /tmp/sideworld-pending /tmp/v32-pending
+          mkdir -p /tmp/staging-history /tmp/sideworld-pending /tmp/v32-pending /tmp/studio-v0c-pending
           mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql /tmp/staging-history/
           mv supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql /tmp/sideworld-pending/
           mv supabase/migrations/20261006000*_sideworld_*.sql /tmp/v32-pending/
+          mv supabase/migrations/202610070001_sideworld_studio_read_boundary.sql /tmp/studio-v0c-pending/
           # The actual staging has eight recorded migrations. Start with precisely
           # those eight on an EMPTY disposable local database, without final seed.
           supabase db reset --local --no-seed
@@ -142,6 +146,8 @@ jobs:
           docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/verify-sideworld-bases.sql
           # SIDEWORLD Schema V3.2 on top of the staging-shaped history (staging currently has 19 versions).
           mv /tmp/v32-pending/*.sql supabase/migrations/
+          supabase migration up --local
+          mv /tmp/studio-v0c-pending/*.sql supabase/migrations/
           supabase migration up --local
           for script in supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql; do
             docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"
@@ -171,7 +177,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/pending
-          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql supabase/migrations/20261006000*_sideworld_*.sql /tmp/pending/
+          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql supabase/migrations/20261006000*_sideworld_*.sql supabase/migrations/202610070001_sideworld_studio_read_boundary.sql /tmp/pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           # Seed exactly as staging was seeded: seed.sql as it was before #27 (26eb571) renamed RIVERKEEPER.
