@@ -1,1 +1,21 @@
-import Link from 'next/link';export default function AccessPage(){return <main className="gate"><section className="card"><div className="portal"><i/><i/></div><p className="brand">SIDE<span>WORLD</span></p><p className="eyebrow">Studio V0-A</p><h1>Build the canon.<br/>Then build the world.</h1><p className="muted">Private application shell. No database reads or writes are enabled in this phase.</p><Link className="button" href="/studio">Open shell preview</Link></section></main>}
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+import { StudioAccessGate } from './access-gate';
+import { STUDIO_SESSION_COOKIE, verifyStudioSession } from '@/lib/session';
+
+export const dynamic = 'force-dynamic';
+
+export default async function AccessPage() {
+  const cookieStore = await cookies();
+
+  try {
+    if (verifyStudioSession(cookieStore.get(STUDIO_SESSION_COOKIE)?.value)) {
+      redirect('/studio');
+    }
+  } catch {
+    // Missing server configuration is presented by the access form.
+  }
+
+  return <StudioAccessGate />;
+}
