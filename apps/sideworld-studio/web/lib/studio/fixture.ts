@@ -2,17 +2,19 @@ import type { CanonReadModel } from './types';
 
 export const studioReadContractFixture: CanonReadModel = {
   universe: {
-    id: 'u-development',
-    slug: 'development-universe',
-    name: 'Development Universe',
+    id: 'u-the-uncharted',
+    slug: 'the-uncharted',
+    name: 'THE UNCHARTED',
     visibility: 'private',
     status: 'draft',
-    description: 'Placeholder only. Choose the canonical owning Universe before saving; BEYOND THE ATLAS is a franchise.'
+    description: 'Lost history, exploration, hidden knowledge, and global mysteries.'
   },
+  worlds: [],
+  themes: [],
   franchises: [
     {
       id: 'f-beyond-atlas',
-      universeId: 'u-development',
+      universeId: 'u-the-uncharted',
       slug: 'beyond-the-atlas',
       name: 'BEYOND THE ATLAS',
       description: 'Development fixture only.',
@@ -33,6 +35,7 @@ export const studioReadContractFixture: CanonReadModel = {
     }
   ],
   characters: [],
+  relationships: [],
   factions: [],
   lore: [
     {

@@ -5,7 +5,7 @@ import { callStudioRpc } from '@/lib/studio/rpc';
 
 export const runtime = 'nodejs';
 
-type Entity = 'universe' | 'franchise' | 'series' | 'lore' | 'rule' | 'world' | 'theme' | 'character' | 'faction' | 'country' | 'city' | 'worldCity';
+type Entity = 'universe' | 'franchise' | 'series' | 'lore' | 'rule' | 'world' | 'theme' | 'character' | 'faction' | 'country' | 'city' | 'worldCity' | 'relationship' | 'characterProfiles' | 'themeStyle';
 
 function text(value: unknown, max = 4000) {
   if (typeof value !== 'string') return '';
@@ -63,6 +63,22 @@ function slug(value: unknown) {
     throw new Error('slug must be lowercase kebab-case');
   }
   return v;
+}
+
+function jsonObject(value: unknown, field: string) {
+  if (value == null || value === '') return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  if (typeof value !== 'string') throw new Error(`${field} must be a JSON object`);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(`${field} must contain valid JSON`);
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${field} must be a JSON object`);
+  }
+  return parsed as Record<string, unknown>;
 }
 
 function buildRpc(entity: Entity, input: Record<string, unknown>) {
@@ -208,6 +224,42 @@ function buildRpc(entity: Entity, input: Record<string, unknown>) {
           p_relationship_type: oneOf(input.relationshipType, 'relationshipType', ['primary','story','operational','expansion'], 'story')
         }
       };
+    case 'relationship':
+      return {
+        name: 'sideworld_studio_save_character_relationship',
+        body: {
+          p_id: optionalId(input.id),
+          p_franchise_id: requiredUuid(input.franchiseId, 'franchiseId'),
+          p_character_a_id: requiredUuid(input.characterAId, 'characterAId'),
+          p_character_b_id: requiredUuid(input.characterBId, 'characterBId'),
+          p_relationship_type: requiredText(input.relationshipType, 'relationshipType', 160),
+          p_description: text(input.description),
+          p_canon_status: oneOf(input.canonStatus, 'canonStatus', ['draft','proposed','approved','retired'], 'draft'),
+          p_valid_from_phase: text(input.validFromPhase, 160),
+          p_valid_to_phase: text(input.validToPhase, 160)
+        }
+      };
+    case 'characterProfiles':
+      return {
+        name: 'sideworld_studio_save_character_profiles',
+        body: {
+          p_character_id: requiredUuid(input.characterId, 'characterId'),
+          p_identity_profile: jsonObject(input.identityProfile, 'identityProfile'),
+          p_personality_profile: jsonObject(input.personalityProfile, 'personalityProfile'),
+          p_knowledge_profile: jsonObject(input.knowledgeProfile, 'knowledgeProfile'),
+          p_voice_profile: jsonObject(input.voiceProfile, 'voiceProfile'),
+          p_visual_profile: jsonObject(input.visualProfile, 'visualProfile'),
+          p_ai_rules: jsonObject(input.aiRules, 'aiRules')
+        }
+      };
+    case 'themeStyle':
+      return {
+        name: 'sideworld_studio_save_theme_style',
+        body: {
+          p_theme_id: requiredUuid(input.themeId, 'themeId'),
+          p_style_profile: jsonObject(input.styleProfile, 'styleProfile')
+        }
+      };
     case 'rule':
       return {
         name: 'sideworld_studio_save_canon_rule',
@@ -248,7 +300,7 @@ export async function POST(request: NextRequest) {
   }
 
   const entity = text(body.entity, 32) as Entity;
-  if (!['universe','franchise','series','lore','rule','world','theme','character','faction','country','city','worldCity'].includes(entity)) {
+  if (!['universe','franchise','series','lore','rule','world','theme','character','faction','country','city','worldCity','relationship','characterProfiles','themeStyle'].includes(entity)) {
     return NextResponse.json({ error: 'Unsupported entity' }, { status: 400 });
   }
 

@@ -5,7 +5,7 @@ import { FormEvent, useState } from 'react';
 type Entity =
   | 'universe' | 'world' | 'theme'
   | 'franchise' | 'series' | 'character' | 'faction' | 'lore' | 'rule'
-  | 'country' | 'city' | 'worldCity';
+  | 'country' | 'city' | 'worldCity' | 'relationship' | 'characterProfiles' | 'themeStyle';
 
 async function save(entity: Entity, input: Record<string, unknown>) {
   const response = await fetch('/api/studio/write', {
@@ -64,11 +64,11 @@ export function CanonBootstrapEditor() {
       <form className="authoringPanel" onSubmit={onSubmit('universe')}>
         <p className="eyebrow">1 · Universe</p>
         <h2>Canonical Universe identity</h2>
-        <p className="muted">BEYOND THE ATLAS is a franchise, not a Universe. Create or select its owning Universe here.</p>
+        <p className="muted">Beyond the Atlas belongs to THE UNCHARTED. Create or select THE UNCHARTED here.</p>
         <input name="id" placeholder="Existing UUID (leave empty to create)" />
         <div className="formGrid">
-          <input name="slug" placeholder="universe-slug" required />
-          <input name="name" placeholder="Universe name" required />
+          <input name="slug" placeholder="universe-slug" defaultValue="the-uncharted" required />
+          <input name="name" placeholder="Universe name" defaultValue="THE UNCHARTED" required />
           <select name="visibility" defaultValue="private">
             <option value="private">private</option>
             <option value="unlisted">unlisted</option>
@@ -314,6 +314,49 @@ export function CanonBootstrapEditor() {
           <option value="expansion">expansion</option>
         </select>
         <button className="button" type="submit">Save world-city relation</button>
+      </form>
+
+      <form className="authoringPanel" onSubmit={onSubmit('relationship')}>
+        <p className="eyebrow">13 · Character relationship</p>
+        <h2>Relationship</h2>
+        <input name="id" placeholder="Existing UUID (leave empty to create)" />
+        <input name="franchiseId" value={franchiseId} onChange={(e) => setFranchiseId(e.target.value)} placeholder="Franchise UUID" required />
+        <input name="characterAId" value={characterId} onChange={(e) => setCharacterId(e.target.value)} placeholder="Character A UUID" required />
+        <input name="characterBId" placeholder="Character B UUID" required />
+        <div className="formGrid">
+          <input name="relationshipType" placeholder="Relationship type" required />
+          <select name="canonStatus" defaultValue="draft">
+            <option value="draft">draft</option>
+            <option value="proposed">proposed</option>
+            <option value="approved">approved</option>
+            <option value="retired">retired</option>
+          </select>
+          <input name="validFromPhase" placeholder="Valid from phase (optional)" />
+          <input name="validToPhase" placeholder="Valid to phase (optional)" />
+        </div>
+        <textarea name="description" placeholder="Relationship description" />
+        <button className="button" type="submit">Save relationship</button>
+      </form>
+
+      <form className="authoringPanel" onSubmit={onSubmit('characterProfiles')}>
+        <p className="eyebrow">14 · Character profiles</p>
+        <h2>Structured AI context</h2>
+        <input name="characterId" value={characterId} onChange={(e) => setCharacterId(e.target.value)} placeholder="Character UUID" required />
+        <textarea name="identityProfile" placeholder='Identity JSON, e.g. {"origin":"..."}' defaultValue="{}" />
+        <textarea name="personalityProfile" placeholder='Personality JSON' defaultValue="{}" />
+        <textarea name="knowledgeProfile" placeholder='Knowledge limits JSON' defaultValue="{}" />
+        <textarea name="voiceProfile" placeholder='Voice JSON' defaultValue="{}" />
+        <textarea name="visualProfile" placeholder='Visual JSON' defaultValue="{}" />
+        <textarea name="aiRules" placeholder='Character AI rules JSON' defaultValue="{}" />
+        <button className="button" type="submit">Save character profiles</button>
+      </form>
+
+      <form className="authoringPanel" onSubmit={onSubmit('themeStyle')}>
+        <p className="eyebrow">15 · Theme style</p>
+        <h2>Style profile</h2>
+        <input name="themeId" value={themeId} onChange={(e) => setThemeId(e.target.value)} placeholder="Theme UUID" required />
+        <textarea name="styleProfile" placeholder='Style JSON, e.g. {"tone":"mysterious"}' defaultValue="{}" />
+        <button className="button" type="submit">Save theme style</button>
       </form>
     </section>
   );

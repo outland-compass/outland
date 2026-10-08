@@ -1,3 +1,4 @@
+export type JsonObject = Record<string, unknown>;
 export type ContainerStatus = 'draft' | 'active' | 'archived';
 export type CanonItemStatus = 'draft' | 'proposed' | 'approved' | 'retired';
 export type CanonRuleStatus = 'draft' | 'active' | 'retired';
@@ -9,6 +10,25 @@ export type UniverseRecord = {
   visibility: 'private' | 'unlisted' | 'public';
   status: ContainerStatus;
   description: string | null;
+};
+
+export type WorldRecord = {
+  id: string;
+  universeId: string;
+  slug: string;
+  name: string;
+  status: ContainerStatus;
+  summary: string | null;
+};
+
+export type ThemeRecord = {
+  id: string;
+  universeId: string | null;
+  slug: string;
+  name: string;
+  description: string | null;
+  status: ContainerStatus;
+  styleProfile: JsonObject;
 };
 
 export type FranchiseRecord = {
@@ -39,8 +59,27 @@ export type CharacterRecord = {
   name: string;
   displayName: string | null;
   role: string | null;
+  age: number | null;
   bio: string | null;
   canonStatus: CanonItemStatus;
+  identityProfile: JsonObject;
+  personalityProfile: JsonObject;
+  knowledgeProfile: JsonObject;
+  voiceProfile: JsonObject;
+  visualProfile: JsonObject;
+  aiRules: JsonObject;
+};
+
+export type CharacterRelationshipRecord = {
+  id: string;
+  franchiseId: string;
+  characterAId: string;
+  characterBId: string;
+  relationshipType: string;
+  description: string | null;
+  canonStatus: CanonItemStatus;
+  validFromPhase: string | null;
+  validToPhase: string | null;
 };
 
 export type FactionRecord = {
@@ -90,9 +129,12 @@ export type CityRecord = {
 
 export type CanonReadModel = {
   universe: UniverseRecord;
+  worlds: WorldRecord[];
+  themes: ThemeRecord[];
   franchises: FranchiseRecord[];
   series: SeriesRecord[];
   characters: CharacterRecord[];
+  relationships: CharacterRelationshipRecord[];
   factions: FactionRecord[];
   lore: LoreFactRecord[];
   rules: CanonRuleRecord[];

@@ -17,6 +17,9 @@ test('Studio authoring API verifies the private session', async () => {
   assert.match(source, /sideworld_studio_save_world/);
   assert.match(source, /sideworld_studio_save_city/);
   assert.match(source, /sideworld_studio_save_character/);
+  assert.match(source, /sideworld_studio_save_character_relationship/);
+  assert.match(source, /sideworld_studio_save_character_profiles/);
+  assert.match(source, /sideworld_studio_save_theme_style/);
 });
 
 test('Studio RPC client keeps the service key server-only', async () => {
@@ -37,4 +40,13 @@ test('fixture preserves the initial narrative structure', async () => {
   assert.match(source, /Placeholder only/);
   assert.doesNotMatch(source, /id: 'u-beyond-atlas'/);
   assert.match(source, /The Unbroken Line is an overarching mystery, not a series/);
+});
+
+test('Context-ready read types include worlds themes and relationships', async () => {
+  const source = await readFile(new URL('../lib/studio/types.ts', import.meta.url), 'utf8');
+  assert.match(source, /worlds: WorldRecord\[\]/);
+  assert.match(source, /themes: ThemeRecord\[\]/);
+  assert.match(source, /relationships: CharacterRelationshipRecord\[\]/);
+  assert.match(source, /knowledgeProfile/);
+  assert.match(source, /aiRules/);
 });

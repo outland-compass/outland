@@ -1,19 +1,20 @@
-# SIDEWORLD Studio V0-D2
+# SIDEWORLD Studio V0-D3
 
 Private SIDEWORLD authoring application.
 
-V0-D2 extends the real authoring path across the V3.2 foundation:
+V0-D3 completes the authoring/read surface needed before **Canon Context Builder V0**:
 
-- Universe;
-- World and World ↔ City relationship;
-- Theme;
+- Universe, Worlds and Themes;
 - Franchise and Series;
-- Character and Faction;
+- Characters with structured identity/personality/knowledge/voice/visual/AI profiles;
+- Character relationships with phase validity;
+- Factions;
 - Lore Facts and Canon Rules;
-- Country and City truth.
+- Country, City and World ↔ City mapping;
+- deterministic server read model exposing Worlds, Themes and Relationships.
 
-All writes pass through validated server endpoints and narrow `SECURITY DEFINER` RPCs executable only by `service_role`. The browser receives neither private-schema access nor the service-role credential. `universe`, `geo` and `canon` remain outside Data API exposure and have no direct API-role USAGE.
+All private writes remain behind validated server endpoints and `service_role`-only SECURITY DEFINER RPCs. The private `universe`, `geo` and `canon` schemas remain outside Data API exposure.
 
-The development fixture no longer pretends that BEYOND THE ATLAS is a Universe. BEYOND THE ATLAS remains the approved Franchise; its owning Universe must be chosen explicitly before real canon is seeded.
+**Canonical placement:** THE UNCHARTED is the owning Universe for the Beyond the Atlas Franchise. This resolves the previous parent-Universe gate. The Studio fixture and authoring defaults now reflect that product decision; this does not itself seed production data.
 
-There is still no hard-delete flow. Production remains untouched.
+Production remains untouched.
