@@ -1,6 +1,7 @@
 import { resolveStudioUniverse } from '@/lib/studio/universes';
 import { UniverseSelector } from './universe-selector';
 import { LogoutButton } from './logout-button';
+import { StudioSidebar } from './studio-sidebar';
 import Link from 'next/link';
 
 const spaces = [
@@ -18,19 +19,7 @@ export default async function Studio({ searchParams }: { searchParams: Promise<{
   const scoped = (path: string) => selected ? `${path}?universe=${encodeURIComponent(selected.slug)}` : path;
   return (
     <main className="shell">
-      <aside>
-        <p className="brand small">SIDE<span>WORLD</span></p>
-        <p className="eyebrow">Studio V0-E / Context Builder</p>
-        <nav>
-          <Link href={scoped('/studio/canon')}>Canon Editor</Link>
-          <Link href={scoped('/studio/inspector')}>Canon Inspector</Link>
-          <Link href={scoped('/studio/context')}>Canon Context</Link>
-          <Link href={scoped('/studio/city')}>City Knowledge</Link>
-          {spaces.filter(([name]) => name !== 'Canon').map(([name]) => <span key={name}>{name}</span>)}
-        </nav>
-        <LogoutButton />
-        <p className="phase">PRIVATE AUTHORING<br/>WRITES PAUSED — OWNERSHIP VALIDATION PENDING</p>
-      </aside>
+      <div className="studioSideColumn"><StudioSidebar universeSlug={selected?.slug} /><div className="studioSideFooter"><LogoutButton /><p className="phase">PRIVATE AUTHORING</p></div></div>
 
       <section className="work">
         <header>
