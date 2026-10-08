@@ -36,3 +36,6 @@
 .studioDashboard{min-width:0}
 .studioLayout:has(.studioSidebar.collapsed){grid-template-columns:72px minmax(0,1fr)}
 @media(max-width:850px){.studioLayout,.studioLayout:has(.studioSidebar.collapsed){grid-template-columns:minmax(0,1fr)}.studioNavigation{border-right:0;border-bottom:1px solid var(--line)}}
+
+.studioSidebar nav a[aria-current="page"]{background:#173b7c66;color:#fff;font-weight:800;box-shadow:inset 3px 0 var(--blue)}
+.studioSidebar button:focus-visible,.studioSidebar a:focus-visible{outline:2px solid #9ec0ff;outline-offset:2px}
