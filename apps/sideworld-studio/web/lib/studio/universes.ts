@@ -8,7 +8,7 @@ export async function listStudioUniverses(): Promise<StudioUniverse[]> {
   if (!url || !key) throw new Error('Studio Supabase configuration missing');
   const response = await fetch(
     `${url.replace(/\/$/, '')}/rest/v1/universes?select=id,slug,name,status&order=name.asc`,
-    { headers: { apikey: key, Authorization: `Bearer ${key}`, 'Accept-Profile': 'universe' }, cache: 'no-store' }
+    { method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store' }
   );
   if (!response.ok) throw new Error(`Universe catalog unavailable (HTTP ${response.status})`);
   const rows: unknown = await response.json();
