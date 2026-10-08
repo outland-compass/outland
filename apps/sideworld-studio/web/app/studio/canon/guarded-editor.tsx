@@ -61,7 +61,7 @@ export function GuardedEditor({ universeId, universeSlug }: { universeId: string
       </label>
     </div>
     <label>Slug
-      <input disabled={saving} autoComplete="off" value={slug} onChange={event => setSlug(event.target.value.toLowerCase().replace(/\\s+/g, '-'))} required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={120} placeholder="e.g. river-mysteries" />
+      <input disabled={saving} autoComplete="off" value={slug} onChange={event => setSlug(event.target.value.toLowerCase().replace(/\s+/g, '-'))} required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={120} placeholder="e.g. river-mysteries" />
     </label>
     <p className="muted">Use lowercase letters, numbers and hyphens. Slug must be unique within its scope.</p>
     <button className="button" type="submit" disabled={saving || !slug.trim() || !name.trim()}>{saving ? 'Saving draft…' : 'Create draft'}</button>
