@@ -24,3 +24,10 @@ test('canonical universe scope, draft-only registry, cleanup, private storage', 
   assert.match(storage, /sideworld-character-media/);
   assert.doesNotMatch(storage, /getPublicUrl|createSignedUrl/);
 });
+
+test('private storage bytes are read back and hash verified before registration', () => {
+  assert.match(storage, /object\/authenticated\/\$\{BUCKET\}/);
+  assert.match(storage, /Private media readback SHA-256 mismatch/);
+  assert.match(api, /await verifyStoredCharacterOriginal\(stored\.path, hash\)/);
+  assert.match(api, /verified\.byteLength !== bytes\.byteLength/);
+});
