@@ -7,3 +7,24 @@
 .contextPayload{max-height:640px;overflow:auto;margin:0;padding:16px;border:1px solid var(--line);border-radius:12px;background:#050a13;color:#cfe0ff;font-size:.78rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 
 .contextSelector{margin:22px 0}.contextSelector fieldset{display:grid;gap:8px;margin:18px 0;padding:14px;border:1px solid var(--line);border-radius:12px}.contextSelector legend{padding:0 8px;color:#9ec0ff;font-weight:800}.contextSelector label{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 0}.contextSelector label small{color:var(--muted);text-transform:uppercase;font-size:.65rem;letter-spacing:.08em}.contextSelector input{width:auto}
+
+
+/* Responsive expandable Studio navigation */
+.studioSideColumn{background:#070d19;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.studioSidebar{padding:22px 14px 12px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.sidebarTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sidebarTop .brand{text-decoration:none;color:var(--text);white-space:nowrap}
+.sidebarToggle,.sidebarSectionToggle{cursor:pointer;background:transparent;color:#c6d9ff;border:1px solid var(--line);border-radius:10px;font:inherit}
+.sidebarToggle{min-width:38px;min-height:38px}
+.studioSidebar nav{display:grid;gap:8px;margin:0}
+.studioSidebar nav a{display:block;text-decoration:none;color:#9ec0ff;padding:10px 12px;border-radius:9px}
+.studioSidebar nav a:hover,.sidebarSectionToggle:hover{background:#14213b}
+.sidebarSectionToggle{width:100%;display:flex;justify-content:space-between;align-items:center;padding:10px 12px;text-align:left}
+.sidebarLinks{display:grid;gap:2px;padding-left:8px}
+.studioSideFooter{margin-top:auto;padding:14px 20px 22px}
+.studioSideFooter .phase{margin:12px 0 0}
+.studioSidebar.collapsed{padding:22px 6px}
+.studioSidebar.collapsed .sidebarTop{justify-content:center}
+.studioSidebar.collapsed .sidebarSectionToggle{padding:10px 6px}
+.shell:has(.studioSidebar.collapsed){grid-template-columns:72px minmax(0,1fr)}
+@media(max-width:850px){.shell{grid-template-columns:minmax(0,1fr)}.studioSideColumn{display:flex;border-right:0;border-bottom:1px solid var(--line)}.studioSidebar{padding:12px 16px}.studioSidebar nav{grid-template-columns:repeat(2,minmax(0,1fr))}.studioSideFooter{padding:0 16px 12px}.shell:has(.studioSidebar.collapsed){grid-template-columns:minmax(0,1fr)}.studioSidebar.collapsed nav{grid-template-columns:repeat(3,minmax(0,1fr))}}
