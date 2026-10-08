@@ -1,3 +1,5 @@
+import { resolveStudioUniverse } from '@/lib/studio/universes';
+import { UniverseSelector } from '../universe-selector';
 import Link from 'next/link';
 
 import { buildCanonContextV0 } from '../../../lib/studio/context-builder';
@@ -18,8 +20,9 @@ export default async function CanonContextPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const model = await getStudioReadModel();
   const params = await searchParams;
+  const { universes, selected } = await resolveStudioUniverse(typeof params.universe === 'string' ? params.universe : undefined);
+  const model = await getStudioReadModel(selected?.slug);
   const franchise = model.franchises.find((item) => item.status === 'active');
 
   if (!franchise) {
@@ -53,7 +56,7 @@ export default async function CanonContextPage({
           <p className="eyebrow">Canon Context Builder V0</p>
           <h1>{pack.universe.name} → {pack.franchise.name}</h1>
         </div>
-        <b>DETERMINISTIC</b>
+        {selected && <UniverseSelector universes={universes} selected={selected.slug} />}<b>DETERMINISTIC</b>
       </header>
 
       <article className="hero">
@@ -64,7 +67,7 @@ export default async function CanonContextPage({
         </p>
       </article>
 
-      <form className="contextSelector" method="get">
+      <form className="contextSelector" method="get">{selected && <input type="hidden" name="universe" value={selected.slug} />}
         <article className="panel">
           <p className="eyebrow">Explicit context selection</p>
 
