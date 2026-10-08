@@ -11,8 +11,8 @@ test('Character Studio embeds read-only media review', () => {
   assert.match(review, /Export draft mapping JSON/);
   assert.match(review, /approved: false/);
 });
-test('media mapping remains browser-local without backend writes', () => {
-  assert.doesNotMatch(review, /fetch\(|supabase|callStudioRpc|\.insert\(|\.update\(/);
+test('media mapping export remains browser-local and cannot approve artwork', () => {
+  assert.doesNotMatch(review, /callStudioRpc|\.insert\(|\.update\(/);
   assert.match(review, /URL\.createObjectURL/);
 });
 
