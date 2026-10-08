@@ -73,7 +73,7 @@ export function buildCanonContextV0(
 
   const worlds = sorted(
     model.worlds.filter(
-      (item) => item.status === 'active' || worldSlugs.has(item.slug)
+      (item) => worldSlugs.has(item.slug) && item.status !== 'archived'
     ),
     (item) => item.slug
   );
@@ -97,11 +97,6 @@ export function buildCanonContextV0(
     (item) => item.slug
   );
 
-  const themes = sorted(
-    model.themes.filter((item) => item.status === 'active'),
-    (item) => item.slug
-  );
-
   const series = [...model.series]
     .filter(
       (item) =>
@@ -111,6 +106,16 @@ export function buildCanonContextV0(
     .sort((a, b) => a.sortOrder - b.sortOrder || a.slug.localeCompare(b.slug));
 
   const includedSeriesIds = new Set(series.map((item) => item.id));
+  const includedThemeIds = new Set(
+    series.map((item) => item.themeId).filter((value): value is string => value !== null)
+  );
+
+  const themes = sorted(
+    model.themes.filter(
+      (item) => includedThemeIds.has(item.id) && item.status !== 'archived'
+    ),
+    (item) => item.slug
+  );
 
   const characters = sorted(
     model.characters.filter(
