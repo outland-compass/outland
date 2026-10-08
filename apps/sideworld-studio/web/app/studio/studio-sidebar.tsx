@@ -22,7 +22,7 @@ export function StudioSidebar({ universeSlug }: { universeSlug?: string }) {
     <nav aria-label="Studio navigation">
       <Link className="sidebarHome" href={scoped('/studio')} title="Dashboard">{collapsed ? '⌂' : 'Dashboard'}</Link>
       {sections.map(section => <div className="sidebarSection" key={section.label}>
-        <button type="button" className="sidebarSectionToggle" title={section.label} aria-expanded={!!expanded[section.label] && !collapsed} onClick={() => { if (collapsed) setCollapsed(false); setExpanded(current => ({ ...current, [section.label]: true })); }}>
+        <button type="button" className="sidebarSectionToggle" title={section.label} aria-expanded={!!expanded[section.label] && !collapsed} onClick={() => { if (collapsed) { setCollapsed(false); setExpanded(current => ({ ...current, [section.label]: true })); } else { setExpanded(current => ({ ...current, [section.label]: !current[section.label] })); } }}>
           <span>{collapsed ? section.label.charAt(0) : section.label}</span><span aria-hidden="true">{collapsed ? '›' : expanded[section.label] ? '⌄' : '›'}</span>
         </button>
         {!collapsed && expanded[section.label] && <div className="sidebarLinks">{section.links.map(link => <Link key={link.path} href={scoped(link.path)}>{link.label}</Link>)}</div>}
