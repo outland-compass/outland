@@ -15,3 +15,9 @@ test('media mapping remains browser-local without backend writes', () => {
   assert.doesNotMatch(review, /fetch\(|supabase|callStudioRpc|\.insert\(|\.update\(/);
   assert.match(review, /URL\.createObjectURL/);
 });
+
+test('original portraits are SHA-256 verified before local preview', () => {
+  assert.match(review, /crypto\.subtle\.digest\('SHA-256'/);
+  assert.match(review, /verified \? URL\.createObjectURL\(file\)/);
+  assert.match(review, /approved canonical portrait V1/);
+});
