@@ -11,6 +11,30 @@ export type UniverseRecord = {
   description: string | null;
 };
 
+export type WorldRecord = {
+  id: string;
+  universeId: string;
+  slug: string;
+  name: string;
+  status: ContainerStatus;
+  summary: string | null;
+};
+
+export type ThemeRecord = {
+  id: string;
+  universeId: string | null;
+  slug: string;
+  name: string;
+  description: string | null;
+  status: ContainerStatus;
+};
+
+export type WorldCityRecord = {
+  worldId: string;
+  cityId: string;
+  relationshipType: 'primary' | 'story' | 'operational' | 'expansion';
+};
+
 export type FranchiseRecord = {
   id: string;
   universeId: string;
@@ -90,6 +114,9 @@ export type CityRecord = {
 
 export type CanonReadModel = {
   universe: UniverseRecord;
+  worlds: WorldRecord[];
+  themes: ThemeRecord[];
+  worldCities: WorldCityRecord[];
   franchises: FranchiseRecord[];
   series: SeriesRecord[];
   characters: CharacterRecord[];
