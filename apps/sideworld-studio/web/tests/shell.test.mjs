@@ -60,3 +60,24 @@ test('Studio exposes an explicit Canon Context selector and preview', async () =
   assert.match(source, /name="lore"/);
   assert.match(source, /Compile context/);
 });
+
+test('Studio City Knowledge reader stays server-only', async () => {
+  const source = await readFile(new URL('../lib/studio/city-knowledge.ts', import.meta.url), 'utf8');
+  assert.match(source, /server-only/);
+  assert.match(source, /sideworld_studio_city_knowledge/);
+});
+
+test('Studio authoring API supports City Knowledge entities', async () => {
+  const source = await readFile(new URL('../app/api/studio/write/route.ts', import.meta.url), 'utf8');
+  assert.match(source, /sideworld_studio_save_location/);
+  assert.match(source, /sideworld_studio_save_location_fact/);
+  assert.match(source, /sideworld_studio_save_source/);
+  assert.match(source, /sideworld_studio_save_fact_source/);
+});
+
+test('City Knowledge screen keeps facts and sources explicit', async () => {
+  const source = await readFile(new URL('../app/studio/city/page.tsx', import.meta.url), 'utf8');
+  assert.match(source, /Geographic truth before generated story/);
+  assert.match(source, /Verification status and confidence remain explicit/);
+  assert.match(source, /CityKnowledgeEditor/);
+});
