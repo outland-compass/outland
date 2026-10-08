@@ -81,6 +81,8 @@ export async function authorize(request: NextRequest, response: NextResponse) {
     access = renewed.access;
     if (!await userAndRole(access)) return false;
     setSession(response, renewed);
+    request.cookies.set(ACCESS, renewed.access);
+    request.cookies.set(REFRESH, renewed.refresh);
     return true;
   } catch {
     return false;
