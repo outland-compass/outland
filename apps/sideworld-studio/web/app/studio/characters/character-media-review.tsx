@@ -19,6 +19,9 @@ export default function CharacterMediaReview() {
   const [report, setReport] = useState<Report | null>(null);
   const [assignments, setAssignments] = useState<Record<string, Assignment>>({});
   const [error, setError] = useState('');
+  const [roster, setRoster] = useState<Array<{ id: string; slug: string; name: string }>>([]);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [originalFiles, setOriginalFiles] = useState<Record<string, File>>({});
   const [previews, setPreviews] = useState<Record<string, { url: string; verified: boolean }>>({});
   useEffect(() => () => { Object.values(previews).forEach(preview => { if (preview.url) URL.revokeObjectURL(preview.url); }); }, [previews]);
   async function load(file: File) {
@@ -54,6 +57,41 @@ export default function CharacterMediaReview() {
       next[file.name] = { url: verified ? URL.createObjectURL(file) : '', verified };
     }
     setPreviews(next);
+    setOriginalFiles(Object.fromEntries(Array.from(files).map(file => [file.name, file])));
+  }
+  async function loadRoster() {
+    setUploadStatus('');
+    try {
+      const response = await fetch('/api/studio/character-roster?universe=the-uncharted', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Character roster is unavailable');
+      const payload = await response.json() as { characters: Array<{ id: string; slug: string; name: string }> };
+      setRoster(payload.characters);
+    } catch (error) {
+      setUploadStatus(error instanceof Error ? error.message : 'Roster unavailable');
+    }
+  }
+  async function uploadAmonDraft() {
+    const canonical = bible.editorialDecisions.amonDimano;
+    const original = originalFiles[canonical.canonicalSourceFile];
+    const character = roster.find(entry => entry.slug === 'amon-dimano');
+    if (!original || !previews[canonical.canonicalSourceFile]?.verified || !character) {
+      setUploadStatus('Verified Amon original and canonical character record are required');
+      return;
+    }
+    const body = new FormData();
+    body.set('file', original);
+    body.set('characterId', character.id);
+    body.set('visualVersion', String(canonical.visualVersion));
+    body.set('sha256', canonical.canonicalSha256);
+    body.set('sourceDocument', bible.source);
+    setUploadStatus('Uploading original as draft...');
+    try {
+      const response = await fetch('/api/studio/character-media?universe=the-uncharted', { method: 'POST', body });
+      if (!response.ok) throw new Error(`Upload rejected (HTTP ${response.status})`);
+      setUploadStatus('Original stored as draft. Editorial approval remains separate.');
+    } catch (error) {
+      setUploadStatus(error instanceof Error ? error.message : 'Upload failed');
+    }
   }
   function downloadMapping() {
     if (!report) return;
@@ -79,6 +117,11 @@ export default function CharacterMediaReview() {
     <label>Extraction report (JSON) <input type="file" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0]; if (file) void load(file); }} /></label>
     {error && <p role="alert">{error}</p>}
     {report && <>
+      <button type="button" onClick={() => { void loadRoster(); }}>Load canonical character IDs</button>
+      <p className="muted">{roster.length} characters loaded from THE UNCHARTED / Beyond the Atlas. Upload remains disabled until the server feature flag is enabled.</p>
+      <button type="button" disabled={!roster.some(item => item.slug === 'amon-dimano') || !previews[bible.editorialDecisions.amonDimano.canonicalSourceFile]?.verified} onClick={() => { void uploadAmonDraft(); }}>Upload approved Amon original as draft</button>
+      {uploadStatus && <p role="status">{uploadStatus}</p>}
+
       <label>Original portrait files <input type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={event => { void loadOriginalImages(event.target.files); }} /></label>
       <p>{report.images.length} embedded images · source {report.source}</p>
       {report.images.map((image, index) => <article key={image.sha256 + ':' + index} className="row">
