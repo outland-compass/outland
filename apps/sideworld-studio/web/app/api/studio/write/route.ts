@@ -315,7 +315,14 @@ export async function POST(request: NextRequest) {
   let body: { entity?: unknown; input?: unknown };
 
   try {
-    body = await request.json();
+    const raw = await request.text();
+    if (new TextEncoder().encode(raw).byteLength > 24_000) {
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
+    body = JSON.parse(raw);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'JSON object required' }, { status: 400 });
+    }
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
