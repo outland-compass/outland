@@ -1,3 +1,5 @@
+import { resolveStudioUniverse } from '@/lib/studio/universes';
+import { UniverseSelector } from './universe-selector';
 import Link from 'next/link';
 
 const spaces = [
@@ -8,7 +10,10 @@ const spaces = [
   ['Cities', 'Real-world geographic truth']
 ];
 
-export default function Studio() {
+export const dynamic = 'force-dynamic';
+export default async function Studio({ searchParams }: { searchParams: Promise<{ universe?: string }> }) {
+  const params = await searchParams;
+  const { universes, selected } = await resolveStudioUniverse(params.universe);
   return (
     <main className="shell">
       <aside>
@@ -30,7 +35,7 @@ export default function Studio() {
             <p className="eyebrow">Canon Editor</p>
             <h1>Studio foundation</h1>
           </div>
-          <b>PRIVATE</b>
+          <div>{selected && <UniverseSelector universes={universes} selected={selected.slug} />}</div><b>PRIVATE</b>
         </header>
 
         <article className="hero">
