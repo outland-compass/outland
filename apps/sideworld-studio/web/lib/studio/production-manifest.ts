@@ -33,12 +33,12 @@ export function buildProductionInputManifestV1(
   const locations = [...knowledge.locations].filter(item => item.cityId === city.id && item.verificationStatus === 'verified' && item.publicAccess === true && Number.isFinite(item.latitude) && Number.isFinite(item.longitude) && Math.abs(item.latitude) <= 90 && Math.abs(item.longitude) <= 180).sort((a, b) => a.id.localeCompare(b.id));
   if (locations.length < 5) fail('INSUFFICIENT_LOCATIONS', 'At least five verified public locations with valid coordinates are required');
   const locationIds = new Set(locations.map(item => item.id));
-  const supportingLinks = knowledge.factSources.filter(link => link.supportType === 'supports');
+  const sourceIds = new Set(knowledge.sources.map(item => item.id));
+  const supportingLinks = knowledge.factSources.filter(link => link.supportType === 'supports' && sourceIds.has(link.sourceId));
   const supportedFactIds = new Set(supportingLinks.map(link => link.factId));
   const facts = [...knowledge.facts].filter(item => item.cityId === city.id && item.verificationStatus === 'verified' && supportedFactIds.has(item.id) && (item.locationId === null || locationIds.has(item.locationId))).sort((a, b) => a.id.localeCompare(b.id));
   if (!facts.length) fail('NO_SUPPORTED_FACTS', 'No verified source-backed facts are available');
   const factIds = new Set(facts.map(item => item.id));
-  const sourceIds = new Set(knowledge.sources.map(item => item.id));
   const factSources = supportingLinks.filter(link => factIds.has(link.factId) && sourceIds.has(link.sourceId)).sort((a, b) => (a.factId + ':' + a.sourceId).localeCompare(b.factId + ':' + b.sourceId));
   if (!factSources.length) fail('NO_VALID_SOURCES', 'No valid supporting source relationships exist');
   const includedSourceIds = new Set(factSources.map(item => item.sourceId));
