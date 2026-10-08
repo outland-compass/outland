@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { authorize } from '@/lib/studio/auth';
-import { deleteUnregisteredCharacterOriginal, lookupCharacterForMedia, registerCharacterOriginal, uploadCharacterOriginal } from '@/lib/studio/character-media-storage';
+import { deleteUnregisteredCharacterOriginal, lookupCharacterForMedia, registerCharacterOriginal, uploadCharacterOriginal, verifyStoredCharacterOriginal } from '@/lib/studio/character-media-storage';
 
 export const runtime = 'nodejs';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
       mimeType: file.type as 'image/png' | 'image/jpeg' | 'image/webp', bytes
     });
     try {
+      const verified = await verifyStoredCharacterOriginal(stored.path, hash);
+      if (verified.byteLength !== bytes.byteLength) throw new Error('Storage readback byte length mismatch');
       await registerCharacterOriginal({ characterId, visualVersion, path: stored.path, sha256: hash, sourceDocument });
     } catch (error) {
       try { await deleteUnregisteredCharacterOriginal(stored.path); } catch (cleanupError) {
