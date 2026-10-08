@@ -19,6 +19,7 @@ export default function CharacterMediaReview() {
   const [report, setReport] = useState<Report | null>(null);
   const [assignments, setAssignments] = useState<Record<string, Assignment>>({});
   const [error, setError] = useState('');
+  const [previews, setPreviews] = useState<Record<string, { url: string; verified: boolean }>>({});
   async function load(file: File) {
     try {
       const raw: unknown = JSON.parse(await file.text());
@@ -37,6 +38,20 @@ export default function CharacterMediaReview() {
       setError(e instanceof Error ? e.message : 'Cannot parse report');
       setReport(null);
     }
+  }
+  async function loadOriginalImages(files: FileList | null) {
+    if (!files || !report) return;
+    const next: Record<string, { url: string; verified: boolean }> = {};
+    for (const file of Array.from(files)) {
+      const source = report.images.find(image => image.file === file.name);
+      if (!source || !file.type.startsWith('image/')) continue;
+      const bytes = await file.arrayBuffer();
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      const hash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+      const verified = hash === source.sha256.toLowerCase();
+      next[file.name] = { url: verified ? URL.createObjectURL(file) : '', verified };
+    }
+    setPreviews(next);
   }
   function downloadMapping() {
     if (!report) return;
@@ -62,9 +77,16 @@ export default function CharacterMediaReview() {
     <label>Extraction report (JSON) <input type="file" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0]; if (file) void load(file); }} /></label>
     {error && <p role="alert">{error}</p>}
     {report && <>
+      <label>Original portrait files <input type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={event => { void loadOriginalImages(event.target.files); }} /></label>
       <p>{report.images.length} embedded images · source {report.source}</p>
       {report.images.map((image, index) => <article key={image.sha256 + ':' + index} className="row">
         <strong>{image.file}</strong>
+        {previews[image.file]?.verified
+          ? <img src={previews[image.file].url} alt={'Original illustration ' + image.file} style={{ width: 180, maxHeight: 240, objectFit: 'contain' }} />
+          : <span className="muted">Original image not selected or SHA-256 mismatch</span>}
+        {image.file === bible.editorialDecisions.amonDimano.canonicalSourceFile &&
+          image.sha256 === bible.editorialDecisions.amonDimano.canonicalSha256 &&
+          <strong>Amon Dimano — approved canonical portrait V1</strong>}
         <span className="muted">{image.nearbyText.join(' · ').slice(0, 300)}</span>
         <label>Candidate character
           <select value={assignments[image.sha256]?.characterSlug ?? ''} onChange={event => setAssignments(old => ({
