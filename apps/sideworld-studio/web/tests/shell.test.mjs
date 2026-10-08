@@ -80,5 +80,5 @@ test('City Knowledge screen keeps facts and sources explicit', async () => {
   const source = await readFile(new URL('../app/studio/city/page.tsx', import.meta.url), 'utf8');
   assert.match(source, /Geographic truth before generated story/);
   assert.match(source, /Verification status and confidence remain explicit/);
-  assert.match(source, /CityKnowledgeEditor/);
+  assert.match(source, /City Knowledge editing is temporarily disabled/);
 });
