@@ -690,7 +690,7 @@ Only after this structure reads coherently in Canon Inspector should we build th
 
 Studio V0 is complete when:
 
-- an authorized editor can sign in;
+- the founder/editor can pass the private Studio access/session gate;
 - private V3.2 schemas remain non-public;
 - editor can CRUD-with-archive the V0 entities through server-only handlers;
 - no direct browser write exists to `universe`, `geo` or `canon`;
