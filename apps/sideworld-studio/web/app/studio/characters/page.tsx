@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import CharacterMediaReview from './character-media-review';
 import { beyondAtlasCharacterImportPreviewV1 as preview } from '@/lib/studio/beyond-atlas-character-preview';
 
 export default function CharacterSourcePreviewPage() {
@@ -18,6 +19,7 @@ export default function CharacterSourcePreviewPage() {
         <p className="muted">Existing franchise/character IDs, images, permissions and approvals must be reconciled before import. Published quests will pin immutable visual versions.</p>
       </article>
     </section>
+    <CharacterMediaReview />
     <Link className="button secondaryButton" href="/studio">Back to Studio</Link>
   </main>;
 }
