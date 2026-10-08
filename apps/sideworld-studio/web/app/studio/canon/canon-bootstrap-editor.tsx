@@ -64,11 +64,11 @@ export function CanonBootstrapEditor() {
       <form className="authoringPanel" onSubmit={onSubmit('universe')}>
         <p className="eyebrow">1 · Universe</p>
         <h2>Canonical Universe identity</h2>
-        <p className="muted">BEYOND THE ATLAS is a franchise, not a Universe. Create or select its owning Universe here.</p>
+        <p className="muted">Beyond the Atlas belongs to THE UNCHARTED. Create or select THE UNCHARTED here.</p>
         <input name="id" placeholder="Existing UUID (leave empty to create)" />
         <div className="formGrid">
-          <input name="slug" placeholder="universe-slug" required />
-          <input name="name" placeholder="Universe name" required />
+          <input name="slug" placeholder="universe-slug" defaultValue="the-uncharted" required />
+          <input name="name" placeholder="Universe name" defaultValue="THE UNCHARTED" required />
           <select name="visibility" defaultValue="private">
             <option value="private">private</option>
             <option value="unlisted">unlisted</option>
