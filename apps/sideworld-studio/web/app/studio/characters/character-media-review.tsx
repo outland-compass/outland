@@ -32,7 +32,7 @@ export default function CharacterMediaReview() {
           !('sourceSha256' in raw) || typeof raw.sourceSha256 !== 'string' ||
           !('extractionVersion' in raw) || !Number.isInteger(raw.extractionVersion) ||
           !raw.images.every((image: unknown) => image && typeof image === 'object' &&
-            'file' in image && typeof image.file === 'string' && /^image[0-9]+\\.(png|jpe?g|webp)$/i.test(image.file) &&
+            'file' in image && typeof image.file === 'string' && /^image[0-9]+\.(png|jpe?g|webp)$/i.test(image.file) &&
             'sha256' in image && typeof image.sha256 === 'string' && /^[a-f0-9]{64}$/.test(image.sha256) &&
             (!('nearbyText' in image) || (Array.isArray(image.nearbyText) && image.nearbyText.every((value: unknown) => typeof value === 'string'))))) {
         throw new Error('Invalid extraction report');
