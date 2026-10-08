@@ -18,6 +18,7 @@ export default function Studio() {
           <Link href="/studio/canon">Canon Editor</Link>
           <Link href="/studio/inspector">Canon Inspector</Link>
           <Link href="/studio/context">Canon Context</Link>
+          <Link href="/studio/city">City Knowledge</Link>
           {spaces.filter(([name]) => name !== 'Canon').map(([name]) => <span key={name}>{name}</span>)}
         </nav>
         <p className="phase">PRIVATE AUTHORING<br/>SERVER-ONLY WRITES</p>
@@ -56,6 +57,11 @@ export default function Studio() {
             <em>Available now</em>
             <h3>Canon Context Builder</h3>
             <p>Compile deterministic AI context from active/approved canon with explicit opt-in for proposed material.</p>
+          </article>
+          <article>
+            <em>Available now</em>
+            <h3>City Knowledge Base</h3>
+            <p>Build source-backed geographic truth before route, puzzle and story generation.</p>
           </article>
           {spaces.filter(([name]) => name !== 'Canon').map(([name, description]) => (
             <article key={name}>
