@@ -32,6 +32,10 @@ Older OUTLAND/SIGNAL plans remain in the repository for traceability. They must 
 
 In particular, the September 2026 proposal that `shared.worlds` should be the single canonical World identity for all SIDEWORLD concerns is superseded.
 
+## Development and delivery policy
+
+The approved delivery policy is [`SIDEWORLD_DEVELOPMENT_POLICY_V1.md`](SIDEWORLD_DEVELOPMENT_POLICY_V1.md): production-first for low-risk changes, staging on demand, passing PR/CI checks, verified backup/restore readiness before direct production database migrations, and explicit authorization for production database changes.
+
 ## Change discipline
 
 Meaningful product or architecture decisions should update the relevant current authority document in the same PR whenever practical. Implementation status must be labeled separately from product/canon decisions, and production changes still require explicit authorization.
