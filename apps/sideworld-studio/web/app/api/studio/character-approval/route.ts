@@ -16,7 +16,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'JSON required' }, { status: 415 });
   if (Number(request.headers.get('content-length') || 0) > 4096)
     return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
-  const body = await request.json().catch(() => null);
+  const rawBody = await request.text().catch(() => '');
+  if (rawBody.length > 4096) return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+  const body = (() => { try { return JSON.parse(rawBody); } catch { return null; } })();
   if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   const { assetId, characterId, expectedSha256, rightsNote, action } = body as Record<string, unknown>;
   if (![assetId, characterId].every(value => typeof value === 'string' && UUID.test(value)) ||
@@ -44,6 +46,7 @@ export async function POST(request: NextRequest) {
     url.searchParams.set('character_id', `eq.${characterId}`);
     url.searchParams.set('source_sha256', `eq.${expectedSha256}`);
     url.searchParams.set('approval_status', 'eq.draft');
+    url.searchParams.set('asset_role', 'eq.canonical_portrait');
     const result = await fetch(url, {
       method: 'PATCH',
       headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Profile': 'canon',
