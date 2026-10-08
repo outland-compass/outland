@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { LogoutButton } from './logout-button';
 import { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
@@ -50,6 +51,7 @@ export function StudioSidebar({ universeSlug }: { universeSlug?: string }) {
         {!visuallyCollapsed && expanded[section.label] && <div className="sidebarLinks">{section.links.map(link => <Link key={link.path} href={scoped(link.path)} aria-current={pathname === link.path ? 'page' : undefined}>{link.label}</Link>)}</div>}
       </div>)}
     </nav>
+    <div className="studioMobileFooter"><LogoutButton /><p className="phase">PRIVATE AUTHORING</p></div>
   </aside>
   </>;
 }
