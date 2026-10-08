@@ -60,3 +60,11 @@ test('mobile hamburger opens a dismissible, full navigation drawer', () => {
   assert.match(styles, /@media\(max-width:850px\)/);
   assert.match(styles, /\.studioSidebar\.mobileOpen/);
 });
+
+test('mobile navigation keeps sign out available', () => {
+  const sidebar = read('../app/studio/studio-sidebar.tsx');
+  const styles = read('../app/globals.css');
+  assert.match(sidebar, /studioMobileFooter/);
+  assert.match(sidebar, /<LogoutButton\s*\/>/);
+  assert.match(styles, /\.studioMobileFooter\{display:block/);
+});
