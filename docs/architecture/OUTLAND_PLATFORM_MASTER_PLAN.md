@@ -2,12 +2,14 @@
 
 **September 2026**
 
+> **STATUS NOTE — 2026-10:** This document remains useful for OUTLAND-specific operational/product history, but it is **not** the authority for SIDEWORLD platform hierarchy, canonical Universe ownership or canonical World identity. Where it conflicts with `SIDEWORLD_CANONICAL_UNIVERSE_FRANCHISE_ARCHITECTURE_V3_1.md` or `SIDEWORLD_SCHEMA_V3_2_CANONICAL_ARCHITECTURE.md`, those newer SIDEWORLD documents supersede it.
+
 > **Design the Universe. Build only the next real playable or operable loop.**
 
 ## 1. Top-level naming
 
-- **OUTLAND** — master brand, destination network and overall experience.
-- **OUTLAND OS** — the entire software platform.
+- **OUTLAND** — master brand for the OUTLAND Universe/destination experience only; it is **not** the parent brand of SIDEWORLD.
+- **OUTLAND OS** — OUTLAND-specific operational/platform capability set, not the whole SIDEWORLD platform.
 - **OUTLAND Universe** — persistent story/game universe spanning physical Worlds, future video game, tabletop and connected interactions.
 - **OUTLAND** may also become the consumer-facing title of the future video game; that game is an interface into the Universe, not the OS.
 - **NOW·HERE** — optional inner-journey/presence layer.
@@ -263,12 +265,27 @@ Database changes go through migrations.
 
 ---
 
-## Architecture note — SIGNAL boundary (2026-09-29)
+## Historical architecture note — SIGNAL boundary (2026-09-29) — SUPERSEDED
 
-SIGNAL architecture adopts **one canonical World identity for the whole platform**. The existing `shared.worlds` rows and UUIDs are the starting identity set and must not be duplicated in a separate SIGNAL/LAND World table.
+The original September 29 SIGNAL note proposed `shared.worlds` as the single World identity for the whole platform and allowed a World to participate in multiple Universes.
 
-A separately approved platform migration may evolve/relocate `shared.worlds` to `core.worlds` while preserving every existing World UUID. LAND-specific acquisition, radar, capital, area, scoring and due-diligence configuration should move behind the canonical identity (for example `land.world_profiles`) rather than defining a second World. SIGNAL, LAND, Passport, Bases and other capabilities reference the same canonical World.
+**That direction is superseded. Do not use it for new SIDEWORLD design or migrations.**
 
-Universe is a separate thematic/context entity. A World may participate in multiple Universes through an association such as `core.universe_worlds`; Universe does not own or duplicate World identity. Historical `universe.nodes/frontiers/spots` and `passport.journeys/events` remain preserved as V0 history and must not be expanded opportunistically.
+Current canonical architecture:
 
-The next schema phase will therefore evolve the existing World identity, define Universe associations, accommodation/Base concepts and independent geography, then add SIGNAL quest/gameplay entities without creating parallel World records.
+- `universe.universes` is the one canonical SIDEWORLD Universe registry.
+- `universe.worlds` is the canonical SIDEWORLD World registry.
+- `shared.worlds` remains the OUTLAND/Compass operational registry.
+- `universe.world_outland_map` explicitly bridges matching operational and canonical identities when needed.
+- A canonical World belongs to one Universe.
+- World ↔ City is N:M.
+- World is spatial/experiential: it groups multiple Quests, Locations, Activities and optionally Base/pod capacity within a coherent territory.
+- GREENHILL is the reference World example.
+- Franchise and World are independent axes.
+
+See:
+
+- `SIDEWORLD_CANONICAL_UNIVERSE_FRANCHISE_ARCHITECTURE_V3_1.md`
+- `SIDEWORLD_SCHEMA_V3_2_CANONICAL_ARCHITECTURE.md`
+
+The historical note is retained only to explain the evolution of the architecture.
