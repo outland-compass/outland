@@ -1,8 +1,9 @@
 # SIDEWORLD Studio V0 — Implementation Blueprint
 
-**Status:** Proposed implementation blueprint for review.  
-**Scope:** Studio V0 / Canon Editor only. No production database changes are authorized by this document.  
-**Baseline:** SIDEWORLD Schema V3.2 is already deployed to production.  
+**Status:** Active implementation blueprint, updated 2026-10-08.  
+**Scope:** Studio V0 / Canon Editor only. This document does not authorize production database writes.  
+**Baseline:** SIDEWORLD Schema V3.2 is deployed to production; Studio V0-C/D1/D2 boundaries are implemented in the repository and deployed to staging only.  
+**Product/canon source of truth:** `SIDEWORLD_CANONICAL_UNIVERSE_FRANCHISE_ARCHITECTURE_V3_1.md`.  
 **Product sequence:** V3.2 Foundation → Studio/Canon Editor → Canon Context Builder → City Knowledge Base → First Story/Quest → Quest Compiler → Player App → Passport/Analytics.
 
 ---
@@ -23,7 +24,7 @@ Studio V0 must let an authorized editor:
 6. prepare structured inputs for the later Canon Context Builder;
 7. never expose the private authoring schemas directly to the public/player client.
 
-The first real content target is the SIDEWORLD narrative stack around **BEYOND THE ATLAS**, **The Lost Cartographers**, **The Unbroken Line**, and the first Novi Sad city work.
+The first real content target is **THE UNCHARTED → Beyond the Atlas → The Lost Cartographers**, with **The Unbroken Line** represented as overarching lore rather than a Series, plus the first Novi Sad City work.
 
 ---
 
@@ -125,16 +126,17 @@ apps/
     web/
 ```
 
-Recommended V0 stack:
+Current V0 stack:
 
-- Next.js / React, matching the existing server-capable `apps/world/web` pattern;
-- server-only database access;
-- Supabase Auth for editor identity;
-- server actions / route handlers as the only browser-to-authoring write path;
-- no browser possession of a service-role key;
+- Next.js / React in `apps/sideworld-studio/web`;
+- server-only Supabase RPC access;
+- private access-key/session gate for the current founder-only V0 editor;
+- route handlers as the browser-to-authoring write path;
+- no browser possession of the service-role key;
 - private/no-store responses;
-- noindex/nofollow;
-- shared domain/UI packages may be reused only where useful.
+- noindex/nofollow.
+
+A stronger multi-editor identity model can replace the founder-only V0 gate when the product actually needs multiple editors.
 
 ### Why separate from Compass
 
@@ -208,6 +210,8 @@ Guardrails:
 ### 6.3 World list / editor
 
 Backed by `universe.worlds`.
+
+Canonical product meaning: a World is a spatially defined SIDEWORLD territory/experience zone containing multiple playable or physical elements in the same coherent space. GREENHILL is the reference example. World is not a synonym for Franchise, Series or Theme.
 
 Editable:
 
@@ -524,72 +528,59 @@ V0 should therefore keep structured records clean instead of moving knowledge in
 
 ## 10. Server-side authoring boundary
 
-Because the V3.2 schemas are intentionally private, V0 needs a controlled server-side access layer.
+The private-schema boundary is now implemented using narrow `public` RPCs called only by the Studio server.
 
-Recommended flow:
+Current flow:
 
 ```text
 Browser
-  ↓ authenticated editor session
+  ↓ private Studio session + validated form/API request
 SIDEWORLD Studio server
-  ↓ authorization check
-server-only database client
-  ↓
+  ↓ server-only service-role credential
+allowlisted public RPC
+  ↓ SECURITY DEFINER
 private universe / geo / canon schemas
 ```
 
-### Required security properties
+Current security properties:
 
-- no service-role credential in browser bundles;
-- all mutation handlers verify an authenticated editor;
-- explicit allowlist/role check in V0;
-- server logs never print secrets or full sensitive environment variables;
-- mutation handlers validate status enums and ownership relationships;
-- no raw SQL input from the browser;
-- write endpoints expose only the fields required by each form;
-- no public Data API exposure for `universe`, `geo`, `canon`.
+- `universe`, `geo` and `canon` remain outside the Data API schema exposure list;
+- browser roles do not receive direct schema/table privileges;
+- browser roles cannot execute Studio RPCs;
+- only `service_role` can execute the Studio read/write RPCs;
+- `service_role` still has no direct `USAGE` on the private authoring schemas;
+- service-role credential remains server-only;
+- mutation handlers validate entity payloads before RPC calls;
+- no raw SQL input is accepted from the browser.
+
+The V0-C read boundary is `public.sideworld_studio_read_model(text)`.
+
+V0-D1/D2 add narrow save RPCs for Universe, Franchise, Series, Lore, Canon Rules, Worlds, Themes, Characters, Factions, Country, City and World↔City relationships.
 
 ---
 
 ## 11. Database change assessment
 
-### 11.1 No new domain tables are required to start Studio V0
+### 11.1 No new domain tables were required for Studio V0 authoring
 
-The current V3.2 tables are sufficient for the initial Canon Editor.
+The V3.2 domain tables were sufficient for the initial Canon Editor. Studio access was added through narrow RPC functions rather than by exposing the private schemas.
 
-This is important: do not expand the schema merely because a UI is being built.
+### 11.2 Implemented access migrations
 
-### 11.2 One access migration will likely be required
+Repository migrations now include:
 
-Current production grants intentionally block `service_role` from these private authoring schemas. Studio therefore needs a separately reviewed additive migration before live CRUD can work.
+- `202610070001_sideworld_studio_read_boundary.sql`
+- `202610070002_sideworld_studio_authoring_boundary.sql`
+- `202610070003_sideworld_studio_world_city_canon_authoring.sql`
 
-**Proposed direction — not yet authorized:**
+These migrations are additive. They add server-only RPC boundaries and do not add raw `universe`, `geo` or `canon` schemas to the Data API exposure list.
 
-- keep schemas out of the public Data API exposure list;
-- grant `USAGE` on `universe`, `geo`, `canon` to `service_role` only;
-- grant only the table privileges required by Studio V0 to `service_role`;
-- do not grant authoring-table access to `anon` or browser `authenticated`;
-- verify no new public policies are introduced;
-- add read-only and write-path tests;
-- include an explicit rollback migration/script that revokes the Studio grants.
+**Staging:** V0-C/D1/D2 migrations are deployed and security-validated.  
+**Production:** Studio access migrations are not authorized/deployed by this documentation update.
 
-This migration must be inspected against the final Studio server implementation before execution.
+### 11.3 Deferred tables
 
-### 11.3 Possible later tables — explicitly deferred
-
-Do **not** add these in Studio V0 unless a concrete implementation need appears:
-
-- editor activity/audit log;
-- canon snapshots;
-- context-pack cache;
-- AI generation jobs;
-- prompt templates;
-- media assets;
-- story arcs;
-- quests;
-- publication records.
-
-These belong to subsequent milestones.
+Do not add editor audit logs, canon snapshots, context-pack caches, AI job tables, media/story/quest/publication tables until a concrete workflow needs them.
 
 ---
 
@@ -678,11 +669,11 @@ Do not replace Compass build scripts.
 
 The first real Studio content should be entered in dependency order:
 
-1. Universe
-2. World(s), where relevant
-3. Theme
-4. Franchise — **BEYOND THE ATLAS**
-5. Series — **The Lost Cartographers**
+1. Universe — **THE UNCHARTED**
+2. World(s), only where a spatial World has actually been approved
+3. Theme, where useful
+4. Franchise — **Beyond the Atlas**
+5. Series — **The Lost Cartographers** (proposed Series structure)
 6. Core characters
 7. Character relationships
 8. Factions
@@ -714,47 +705,49 @@ Studio V0 is complete when:
 
 ---
 
-## 16. Implementation sequence
+## 16. Implementation sequence and current status
 
-### Studio V0-A — Application shell
+### Studio V0-A — Application shell — IMPLEMENTED
 
-- scaffold `apps/sideworld-studio/web`;
-- private access gate;
-- Studio layout/navigation;
-- server-only environment boundary;
-- no DB writes yet.
+- separate `apps/sideworld-studio/web`;
+- private access gate/session;
+- Studio navigation/shell;
+- Studio CI.
 
-### Studio V0-B — Read model
+### Studio V0-B — Read contract / Canon Inspector — IMPLEMENTED
 
-- server-side reads for V3.2 entities;
-- dashboard;
-- lists/detail views;
+- typed read contract;
+- non-production fixture;
 - Canon Inspector;
-- still no production writes.
+- server-only data-source abstraction.
 
-### Studio V0-C — Authoring access migration
+### Studio V0-C — Private read boundary — IMPLEMENTED, STAGING DEPLOYED
 
-- draft additive grants migration;
-- local tests;
-- staging deploy and write-path test;
-- production plan and explicit authorization;
-- rollback = revoke grants.
+- service-role-only read RPC;
+- private schemas remain outside Data API exposure;
+- staging smoke/security validation passed.
 
-### Studio V0-D — CRUD editor
+### Studio V0-D1/D2 — Authoring boundary and editor — IMPLEMENTED, STAGING DEPLOYED
 
-- validated create/edit/archive flows;
-- relation pickers;
-- status transitions;
-- JSON profile editors;
-- server-side authorization tests.
+- founder-only private Studio session boundary;
+- validated authoring API;
+- save RPCs for canonical containers/canon/geo;
+- World↔City authoring;
+- staging security validation passed.
 
-### Studio V0-E — First canonical dataset
+### Studio V0-D3 — Complete read model — IN REVIEW
 
-- BEYOND THE ATLAS;
-- The Lost Cartographers;
-- initial characters/factions/lore/rules;
-- Novi Sad seed knowledge;
-- human review in Canon Inspector.
+The read model is being completed so Worlds, Themes and World↔City mappings read back through the same canonical Inspector contract.
+
+### Studio V0-E — First canonical dataset — NEXT
+
+Enter only decisions with approved status:
+
+- Universe — **THE UNCHARTED**;
+- Franchise — **Beyond the Atlas**;
+- Serbia / Novi Sad geographic truth;
+- proposed Series/lore only with their correct status labels;
+- no speculative World rows until the specific spatial Worlds are approved under the final World definition.
 
 Then proceed to **Canon Context Builder V0**.
 
@@ -794,12 +787,9 @@ Then proceed to **Canon Context Builder V0**.
 
 ## 18. Immediate next engineering task
 
-After approval of this blueprint:
-
-1. scaffold `apps/sideworld-studio/web` with a private shell and CI only;
-2. do **not** add database grants yet;
-3. implement a mock/read-contract layer against typed V3.2 domain models;
-4. separately prepare the authoring-access migration and its tests;
-5. review that migration before staging or production execution.
-
-This keeps the next PR application-only and low-risk while preserving the V3.2 security boundary.
+1. Finish and merge the V0-D3 complete read-model work after CI/review.
+2. Keep the Studio pointed at staging while authoring workflows are still evolving.
+3. Seed the approved THE UNCHARTED → Beyond the Atlas dependency chain in staging.
+4. Preserve proposed/working-candidate statuses instead of promoting them to canon automatically.
+5. Build the deterministic Canon Context Builder next.
+6. Keep production Studio migrations/data behind separate explicit authorization.
