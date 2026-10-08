@@ -48,3 +48,15 @@ test('sidebar remembers its collapsed state with safe storage fallback', () => {
   assert.match(source, /window\.localStorage\.setItem/);
   assert.match(source, /catch \{/);
 });
+
+test('mobile hamburger opens a dismissible, full navigation drawer', () => {
+  const source = read('../app/studio/studio-sidebar.tsx');
+  const styles = read('../app/globals.css');
+  assert.match(source, /studioHamburger/);
+  assert.match(source, /aria-controls="studio-navigation-drawer"/);
+  assert.match(source, /studioMobileBackdrop/);
+  assert.match(source, /setMobileOpen\(false\)/);
+  assert.match(source, /visuallyCollapsed = collapsed && !mobileOpen/);
+  assert.match(styles, /@media\(max-width:850px\)/);
+  assert.match(styles, /\.studioSidebar\.mobileOpen/);
+});
