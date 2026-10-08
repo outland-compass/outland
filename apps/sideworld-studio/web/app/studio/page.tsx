@@ -1,7 +1,7 @@
 import { resolveStudioUniverse } from '@/lib/studio/universes';
 import { UniverseSelector } from './universe-selector';
-import { LogoutButton } from './logout-button';
-import { StudioSidebar } from './studio-sidebar';
+
+
 import Link from 'next/link';
 
 const spaces = [
@@ -18,8 +18,7 @@ export default async function Studio({ searchParams }: { searchParams: Promise<{
   const { universes, selected } = await resolveStudioUniverse(params.universe);
   const scoped = (path: string) => selected ? `${path}?universe=${encodeURIComponent(selected.slug)}` : path;
   return (
-    <main className="shell">
-      <div className="studioSideColumn"><StudioSidebar universeSlug={selected?.slug} /><div className="studioSideFooter"><LogoutButton /><p className="phase">PRIVATE AUTHORING</p></div></div>
+    <main className="studioDashboard">
 
       <section className="work">
         <header>
