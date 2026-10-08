@@ -6,7 +6,7 @@ test('approval is disabled by default, origin-bound and admin-only', () => {
   assert.match(api, /authorize\(request, denied\)/);
   assert.match(api, /SIDEWORLD_CHARACTER_APPROVAL_WRITES/);
   assert.match(api, /Origin mismatch/);
-  assert.match(api, /lookupCharacterForMedia/);
+  assert.match(api, /sideworld_character_media_approve/);
 });
 test('approval binds exact draft, hash, reviewer and rights statement', () => {
   assert.match(api, /source_sha256/);
