@@ -1,21 +1,10 @@
 import 'server-only';
 
-import { studioReadContractFixture } from './fixture';
 import type { CanonReadModel } from './types';
-
-type StudioDataSource = 'fixture' | 'supabase';
-
-function dataSource(): StudioDataSource {
-  const value = process.env.STUDIO_DATA_SOURCE ?? 'fixture';
-  if (value !== 'fixture' && value !== 'supabase') {
-    throw new Error('STUDIO_DATA_SOURCE must be fixture or supabase');
-  }
-  return value;
-}
 
 function requiredServerEnv(name: 'SUPABASE_URL' | 'SUPABASE_SERVICE_ROLE_KEY' | 'STUDIO_UNIVERSE_SLUG') {
   const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} is required when STUDIO_DATA_SOURCE=supabase`);
+  if (!value) throw new Error(`${name} is required`);
   return value;
 }
 
@@ -49,9 +38,5 @@ async function readFromSupabase(): Promise<CanonReadModel> {
 }
 
 export async function getStudioReadModel(): Promise<CanonReadModel> {
-  if (dataSource() === 'fixture') {
-    return structuredClone(studioReadContractFixture);
-  }
-
   return readFromSupabase();
 }
