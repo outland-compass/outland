@@ -1,0 +1,90 @@
+'use client';
+
+import { useState } from 'react';
+import { beyondAtlasCharacterImportPreviewV1 as bible } from '@/lib/studio/beyond-atlas-character-preview';
+
+type ImageRecord = {
+  file: string;
+  sha256: string;
+  sourcePart: string;
+  nearbyText: string[];
+  possibleCharacters: string[];
+  reviewStatus: string;
+  approved: boolean;
+};
+type Report = { source: string; sourceSha256: string; extractionVersion: number; images: ImageRecord[] };
+type Assignment = { characterSlug: string; decision: 'candidate' | 'reject' };
+
+export default function CharacterMediaReview() {
+  const [report, setReport] = useState<Report | null>(null);
+  const [assignments, setAssignments] = useState<Record<string, Assignment>>({});
+  const [error, setError] = useState('');
+  async function load(file: File) {
+    try {
+      const raw: unknown = JSON.parse(await file.text());
+      if (!raw || typeof raw !== 'object' || !('images' in raw) || !Array.isArray(raw.images) ||
+          !('sourceSha256' in raw) || typeof raw.sourceSha256 !== 'string' ||
+          !raw.images.every((image: unknown) => image && typeof image === 'object' &&
+            'file' in image && typeof image.file === 'string' &&
+            'sha256' in image && typeof image.sha256 === 'string' &&
+            'nearbyText' in image && Array.isArray(image.nearbyText))) {
+        throw new Error('Invalid extraction report');
+      }
+      setReport(raw as Report);
+      setAssignments({});
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Cannot parse report');
+      setReport(null);
+    }
+  }
+  function downloadMapping() {
+    if (!report) return;
+    const payload = {
+      source: report.source, sourceSha256: report.sourceSha256,
+      mappingVersion: 1, assignments: report.images.map(image => ({
+        file: image.file, sha256: image.sha256,
+        characterSlug: assignments[image.sha256]?.characterSlug || null,
+        decision: assignments[image.sha256]?.decision || 'unreviewed',
+        approved: false
+      }))
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'beyond-atlas-media-mapping-draft.json';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+  return <section className="panel">
+    <h2>Original illustration review</h2>
+    <p className="muted">Load the extraction-report.json produced from the original Word document. Files stay in this browser; this screen never uploads or approves artwork.</p>
+    <label>Extraction report (JSON) <input type="file" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0]; if (file) void load(file); }} /></label>
+    {error && <p role="alert">{error}</p>}
+    {report && <>
+      <p>{report.images.length} embedded images · source {report.source}</p>
+      {report.images.map((image, index) => <article key={image.sha256 + ':' + index} className="row">
+        <strong>{image.file}</strong>
+        <span className="muted">{image.nearbyText.join(' · ').slice(0, 300)}</span>
+        <label>Candidate character
+          <select value={assignments[image.sha256]?.characterSlug ?? ''} onChange={event => setAssignments(old => ({
+            ...old, [image.sha256]: { characterSlug: event.target.value, decision: 'candidate' }
+          }))}>
+            <option value="">Unassigned</option>
+            {bible.characters.map(character => <option key={character.slug} value={character.slug}>{character.name}</option>)}
+          </select>
+        </label>
+        <label>Review
+          <select value={assignments[image.sha256]?.decision ?? 'unreviewed'} onChange={event => setAssignments(old => ({
+            ...old, [image.sha256]: { characterSlug: old[image.sha256]?.characterSlug ?? '', decision: event.target.value as Assignment['decision'] }
+          }))}>
+            <option value="unreviewed">Unreviewed</option>
+            <option value="candidate">Candidate (not approved)</option>
+            <option value="reject">Not a character portrait</option>
+          </select>
+        </label>
+      </article>)}
+      <button type="button" onClick={downloadMapping}>Export draft mapping JSON</button>
+    </>}
+  </section>;
+}
