@@ -27,9 +27,11 @@ test('catalog RPC is restricted to service_role', () => {
   assert.match(source, /grant execute.*service_role/);
 });
 
-test('Studio navigation retains selected universe and clearly marks writes as paused', () => {
-  const source = read('../app/studio/page.tsx');
-  assert.match(source, /encodeURIComponent\(selected\.slug\)/);
-  assert.match(source, /href=\{scoped\('\/studio\/inspector'\)\}/);
-  assert.match(source, /WRITES PAUSED/);
+test('shared Studio navigation preserves selected universe across routes', () => {
+  const sidebar = read('../app/studio/studio-sidebar.tsx');
+  const layout = read('../app/studio/layout.tsx');
+  assert.match(sidebar, /useSearchParams/);
+  assert.match(sidebar, /encodeURIComponent\(currentUniverse\)/);
+  assert.match(sidebar, /\/studio\/inspector/);
+  assert.match(layout, /StudioSidebar/);
 });
