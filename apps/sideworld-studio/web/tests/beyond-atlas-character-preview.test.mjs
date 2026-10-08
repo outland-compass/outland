@@ -22,9 +22,9 @@ test('approved reference constraints remain visible and no write path exists', (
 });
 
 test('Amon user-approved visual version pins exact original image hash and archives alternative', () => {
-  assert.match(preview, /canonicalSourceFile: 'image13\\.png'/);
+  assert.match(preview, /canonicalSourceFile: 'image13\.png'/);
   assert.match(preview, /canonicalSha256: '6c5836fee48b9a3ba9638f8723eda4d2f979d162cd5b929707584c83ef25ed28'/);
-  assert.match(preview, /archivedAlternativeFile: 'image12\\.png'/);
+  assert.match(preview, /archivedAlternativeFile: 'image12\.png'/);
   assert.match(preview, /storageStatus: 'not_uploaded'/);
   assert.match(page, /Approved editorial selection: Amon Dimano/);
 });
