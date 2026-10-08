@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { beyondAtlasCharacterImportPreviewV1 as bible } from '@/lib/studio/beyond-atlas-character-preview';
 
 type ImageRecord = {
@@ -20,6 +20,7 @@ export default function CharacterMediaReview() {
   const [assignments, setAssignments] = useState<Record<string, Assignment>>({});
   const [error, setError] = useState('');
   const [previews, setPreviews] = useState<Record<string, { url: string; verified: boolean }>>({});
+  useEffect(() => () => { Object.values(previews).forEach(preview => { if (preview.url) URL.revokeObjectURL(preview.url); }); }, [previews]);
   async function load(file: File) {
     try {
       const raw: unknown = JSON.parse(await file.text());
@@ -32,6 +33,7 @@ export default function CharacterMediaReview() {
         throw new Error('Invalid extraction report');
       }
       setReport(raw as Report);
+      setPreviews({});
       setAssignments({});
       setError('');
     } catch (e) {
@@ -57,10 +59,10 @@ export default function CharacterMediaReview() {
     if (!report) return;
     const payload = {
       source: report.source, sourceSha256: report.sourceSha256,
-      mappingVersion: 1, assignments: report.images.map(image => ({
+      mappingVersion: 1, editorialDecisions: bible.editorialDecisions, assignments: report.images.map(image => ({
         file: image.file, sha256: image.sha256,
-        characterSlug: assignments[image.sha256]?.characterSlug || null,
-        decision: assignments[image.sha256]?.decision || 'unreviewed',
+        characterSlug: image.file === bible.editorialDecisions.amonDimano.canonicalSourceFile && image.sha256 === bible.editorialDecisions.amonDimano.canonicalSha256 ? 'amon-dimano' : assignments[image.sha256]?.characterSlug || null,
+        decision: image.file === bible.editorialDecisions.amonDimano.canonicalSourceFile && image.sha256 === bible.editorialDecisions.amonDimano.canonicalSha256 ? 'canonical_source_selected' : image.file === bible.editorialDecisions.amonDimano.archivedAlternativeFile ? 'archived_alternative' : assignments[image.sha256]?.decision || 'unreviewed',
         approved: false
       }))
     };
@@ -88,6 +90,7 @@ export default function CharacterMediaReview() {
           image.sha256 === bible.editorialDecisions.amonDimano.canonicalSha256 &&
           <strong>Amon Dimano — approved canonical portrait V1</strong>}
         <span className="muted">{image.nearbyText.join(' · ').slice(0, 300)}</span>
+        {image.file !== bible.editorialDecisions.amonDimano.canonicalSourceFile && image.file !== bible.editorialDecisions.amonDimano.archivedAlternativeFile && <>
         <label>Candidate character
           <select value={assignments[image.sha256]?.characterSlug ?? ''} onChange={event => setAssignments(old => ({
             ...old, [image.sha256]: { characterSlug: event.target.value, decision: 'candidate' }
@@ -105,6 +108,7 @@ export default function CharacterMediaReview() {
             <option value="reject">Not a character portrait</option>
           </select>
         </label>
+        </>}
       </article>)}
       <button type="button" onClick={downloadMapping}>Export draft mapping JSON</button>
     </>}
