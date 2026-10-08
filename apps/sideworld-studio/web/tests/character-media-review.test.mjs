@@ -21,3 +21,11 @@ test('original portraits are SHA-256 verified before local preview', () => {
   assert.match(review, /verified \? URL\.createObjectURL\(file\)/);
   assert.match(review, /approved canonical portrait V1/);
 });
+
+test('approved Amon portrait cannot be remapped in local review', () => {
+  assert.match(review, /canonical_source_selected/);
+  assert.match(review, /archived_alternative/);
+  assert.match(review, /editorialDecisions: bible\.editorialDecisions/);
+  assert.match(review, /image\.file !== bible\.editorialDecisions\.amonDimano\.canonicalSourceFile/);
+  assert.match(review, /URL\.revokeObjectURL/);
+});
