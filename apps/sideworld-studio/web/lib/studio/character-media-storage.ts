@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import 'server-only';
 
 const BUCKET = 'sideworld-character-media';
@@ -84,4 +85,18 @@ export async function registerCharacterOriginal(input: {
     cache: 'no-store', signal: AbortSignal.timeout(10_000)
   });
   if (!response.ok) throw new Error(`Media registration failed: HTTP ${response.status}`);
+}
+
+/** Verify the bytes read back from private Storage, not merely the upload response. */
+export async function verifyStoredCharacterOriginal(path: string, expectedSha256: string) {
+  const { base, key } = credentials();
+  const response = await fetch(`${base}/storage/v1/object/authenticated/${BUCKET}/${path}`, {
+    headers: serviceHeaders(key), cache: 'no-store',
+    signal: AbortSignal.timeout(20_000)
+  });
+  if (!response.ok) throw new Error(`Private media readback failed: HTTP ${response.status}`);
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const actual = createHash('sha256').update(bytes).digest('hex');
+  if (actual !== expectedSha256) throw new Error('Private media readback SHA-256 mismatch');
+  return { sha256: actual, byteLength: bytes.length };
 }
