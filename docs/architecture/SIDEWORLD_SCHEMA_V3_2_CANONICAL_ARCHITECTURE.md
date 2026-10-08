@@ -36,7 +36,7 @@ Consequences:
 - A narrative label is not a World merely because it appears in a Franchise/Series.
 - THE UNCHARTED candidates such as The Lost Meridian become Worlds only after explicit approval that they satisfy the spatial definition.
 
-`shared.worlds` contains existing OUTLAND operational/investment configuration and has established dependencies across LAND, assets, Bases and legacy Passport V0. It must not be renamed, repurposed or promoted into the canonical SIDEWORLD narrative World registry.
+`shared.worlds` contains existing OUTLAND operational/investment configuration and has established dependencies across LAND, assets, Bases and legacy Passport V0. It must not be renamed, repurposed or promoted into the canonical SIDEWORLD World registry.
 
 SIDEWORLD canonical Worlds live in `universe.worlds`.
 
