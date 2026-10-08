@@ -1,5 +1,6 @@
 import { resolveStudioUniverse } from '@/lib/studio/universes';
 import { UniverseSelector } from './universe-selector';
+import { LogoutButton } from './logout-button';
 import Link from 'next/link';
 
 const spaces = [
@@ -26,6 +27,7 @@ export default async function Studio({ searchParams }: { searchParams: Promise<{
           <Link href="/studio/city">City Knowledge</Link>
           {spaces.filter(([name]) => name !== 'Canon').map(([name]) => <span key={name}>{name}</span>)}
         </nav>
+        <LogoutButton />
         <p className="phase">PRIVATE AUTHORING<br/>SERVER-ONLY WRITES</p>
       </aside>
 
