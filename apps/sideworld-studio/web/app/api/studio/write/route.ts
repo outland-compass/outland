@@ -329,19 +329,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'input is required' }, { status: 400 });
   }
 
-  // Multi-universe rollout safety gate: until entity ownership checks are implemented,
-  // refuse all Studio mutations rather than trusting client-provided foreign keys.
-  // Do not remove this gate without tests for cross-universe writes and updates.
-  return NextResponse.json({ error: 'Studio writes temporarily disabled pending universe ownership validation' }, { status: 503 });
+  // The guarded RPC validates ownership and performs the mutation atomically.
+  // Keep disabled until migrations, staging integration tests, and env setup pass.
+  if (process.env.SIDEWORLD_STUDIO_GUARDED_WRITES !== 'enabled') {
+    return NextResponse.json({ error: 'Studio writes temporarily disabled pending universe ownership validation' }, { status: 503 });
+  }
 
-  /*
+  const selectedUniverse = text(request.nextUrl.searchParams.get('universe'), 120);
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(selectedUniverse)) {
+    return NextResponse.json({ error: 'A valid selected universe is required' }, { status: 400 });
+  }
+
+  const rootEntities = ['world', 'theme', 'franchise'];
+  const canonEntities = ['series', 'character', 'faction', 'lore', 'rule'];
+  if (!rootEntities.includes(entity) && !canonEntities.includes(entity)) {
+    // Geo records are shared, and universe creation is a separate admin workflow.
+    return NextResponse.json({ error: 'Entity is not supported by guarded writes' }, { status: 403 });
+  }
+
   try {
     const rpc = buildRpc(entity, body.input as Record<string, unknown>);
-    const id = await callStudioRpc<string>(rpc.name, rpc.body);
+    const guardedName = rootEntities.includes(entity)
+      ? 'sideworld_studio_guarded_save_root'
+      : 'sideworld_studio_guarded_save_canon';
+    const id = await callStudioRpc<string>(guardedName, {
+      p_universe_slug: selectedUniverse,
+      p_entity: entity,
+      p_input: rpc.body
+    });
     return NextResponse.json({ id });
   } catch (error) {
-    console.error('Studio write failed', error);
+    console.error('Guarded Studio write failed', error);
     return NextResponse.json({ error: 'Authoring failed. Check server logs.' }, { status: 400 });
   }
-  */
 }
