@@ -48,39 +48,27 @@ export async function deleteUnregisteredCharacterOriginal(path: string) {
 /** Verify canonical character → franchise → universe scope without trusting a client-supplied franchise. */
 export async function lookupCharacterForMedia(characterId: string, universeSlug: string) {
   const { base, key } = credentials();
-  async function single(schema: string, table: string, select: string, filter: string) {
-    const url = new URL(`${base}/rest/v1/${table}`);
-    url.searchParams.set('select', select);
-    url.searchParams.set('id', `eq.${filter}`);
-    const response = await fetch(url, {
-      headers: { ...serviceHeaders(key), 'Accept-Profile': schema },
-      cache: 'no-store', signal: AbortSignal.timeout(10_000)
-    });
-    if (!response.ok) throw new Error(`Canonical scope lookup failed: HTTP ${response.status}`);
-    const rows: unknown = await response.json();
-    return Array.isArray(rows) && rows.length === 1 ? rows[0] as Record<string, unknown> : null;
-  }
-  const character = await single('canon', 'characters', 'id,franchise_id', characterId);
-  if (typeof character?.franchise_id !== 'string') return false;
-  const franchise = await single('canon', 'franchises', 'id,universe_id', character.franchise_id);
-  if (typeof franchise?.universe_id !== 'string') return false;
-  const universe = await single('universe', 'universes', 'id,slug', franchise.universe_id);
-  return universe?.slug === universeSlug;
+  const response = await fetch(`${base}/rest/v1/rpc/sideworld_character_media_character_in_scope`, {
+    method: 'POST',
+    headers: { ...serviceHeaders(key), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_character_id: characterId, p_universe_slug: universeSlug }),
+    cache: 'no-store', signal: AbortSignal.timeout(10_000)
+  });
+  if (!response.ok) throw new Error(`Character scope RPC failed: HTTP ${response.status}`);
+  return await response.json() === true;
 }
 
 export async function registerCharacterOriginal(input: {
   characterId: string; visualVersion: number; path: string; sha256: string; sourceDocument: string;
 }) {
   const { base, key } = credentials();
-  const response = await fetch(`${base}/rest/v1/character_visual_assets`, {
+  const response = await fetch(`${base}/rest/v1/rpc/sideworld_character_media_register`, {
     method: 'POST',
-    headers: { ...serviceHeaders(key), 'Content-Profile': 'canon', 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    headers: { ...serviceHeaders(key), 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      character_id: input.characterId, visual_version: input.visualVersion,
-      asset_role: 'canonical_portrait', storage_bucket: BUCKET,
-      storage_path: input.path, source_sha256: input.sha256,
-      source_document: input.sourceDocument,
-      approval_status: 'draft', rights_note: 'Source-provided artwork; rights require editorial verification'
+      p_character_id: input.characterId, p_universe_slug: 'the-uncharted',
+      p_visual_version: input.visualVersion, p_storage_path: input.path,
+      p_source_sha256: input.sha256, p_source_document: input.sourceDocument
     }),
     cache: 'no-store', signal: AbortSignal.timeout(10_000)
   });
