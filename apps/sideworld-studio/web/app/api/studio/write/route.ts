@@ -329,6 +329,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'input is required' }, { status: 400 });
   }
 
+  // Multi-universe rollout safety gate: until entity ownership checks are implemented,
+  // refuse all Studio mutations rather than trusting client-provided foreign keys.
+  // Do not remove this gate without tests for cross-universe writes and updates.
+  return NextResponse.json({ error: 'Studio writes temporarily disabled pending universe ownership validation' }, { status: 503 });
+
+  /*
   try {
     const rpc = buildRpc(entity, body.input as Record<string, unknown>);
     const id = await callStudioRpc<string>(rpc.name, rpc.body);
@@ -337,4 +343,5 @@ export async function POST(request: NextRequest) {
     console.error('Studio write failed', error);
     return NextResponse.json({ error: 'Authoring failed. Check server logs.' }, { status: 400 });
   }
+  */
 }
