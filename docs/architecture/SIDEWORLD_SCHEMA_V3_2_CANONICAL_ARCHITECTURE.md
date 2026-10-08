@@ -2,7 +2,8 @@
 
 **Status:** Founder-approved architecture direction  
 **Date:** 2026-10-06  
-**Scope:** SIDEWORLD canonical data ownership inside the shared Supabase project
+**Scope:** SIDEWORLD canonical data ownership inside the shared Supabase project  
+**Product/canon source of truth:** `SIDEWORLD_CANONICAL_UNIVERSE_FRANCHISE_ARCHITECTURE_V3_1.md`
 
 ## Canonical boundary
 
@@ -18,6 +19,22 @@ shared.worlds
 ```
 
 These concepts are intentionally distinct.
+
+## Canonical product meaning of World
+
+The product definition of `World` is now final and is controlled by SIDEWORLD Architecture V3.1:
+
+> A World is a spatially defined SIDEWORLD territory / experience zone that groups multiple playable and physical elements within the same real-world space or coherent geographic area.
+
+A World can support multiple Quests, Locations/Stops, Activities, Discoveries, partner Businesses and Base/accommodation capacity. **GREENHILL is the reference example.**
+
+Consequences:
+
+- Universe → World is 1:N: one canonical World belongs to one canonical Universe.
+- World ↔ City is N:M.
+- World is not a synonym for Theme, Series or Franchise.
+- A narrative label is not a World merely because it appears in a Franchise/Series.
+- THE UNCHARTED candidates such as The Lost Meridian become Worlds only after explicit approval that they satisfy the spatial definition.
 
 `shared.worlds` contains existing OUTLAND operational/investment configuration and has established dependencies across LAND, assets, Bases and legacy Passport V0. It must not be renamed, repurposed or promoted into the canonical SIDEWORLD narrative World registry.
 
@@ -131,7 +148,7 @@ Authoring schemas remain private by default.
 
 Do not expose raw `universe`, `geo`, or `canon` tables to consumer Data API roles during the foundation migration. They are not added to the Compass Data API schemas (`supabase/config.toml` `api.schemas`). RLS is enabled and all privileges are revoked from `anon`, `authenticated` and `service_role`.
 
-Studio/API access is a separate reviewed step.
+Studio/API access is implemented through separately reviewed server-only RPC boundaries. Raw authoring schemas remain outside the Data API exposure list; direct browser access to the private schemas is still prohibited.
 
 Consumer runtime will eventually receive curated published contracts rather than unrestricted authoring-table access.
 
