@@ -15,20 +15,21 @@ export const dynamic = 'force-dynamic';
 export default async function Studio({ searchParams }: { searchParams: Promise<{ universe?: string }> }) {
   const params = await searchParams;
   const { universes, selected } = await resolveStudioUniverse(params.universe);
+  const scoped = (path: string) => selected ? `${path}?universe=${encodeURIComponent(selected.slug)}` : path;
   return (
     <main className="shell">
       <aside>
         <p className="brand small">SIDE<span>WORLD</span></p>
         <p className="eyebrow">Studio V0-E / Context Builder</p>
         <nav>
-          <Link href="/studio/canon">Canon Editor</Link>
-          <Link href="/studio/inspector">Canon Inspector</Link>
-          <Link href="/studio/context">Canon Context</Link>
-          <Link href="/studio/city">City Knowledge</Link>
+          <Link href={scoped('/studio/canon')}>Canon Editor</Link>
+          <Link href={scoped('/studio/inspector')}>Canon Inspector</Link>
+          <Link href={scoped('/studio/context')}>Canon Context</Link>
+          <Link href={scoped('/studio/city')}>City Knowledge</Link>
           {spaces.filter(([name]) => name !== 'Canon').map(([name]) => <span key={name}>{name}</span>)}
         </nav>
         <LogoutButton />
-        <p className="phase">PRIVATE AUTHORING<br/>SERVER-ONLY WRITES</p>
+        <p className="phase">PRIVATE AUTHORING<br/>WRITES PAUSED — OWNERSHIP VALIDATION PENDING</p>
       </aside>
 
       <section className="work">
@@ -44,16 +45,16 @@ export default async function Studio({ searchParams }: { searchParams: Promise<{
           <p className="eyebrow">FOLLOW THE SIGNAL.</p>
           <h2>Structure canon first. Then let AI build from approved context.</h2>
           <p className="muted">
-            The canonical authoring foundation is now ready to compile deterministic AI context from approved records.
+            Review canonical data and compile deterministic AI context. Writes remain disabled pending ownership validation.
           </p>
-          <Link className="button" href="/studio/canon">Open Canon Editor</Link>
+          <Link className="button" href={scoped('/studio/canon')}>Open Canon Editor</Link>
         </article>
 
         <section className="grid">
           <article>
             <em>Available now</em>
             <h3>Foundation Editor</h3>
-            <p>Bootstrap Universe → World/Theme → Canon → City through validated server-only writes.</p>
+            <p>Universe, World, Theme and Canon editing is temporarily read-only until cross-universe ownership checks pass.</p>
           </article>
           <article>
             <em>Available now</em>
