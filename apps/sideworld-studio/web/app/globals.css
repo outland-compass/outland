@@ -62,3 +62,14 @@
  .grid{grid-template-columns:1fr}
 }
 .studioHamburger:focus-visible,.studioMobileBackdrop:focus-visible{outline:2px solid #9ec0ff;outline-offset:2px}
+
+/* Guarded draft authoring on touch screens */
+.guardedEditor{margin:24px 0;max-width:860px}
+.guardedEditor label{display:grid;gap:7px;font-weight:650;color:#dbe7ff}
+.guardedEditor .button{justify-self:start;min-height:46px}
+.guardedEditor .button:disabled{opacity:.55;cursor:not-allowed}
+.guardedEditor .muted{margin:0;font-size:.9rem}
+.formSuccess,.formError{padding:12px 14px;border-radius:10px;overflow-wrap:anywhere;line-height:1.5}
+.formSuccess{border:1px solid #315fae;background:#142a4b;color:#c7ddff}
+.formError{border:1px solid #b45353;background:#381b26;color:#ffd5d5}
+@media(max-width:700px){.guardedEditor{padding:18px 14px}.guardedEditor .button{width:100%;justify-self:stretch;text-align:center}}
