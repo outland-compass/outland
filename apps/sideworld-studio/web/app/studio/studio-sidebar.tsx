@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 const sections = [
-  { label: 'Authoring', links: [{ label: 'Canon Editor', path: '/studio/canon' }, { label: 'City Knowledge', path: '/studio/city' }] },
+  { label: 'Authoring', links: [{ label: 'Quest Production', path: '/studio/production' }, { label: 'Canon Editor', path: '/studio/canon' }, { label: 'City Knowledge', path: '/studio/city' }] },
   { label: 'Explore', links: [{ label: 'Canon Inspector', path: '/studio/inspector' }, { label: 'Canon Context', path: '/studio/context' }] }
 ];
 
