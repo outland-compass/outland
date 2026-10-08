@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { STUDIO_SESSION_COOKIE, verifyStudioSession } from '@/lib/session';
+import { authorize } from '@/lib/studio/auth';
 import { callStudioRpc } from '@/lib/studio/rpc';
 
 export const runtime = 'nodejs';
@@ -300,12 +300,11 @@ function buildRpc(entity: Entity, input: Record<string, unknown>) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    if (!verifyStudioSession(request.cookies.get(STUDIO_SESSION_COOKIE)?.value)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  } catch {
-    return NextResponse.json({ error: 'Studio session unavailable' }, { status: 503 });
+  if (request.headers.get('origin') !== request.nextUrl.origin) {
+    return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
+  }
+  if (!await authorize(request, NextResponse.next())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const contentLength = Number(request.headers.get('content-length') ?? '0');
@@ -335,7 +334,7 @@ export async function POST(request: NextRequest) {
     const id = await callStudioRpc<string>(rpc.name, rpc.body);
     return NextResponse.json({ id });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Authoring failed';
-    return NextResponse.json({ error: message }, { status: 400 });
+    console.error('Studio write failed', error);
+    return NextResponse.json({ error: 'Authoring failed. Check server logs.' }, { status: 400 });
   }
 }
