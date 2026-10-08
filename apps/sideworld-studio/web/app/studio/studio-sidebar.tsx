@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 const sections = [
   { label: 'Authoring', links: [{ label: 'Canon Editor', path: '/studio/canon' }, { label: 'City Knowledge', path: '/studio/city' }] },
@@ -11,6 +11,7 @@ const sections = [
 
 export function StudioSidebar({ universeSlug }: { universeSlug?: string }) {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const currentUniverse = universeSlug ?? searchParams.get('universe') ?? undefined;
   const [collapsed, setCollapsed] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ Authoring: true, Explore: true });
@@ -23,12 +24,12 @@ export function StudioSidebar({ universeSlug }: { universeSlug?: string }) {
     </div>
     {!collapsed && <p className="eyebrow">Studio navigation</p>}
     <nav aria-label="Studio navigation">
-      <Link className="sidebarHome" href={scoped('/studio')} title="Dashboard">{collapsed ? '⌂' : 'Dashboard'}</Link>
+      <Link className="sidebarHome" href={scoped('/studio')} aria-current={pathname === '/studio' ? 'page' : undefined} title="Dashboard">{collapsed ? '⌂' : 'Dashboard'}</Link>
       {sections.map(section => <div className="sidebarSection" key={section.label}>
         <button type="button" className="sidebarSectionToggle" title={section.label} aria-expanded={!!expanded[section.label] && !collapsed} onClick={() => { if (collapsed) { setCollapsed(false); setExpanded(current => ({ ...current, [section.label]: true })); } else { setExpanded(current => ({ ...current, [section.label]: !current[section.label] })); } }}>
           <span>{collapsed ? section.label.charAt(0) : section.label}</span><span aria-hidden="true">{collapsed ? '›' : expanded[section.label] ? '⌄' : '›'}</span>
         </button>
-        {!collapsed && expanded[section.label] && <div className="sidebarLinks">{section.links.map(link => <Link key={link.path} href={scoped(link.path)}>{link.label}</Link>)}</div>}
+        {!collapsed && expanded[section.label] && <div className="sidebarLinks">{section.links.map(link => <Link key={link.path} href={scoped(link.path)} aria-current={pathname === link.path ? 'page' : undefined}>{link.label}</Link>)}</div>}
       </div>)}
     </nav>
   </aside>;
