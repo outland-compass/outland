@@ -766,14 +766,21 @@ Then proceed to **Canon Context Builder V0**.
 - published quests will later be immutable.
 - authoring schemas remain private.
 
-### Proposed by this blueprint
+### Implemented Studio V0 direction
 
 - separate `apps/sideworld-studio/web` application;
-- Next.js server-side authoring boundary;
-- service-role-only private-schema access through a future additive migration;
-- Studio V0 scope and screens;
+- Next.js server-side read/write boundary;
+- founder-only private access/session gate for V0;
+- service-role-only allowlisted RPC access without direct private-schema USAGE;
 - Canon Inspector as the key V0 read surface;
-- no new domain tables before a demonstrated need.
+- no new domain tables merely for the editor UI.
+
+### Still proposed / next
+
+- complete V0-D3 read-model coverage;
+- first canonical dataset in staging;
+- deterministic Canon Context Builder;
+- stronger multi-editor identity/auth only when operationally needed.
 
 ### Explicitly not authorized
 
