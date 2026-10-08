@@ -14,6 +14,11 @@ export default function CharacterSourcePreviewPage() {
           <strong>{character.name}</strong><span>{character.role}</span><span>{character.visual}</span><span className="status">{character.visualStatus.replaceAll('_', ' ')}</span>
         </div>)}
       </article>
+      <article className="panel"><h2>Approved editorial selection: Amon Dimano</h2>
+        <p>Canonical portrait V{preview.editorialDecisions.amonDimano.visualVersion}: <strong>{preview.editorialDecisions.amonDimano.canonicalSourceFile}</strong></p>
+        <p className="muted">SHA-256: <code>{preview.editorialDecisions.amonDimano.canonicalSha256}</code></p>
+        <p className="muted">Alternative {preview.editorialDecisions.amonDimano.archivedAlternativeFile} is archived. The approved original has not yet been uploaded to media storage.</p>
+      </article>
       <article className="panel"><h2>Import blockers</h2>
         {preview.warnings.map(warning => <p key={warning} className="muted">{warning}</p>)}
         <p className="muted">Existing franchise/character IDs, images, permissions and approvals must be reconciled before import. Published quests will pin immutable visual versions.</p>
