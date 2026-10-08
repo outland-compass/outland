@@ -3,6 +3,7 @@ import { resolveStudioUniverse } from '@/lib/studio/universes';
 import { getStudioReadModel } from '@/lib/studio/read-model';
 import { getCityKnowledge } from '@/lib/studio/city-knowledge';
 import { buildCanonContextV0 } from '@/lib/studio/context-builder';
+import { buildProductionInputManifestV1 } from '@/lib/studio/production-manifest';
 import { UniverseSelector } from '../universe-selector';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,7 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
   const city = model.cities.find(item => item.slug === params.city) ?? model.cities[0];
   const knowledge = city ? await getCityKnowledge(city.id) : null;
   const context = franchise ? buildCanonContextV0(model, { franchiseSlug: franchise.slug, citySlugs: city ? [city.slug] : [] }) : null;
+  const manifest = context && knowledge ? buildProductionInputManifestV1(context, knowledge) : null;
   const checks = [
     { label: 'Universe selected', pass: !!selected },
     { label: 'Active franchise', pass: !!franchise },
@@ -55,6 +57,12 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
         <p className="muted">Passing these checks does not certify pedestrian safety, factual accuracy or publication quality. Field QA remains mandatory.</p>
       </article>
     </section>
+    <section className="inspector-stack"><article className="panel"><h2>Production Input Manifest V1</h2>
+      <p className="muted">Verified public locations and source-backed facts only. A manifest is not an AI-generated quest or a publishing approval.</p>
+      <p className="status">{manifest?.readyForGeneration ? 'INPUTS VALIDATED' : 'BLOCKED'}</p>
+      {manifest?.diagnostics.map(issue => <div className="row" key={issue.code}><strong>{issue.code}</strong><span>{issue.message}</span></div>)}
+      {manifest && <details><summary>Inspect manifest JSON</summary><pre className="contextPayload">{JSON.stringify(manifest, null, 2)}</pre></details>}
+    </article></section>
     <Link className="button secondaryButton" href={scoped('/studio/context')}>Review Canon Context</Link>
   </main>;
 }
