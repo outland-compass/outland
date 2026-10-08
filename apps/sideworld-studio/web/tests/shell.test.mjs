@@ -26,9 +26,10 @@ test('Studio RPC client keeps the service key server-only', async () => {
   assert.doesNotMatch(source, /NEXT_PUBLIC_/);
 });
 
-test('fixture is still the default read source', async () => {
+test('Studio runtime reads from Supabase only', async () => {
   const source = await readFile(new URL('../lib/studio/read-model.ts', import.meta.url), 'utf8');
-  assert.match(source, /process\.env\.STUDIO_DATA_SOURCE \?\? 'fixture'/);
+  assert.match(source, /return readFromSupabase\(\)/);
+  assert.doesNotMatch(source, /STUDIO_DATA_SOURCE|from '.\/fixture'/);
 });
 
 test('fixture preserves the initial narrative structure', async () => {
