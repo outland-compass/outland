@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const sections = [
   { label: 'Authoring', links: [{ label: 'Canon Editor', path: '/studio/canon' }, { label: 'City Knowledge', path: '/studio/city' }] },
@@ -9,9 +10,11 @@ const sections = [
 ];
 
 export function StudioSidebar({ universeSlug }: { universeSlug?: string }) {
+  const searchParams = useSearchParams();
+  const currentUniverse = universeSlug ?? searchParams.get('universe') ?? undefined;
   const [collapsed, setCollapsed] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ Authoring: true, Explore: true });
-  const scoped = (path: string) => universeSlug ? path + '?universe=' + encodeURIComponent(universeSlug) : path;
+  const scoped = (path: string) => currentUniverse ? path + '?universe=' + encodeURIComponent(currentUniverse) : path;
 
   return <aside className={collapsed ? 'studioSidebar collapsed' : 'studioSidebar'}>
     <div className="sidebarTop">
