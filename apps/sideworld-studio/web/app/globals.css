@@ -73,3 +73,7 @@
 .formSuccess{border:1px solid #315fae;background:#142a4b;color:#c7ddff}
 .formError{border:1px solid #b45353;background:#381b26;color:#ffd5d5}
 @media(max-width:700px){.guardedEditor{padding:18px 14px}.guardedEditor .button{width:100%;justify-self:stretch;text-align:center}}
+
+/* Sign-out remains accessible inside the mobile drawer */
+.studioMobileFooter{display:none}
+@media(max-width:850px){.studioMobileFooter{display:block;margin-top:auto;padding:18px 10px 8px;border-top:1px solid var(--line)}.studioMobileFooter button{min-height:44px;width:100%;text-align:center}.studioMobileFooter .phase{margin:12px 0 0}}
