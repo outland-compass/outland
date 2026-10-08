@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LogoutButton } from './logout-button';
 
 const spaces = [
   ['Universes', 'Canonical universe identity'],
@@ -21,6 +22,7 @@ export default function Studio() {
           <Link href="/studio/city">City Knowledge</Link>
           {spaces.filter(([name]) => name !== 'Canon').map(([name]) => <span key={name}>{name}</span>)}
         </nav>
+        <LogoutButton />
         <p className="phase">PRIVATE AUTHORING<br/>SERVER-ONLY WRITES</p>
       </aside>
 
