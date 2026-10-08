@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import { getStudioReadModel } from '@/lib/studio/read-model';
 
+export const dynamic = 'force-dynamic';
+
 function badge(value: string) {
   return <span className="status">{value.replaceAll('_', ' ')}</span>;
 }
@@ -20,7 +22,7 @@ export default async function CanonInspectorPage() {
       </header>
 
       <p className="muted">
-        Shows the configured Studio read source. Fixture mode is non-production; Supabase mode reads through the private server boundary.
+        Shows canonical Studio data from Supabase through the private server boundary.
       </p>
 
       <section className="inspector-stack">
