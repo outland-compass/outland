@@ -59,3 +59,44 @@ revoke all on function public.sideworld_character_media_gallery(text,text) from 
 revoke all on function public.sideworld_character_media_approve(text,text,uuid,uuid,text,text,uuid) from public, anon, authenticated;
 grant execute on function public.sideworld_character_media_gallery(text,text) to service_role;
 grant execute on function public.sideworld_character_media_approve(text,text,uuid,uuid,text,text,uuid) to service_role;
+
+-- Registration and character scope checks use the same private-schema boundary.
+create or replace function public.sideworld_character_media_character_in_scope(
+  p_character_id uuid, p_universe_slug text
+) returns boolean language sql stable security definer set search_path = pg_catalog, public
+as $$
+  select exists (
+    select 1 from canon.characters c
+    join canon.franchises f on f.id = c.franchise_id
+    join universe.universes u on u.id = f.universe_id
+    where c.id = p_character_id and u.slug = p_universe_slug
+  );
+$$;
+
+create or replace function public.sideworld_character_media_register(
+  p_character_id uuid, p_universe_slug text, p_visual_version integer,
+  p_storage_path text, p_source_sha256 text, p_source_document text
+) returns uuid language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare v_id uuid;
+begin
+  if p_universe_slug <> 'the-uncharted' or
+     not public.sideworld_character_media_character_in_scope(p_character_id,p_universe_slug) then
+    raise exception 'Character out of scope' using errcode = '22023';
+  end if;
+  insert into canon.character_visual_assets(
+    character_id, visual_version, asset_role, storage_bucket, storage_path,
+    source_sha256, source_document, approval_status, rights_note
+  ) values (
+    p_character_id, p_visual_version, 'canonical_portrait', 'sideworld-character-media',
+    p_storage_path, p_source_sha256, p_source_document, 'draft',
+    'Source-provided artwork; rights require editorial verification'
+  ) returning id into v_id;
+  return v_id;
+end;
+$$;
+
+revoke all on function public.sideworld_character_media_character_in_scope(uuid,text) from public, anon, authenticated;
+revoke all on function public.sideworld_character_media_register(uuid,text,integer,text,text,text) from public, anon, authenticated;
+grant execute on function public.sideworld_character_media_character_in_scope(uuid,text) to service_role;
+grant execute on function public.sideworld_character_media_register(uuid,text,integer,text,text,text) to service_role;
