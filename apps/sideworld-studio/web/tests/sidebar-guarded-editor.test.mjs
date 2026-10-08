@@ -40,3 +40,11 @@ test('guarded writes remain disabled unless explicitly enabled', () => {
   assert.match(source, /SIDEWORLD_STUDIO_GUARDED_WRITES === 'enabled'/);
   assert.match(source, /enabled && selected/);
 });
+
+test('sidebar remembers its collapsed state with safe storage fallback', () => {
+  const source = read('../app/studio/studio-sidebar.tsx');
+  assert.match(source, /sideworld\.studio\.sidebar\.collapsed/);
+  assert.match(source, /window\.localStorage\.getItem/);
+  assert.match(source, /window\.localStorage\.setItem/);
+  assert.match(source, /catch \{/);
+});
