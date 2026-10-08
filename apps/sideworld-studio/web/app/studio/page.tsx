@@ -33,7 +33,7 @@ export default async function Studio({ searchParams }: { searchParams: Promise<{
           <p className="eyebrow">FOLLOW THE SIGNAL.</p>
           <h2>Structure canon first. Then let AI build from approved context.</h2>
           <p className="muted">
-            Review canonical data and compile deterministic AI context. Writes remain disabled pending ownership validation.
+            Review canonical data and compile deterministic AI context. Draft writes are available only when explicitly enabled for the staging preview.
           </p>
           <Link className="button" href={scoped('/studio/canon')}>Open Canon Editor</Link>
         </article>
@@ -42,7 +42,7 @@ export default async function Studio({ searchParams }: { searchParams: Promise<{
           <article>
             <em>Available now</em>
             <h3>Foundation Editor</h3>
-            <p>Universe, World, Theme and Canon editing is temporarily read-only until cross-universe ownership checks pass.</p>
+            <p>Review canonical universe, world, theme and canon data. Guarded draft creation is feature-flagged and disabled by default.</p>
           </article>
           <article>
             <em>Available now</em>
