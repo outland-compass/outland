@@ -5,7 +5,7 @@ import { callStudioRpc } from '@/lib/studio/rpc';
 
 export const runtime = 'nodejs';
 
-type Entity = 'universe' | 'franchise' | 'series' | 'lore' | 'rule' | 'world' | 'theme' | 'character' | 'faction' | 'country' | 'city' | 'worldCity';
+type Entity = 'universe' | 'franchise' | 'series' | 'lore' | 'rule' | 'world' | 'theme' | 'character' | 'faction' | 'country' | 'city' | 'worldCity' | 'location' | 'locationFact' | 'source' | 'factSource';
 
 function text(value: unknown, max = 4000) {
   if (typeof value !== 'string') return '';
@@ -43,6 +43,27 @@ function decimalOrNull(value: unknown, field: string, min: number, max: number) 
     throw new Error(`${field} must be between ${min} and ${max}`);
   }
   return n;
+}
+
+function requiredDecimal(value: unknown, field: string, min: number, max: number) {
+  const n = decimalOrNull(value, field, min, max);
+  if (n == null) throw new Error(`${field} is required`);
+  return n;
+}
+
+function booleanOrNull(value: unknown) {
+  if (value === '' || value == null) return null;
+  if (value === true || value === 'true' || value === 'on') return true;
+  if (value === false || value === 'false' || value === 'off') return false;
+  throw new Error('boolean value is invalid');
+}
+
+function timestampOrNull(value: unknown, field: string) {
+  const v = text(value, 64);
+  if (!v) return null;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) throw new Error(`${field} must be a valid timestamp`);
+  return d.toISOString();
 }
 
 function oneOf(value: unknown, field: string, allowed: readonly string[], fallback: string) {
@@ -208,6 +229,59 @@ function buildRpc(entity: Entity, input: Record<string, unknown>) {
           p_relationship_type: oneOf(input.relationshipType, 'relationshipType', ['primary','story','operational','expansion'], 'story')
         }
       };
+    case 'location':
+      return {
+        name: 'sideworld_studio_save_location',
+        body: {
+          p_id: optionalId(input.id),
+          p_city_id: requiredUuid(input.cityId, 'cityId'),
+          p_slug: slug(input.slug),
+          p_name: requiredText(input.name, 'name', 160),
+          p_location_type: requiredText(input.locationType, 'locationType', 80),
+          p_latitude: requiredDecimal(input.latitude, 'latitude', -90, 90),
+          p_longitude: requiredDecimal(input.longitude, 'longitude', -180, 180),
+          p_address_text: text(input.addressText, 500),
+          p_public_access: booleanOrNull(input.publicAccess),
+          p_verification_status: oneOf(input.verificationStatus, 'verificationStatus', ['unverified','partially_verified','verified','disputed'], 'unverified')
+        }
+      };
+    case 'locationFact':
+      return {
+        name: 'sideworld_studio_save_location_fact',
+        body: {
+          p_id: optionalId(input.id),
+          p_city_id: requiredUuid(input.cityId, 'cityId'),
+          p_location_id: nullableUuid(input.locationId),
+          p_fact_key: requiredText(input.factKey, 'factKey', 160),
+          p_statement: requiredText(input.statement, 'statement'),
+          p_fact_type: requiredText(input.factType, 'factType', 80),
+          p_verification_status: oneOf(input.verificationStatus, 'verificationStatus', ['unverified','partially_verified','verified','disputed'], 'unverified'),
+          p_confidence: decimalOrNull(input.confidence, 'confidence', 0, 1)
+        }
+      };
+    case 'source':
+      return {
+        name: 'sideworld_studio_save_source',
+        body: {
+          p_id: optionalId(input.id),
+          p_url: text(input.url, 2000),
+          p_publisher: text(input.publisher, 300),
+          p_title: requiredText(input.title, 'title', 500),
+          p_source_type: requiredText(input.sourceType, 'sourceType', 80),
+          p_published_at: timestampOrNull(input.publishedAt, 'publishedAt'),
+          p_trust_tier: text(input.trustTier, 80)
+        }
+      };
+    case 'factSource':
+      return {
+        name: 'sideworld_studio_save_fact_source',
+        body: {
+          p_fact_id: requiredUuid(input.factId, 'factId'),
+          p_source_id: requiredUuid(input.sourceId, 'sourceId'),
+          p_support_type: oneOf(input.supportType, 'supportType', ['supports','contradicts','context'], 'supports'),
+          p_note: text(input.note, 1000)
+        }
+      };
     case 'rule':
       return {
         name: 'sideworld_studio_save_canon_rule',
@@ -248,7 +322,7 @@ export async function POST(request: NextRequest) {
   }
 
   const entity = text(body.entity, 32) as Entity;
-  if (!['universe','franchise','series','lore','rule','world','theme','character','faction','country','city','worldCity'].includes(entity)) {
+  if (!['universe','franchise','series','lore','rule','world','theme','character','faction','country','city','worldCity','location','locationFact','source','factSource'].includes(entity)) {
     return NextResponse.json({ error: 'Unsupported entity' }, { status: 400 });
   }
 
