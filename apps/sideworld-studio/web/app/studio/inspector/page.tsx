@@ -32,6 +32,28 @@ export default async function CanonInspectorPage() {
         </article>
 
         <article className="panel">
+          <p className="eyebrow">Worlds</p>
+          {model.worlds.map((item) => (
+            <div className="row" key={item.id}>
+              <strong>{item.name}</strong>
+              <span>{item.summary ?? item.slug}</span>
+              {badge(item.status)}
+            </div>
+          ))}
+        </article>
+
+        <article className="panel">
+          <p className="eyebrow">Themes</p>
+          {model.themes.map((item) => (
+            <div className="row" key={item.id}>
+              <strong>{item.name}</strong>
+              <span>{item.description ?? item.slug}</span>
+              {badge(item.status)}
+            </div>
+          ))}
+        </article>
+
+        <article className="panel">
           <p className="eyebrow">Franchises</p>
           {model.franchises.map((item) => (
             <div className="row" key={item.id}>
@@ -71,6 +93,17 @@ export default async function CanonInspectorPage() {
               <strong>{item.ruleType}</strong>
               <span>{item.ruleText}</span>
               {badge(item.status)}
+            </div>
+          ))}
+        </article>
+
+        <article className="panel">
+          <p className="eyebrow">World ↔ City</p>
+          {model.worldCities.map((item) => (
+            <div className="row" key={`${item.worldId}:${item.cityId}`}>
+              <strong>{item.relationshipType}</strong>
+              <span>{item.worldId} → {item.cityId}</span>
+              {badge('linked')}
             </div>
           ))}
         </article>
