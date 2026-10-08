@@ -1,7 +1,7 @@
 -- SIDEWORLD Studio V0-F City Knowledge verification.
 begin;
 
-set local role service_role;
+-- Privileged fixture setup: direct geo reads are intentionally not available to service_role.
 
 select public.sideworld_studio_save_country('ZZ','Test Country','en');
 
@@ -94,6 +94,9 @@ begin
 end
 $verify$;
 
+-- Exercise the service-role-only RPC without direct private-schema access.
+set local role service_role;
+select public.sideworld_studio_city_knowledge(null);
 reset role;
 
 do $security$
