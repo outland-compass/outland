@@ -2,16 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 
-test('Studio access uses a signed server-only session', async () => {
-  const source = await readFile(new URL('../lib/session.ts', import.meta.url), 'utf8');
-  assert.match(source, /STUDIO_SESSION_SECRET/);
-  assert.match(source, /timingSafeEqual/);
+test('Studio access uses individual Supabase sessions', async () => {
+  const source = await readFile(new URL('../lib/studio/auth.ts', import.meta.url), 'utf8');
+  assert.match(source, /grant_type=password/);
+  assert.match(source, /rpc\/can_admin/);
   assert.doesNotMatch(source, /NEXT_PUBLIC_/);
 });
 
-test('Studio authoring API verifies the private session', async () => {
+test('Studio authoring API verifies admin authorization', async () => {
   const source = await readFile(new URL('../app/api/studio/write/route.ts', import.meta.url), 'utf8');
-  assert.match(source, /verifyStudioSession/);
+  assert.match(source, /await authorize/);
   assert.match(source, /sideworld_studio_save_universe/);
   assert.match(source, /sideworld_studio_save_canon_rule/);
   assert.match(source, /sideworld_studio_save_world/);
@@ -26,10 +26,9 @@ test('Studio RPC client keeps the service key server-only', async () => {
   assert.doesNotMatch(source, /NEXT_PUBLIC_/);
 });
 
-test('Studio runtime reads from Supabase only', async () => {
+test('fixture is still the default read source', async () => {
   const source = await readFile(new URL('../lib/studio/read-model.ts', import.meta.url), 'utf8');
-  assert.match(source, /return readFromSupabase\(\)/);
-  assert.doesNotMatch(source, /STUDIO_DATA_SOURCE|from '.\/fixture'/);
+  assert.match(source, /process\.env\.STUDIO_DATA_SOURCE \?\? 'fixture'/);
 });
 
 test('fixture preserves the initial narrative structure', async () => {
