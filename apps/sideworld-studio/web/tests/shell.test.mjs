@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 test('Studio access uses individual Supabase sessions', async () => {
   const source = await readFile(new URL('../lib/studio/auth.ts', import.meta.url), 'utf8');
   assert.match(source, /grant_type=password/);
-  assert.match(source, /rpc\\/can_admin/);
+  assert.match(source, /rpc\/can_admin/);
   assert.doesNotMatch(source, /NEXT_PUBLIC_/);
 });
 
