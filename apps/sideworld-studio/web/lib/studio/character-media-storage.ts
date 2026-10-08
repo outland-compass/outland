@@ -44,20 +44,27 @@ export async function deleteUnregisteredCharacterOriginal(path: string) {
   if (!response.ok) throw new Error(`Media cleanup failed: HTTP ${response.status}`);
 }
 
-/** Lookup by canonical character ID; reject nonexistent IDs and cross-universe guessing. */
+/** Verify canonical character → franchise → universe scope without trusting a client-supplied franchise. */
 export async function lookupCharacterForMedia(characterId: string, universeSlug: string) {
   const { base, key } = credentials();
-  const url = new URL(`${base}/rest/v1/characters`);
-  url.searchParams.set('select', 'id,franchise_id,franchises!inner(universe_id,universes!inner(slug))');
-  url.searchParams.set('id', `eq.${characterId}`);
-  url.searchParams.set('franchises.universes.slug', `eq.${universeSlug}`);
-  const response = await fetch(url, {
-    headers: { ...serviceHeaders(key), 'Accept-Profile': 'canon' },
-    cache: 'no-store', signal: AbortSignal.timeout(10_000)
-  });
-  if (!response.ok) throw new Error(`Character lookup failed: HTTP ${response.status}`);
-  const rows = await response.json() as unknown[];
-  return Array.isArray(rows) && rows.length === 1;
+  async function single(schema: string, table: string, select: string, filter: string) {
+    const url = new URL(`${base}/rest/v1/${table}`);
+    url.searchParams.set('select', select);
+    url.searchParams.set('id', `eq.${filter}`);
+    const response = await fetch(url, {
+      headers: { ...serviceHeaders(key), 'Accept-Profile': schema },
+      cache: 'no-store', signal: AbortSignal.timeout(10_000)
+    });
+    if (!response.ok) throw new Error(`Canonical scope lookup failed: HTTP ${response.status}`);
+    const rows: unknown = await response.json();
+    return Array.isArray(rows) && rows.length === 1 ? rows[0] as Record<string, unknown> : null;
+  }
+  const character = await single('canon', 'characters', 'id,franchise_id', characterId);
+  if (typeof character?.franchise_id !== 'string') return false;
+  const franchise = await single('canon', 'franchises', 'id,universe_id', character.franchise_id);
+  if (typeof franchise?.universe_id !== 'string') return false;
+  const universe = await single('universe', 'universes', 'id,slug', franchise.universe_id);
+  return universe?.slug === universeSlug;
 }
 
 export async function registerCharacterOriginal(input: {
