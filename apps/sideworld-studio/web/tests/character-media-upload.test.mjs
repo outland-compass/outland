@@ -20,7 +20,8 @@ test('original is hash checked and bounded before storage', () => {
 test('canonical universe scope, draft-only registry, cleanup, private storage', () => {
   assert.match(api, /lookupCharacterForMedia\(characterId, universe\)/);
   assert.match(api, /deleteUnregisteredCharacterOriginal\(stored\.path\)/);
-  assert.match(storage, /approval_status: 'draft'/);
+  assert.match(storage, /sideworld_character_media_register/);
+  assert.match(storage, /sideworld_character_media_character_in_scope/);
   assert.match(storage, /sideworld-character-media/);
   assert.doesNotMatch(storage, /getPublicUrl|createSignedUrl/);
 });
