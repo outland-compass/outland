@@ -50,8 +50,13 @@ test('Canon Context Builder is deterministic and approval-gated', async () => {
   assert.doesNotMatch(source, /Math\.random/);
 });
 
-test('Studio exposes a Canon Context preview', async () => {
+test('Studio exposes an explicit Canon Context selector and preview', async () => {
   const source = await readFile(new URL('../app/studio/context/page.tsx', import.meta.url), 'utf8');
   assert.match(source, /Approved context only by default/);
   assert.match(source, /buildCanonContextV0/);
+  assert.match(source, /name="series"/);
+  assert.match(source, /name="world"/);
+  assert.match(source, /name="city"/);
+  assert.match(source, /name="lore"/);
+  assert.match(source, /Compile context/);
 });
