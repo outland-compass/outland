@@ -29,24 +29,25 @@ export function StudioSidebar({ universeSlug }: { universeSlug?: string }) {
       return next;
     });
   }
+  const visuallyCollapsed = collapsed && !mobileOpen;
   const scoped = (path: string) => currentUniverse ? path + '?universe=' + encodeURIComponent(currentUniverse) : path;
 
   return <>
     <div className="studioMobileBar"><Link href={scoped('/studio')} className="brand small">SIDE<span>WORLD</span></Link><button type="button" className="studioHamburger" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileOpen} aria-controls="studio-navigation-drawer" onClick={() => setMobileOpen(value => !value)}>{mobileOpen ? '✕' : '☰'}<span>Menu</span></button></div>
     {mobileOpen && <button type="button" className="studioMobileBackdrop" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
-    <aside id="studio-navigation-drawer" className={(collapsed ? 'studioSidebar collapsed' : 'studioSidebar') + (mobileOpen ? ' mobileOpen' : '')}>
+    <aside id="studio-navigation-drawer" className={(visuallyCollapsed ? 'studioSidebar collapsed' : 'studioSidebar') + (mobileOpen ? ' mobileOpen' : '')}>
     <div className="sidebarTop">
-      {!collapsed && <Link href={scoped('/studio')} className="brand small">SIDE<span>WORLD</span></Link>}
-      <button type="button" className="sidebarToggle" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} onClick={toggleCollapsed}>{collapsed ? '»' : '«'}</button>
+      {!visuallyCollapsed && <Link href={scoped('/studio')} className="brand small">SIDE<span>WORLD</span></Link>}
+      <button type="button" className="sidebarToggle" aria-label={visuallyCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!visuallyCollapsed} onClick={toggleCollapsed}>{visuallyCollapsed ? '»' : '«'}</button>
     </div>
-    {!collapsed && <p className="eyebrow">Studio navigation</p>}
+    {!visuallyCollapsed && <p className="eyebrow">Studio navigation</p>}
     <nav aria-label="Studio navigation">
-      <Link className="sidebarHome" href={scoped('/studio')} aria-current={pathname === '/studio' ? 'page' : undefined} title="Dashboard">{collapsed ? '⌂' : 'Dashboard'}</Link>
+      <Link className="sidebarHome" href={scoped('/studio')} aria-current={pathname === '/studio' ? 'page' : undefined} title="Dashboard">{visuallyCollapsed ? '⌂' : 'Dashboard'}</Link>
       {sections.map(section => <div className="sidebarSection" key={section.label}>
-        <button type="button" className="sidebarSectionToggle" title={section.label} aria-expanded={!!expanded[section.label] && !collapsed} onClick={() => { if (collapsed) { setCollapsed(false); try { window.localStorage.setItem('sideworld.studio.sidebar.collapsed', 'false'); } catch { /* Optional preference. */ } setExpanded(current => ({ ...current, [section.label]: true })); } else { setExpanded(current => ({ ...current, [section.label]: !current[section.label] })); } }}>
-          <span>{collapsed ? section.label.charAt(0) : section.label}</span><span aria-hidden="true">{collapsed ? '›' : expanded[section.label] ? '⌄' : '›'}</span>
+        <button type="button" className="sidebarSectionToggle" title={section.label} aria-expanded={!!expanded[section.label] && !visuallyCollapsed} onClick={() => { if (visuallyCollapsed) { setCollapsed(false); try { window.localStorage.setItem('sideworld.studio.sidebar.collapsed', 'false'); } catch { /* Optional preference. */ } setExpanded(current => ({ ...current, [section.label]: true })); } else { setExpanded(current => ({ ...current, [section.label]: !current[section.label] })); } }}>
+          <span>{visuallyCollapsed ? section.label.charAt(0) : section.label}</span><span aria-hidden="true">{visuallyCollapsed ? '›' : expanded[section.label] ? '⌄' : '›'}</span>
         </button>
-        {!collapsed && expanded[section.label] && <div className="sidebarLinks">{section.links.map(link => <Link key={link.path} href={scoped(link.path)} aria-current={pathname === link.path ? 'page' : undefined}>{link.label}</Link>)}</div>}
+        {!visuallyCollapsed && expanded[section.label] && <div className="sidebarLinks">{section.links.map(link => <Link key={link.path} href={scoped(link.path)} aria-current={pathname === link.path ? 'page' : undefined}>{link.label}</Link>)}</div>}
       </div>)}
     </nav>
   </aside>
