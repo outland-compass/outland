@@ -13,10 +13,11 @@ export default function Studio() {
     <main className="shell">
       <aside>
         <p className="brand small">SIDE<span>WORLD</span></p>
-        <p className="eyebrow">Studio V0-D2</p>
+        <p className="eyebrow">Studio V0-E / Context Builder</p>
         <nav>
           <Link href="/studio/canon">Canon Editor</Link>
           <Link href="/studio/inspector">Canon Inspector</Link>
+          <Link href="/studio/context">Canon Context</Link>
           {spaces.filter(([name]) => name !== 'Canon').map(([name]) => <span key={name}>{name}</span>)}
         </nav>
         <p className="phase">PRIVATE AUTHORING<br/>SERVER-ONLY WRITES</p>
@@ -35,7 +36,7 @@ export default function Studio() {
           <p className="eyebrow">FOLLOW THE SIGNAL.</p>
           <h2>Structure canon first. Then let AI build from approved context.</h2>
           <p className="muted">
-            V0-D2 extends protected authoring across Worlds, Themes, Characters, Factions and real City truth.
+            The canonical authoring foundation is now ready to compile deterministic AI context from approved records.
           </p>
           <Link className="button" href="/studio/canon">Open Canon Editor</Link>
         </article>
@@ -50,6 +51,11 @@ export default function Studio() {
             <em>Available now</em>
             <h3>Canon Inspector</h3>
             <p>Review the selected read model before building Canon Context.</p>
+          </article>
+          <article>
+            <em>Available now</em>
+            <h3>Canon Context Builder</h3>
+            <p>Compile deterministic AI context from active/approved canon with explicit opt-in for proposed material.</p>
           </article>
           {spaces.filter(([name]) => name !== 'Canon').map(([name, description]) => (
             <article key={name}>

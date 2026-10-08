@@ -38,3 +38,20 @@ test('fixture preserves the initial narrative structure', async () => {
   assert.doesNotMatch(source, /id: 'u-beyond-atlas'/);
   assert.match(source, /The Unbroken Line is an overarching mystery, not a series/);
 });
+
+test('Canon Context Builder is deterministic and approval-gated', async () => {
+  const source = await readFile(new URL('../lib/studio/context-builder.ts', import.meta.url), 'utf8');
+  assert.match(source, /contextVersion: 1/);
+  assert.match(source, /item\.status === 'active'/);
+  assert.match(source, /item\.canonStatus === 'approved'/);
+  assert.match(source, /proposedLoreKeys\.has\(item\.factKey\)/);
+  assert.match(source, /seriesSlugs\.has\(item\.slug\)/);
+  assert.doesNotMatch(source, /Date\./);
+  assert.doesNotMatch(source, /Math\.random/);
+});
+
+test('Studio exposes a Canon Context preview', async () => {
+  const source = await readFile(new URL('../app/studio/context/page.tsx', import.meta.url), 'utf8');
+  assert.match(source, /Approved context only by default/);
+  assert.match(source, /buildCanonContextV0/);
+});
