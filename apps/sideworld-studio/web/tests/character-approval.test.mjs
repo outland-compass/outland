@@ -3,7 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 const api = readFileSync(new URL('../app/api/studio/character-approval/route.ts', import.meta.url), 'utf8');
 const ui = readFileSync(new URL('../app/studio/characters/character-gallery.tsx', import.meta.url), 'utf8');
-const sql = readFileSync(new URL('../../../../supabase/migrations/20261008184929_sideworld_character_media_rpc_v1.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('../../../../supabase/migrations/20261008235902_sideworld_character_media_rpc_v1.sql', import.meta.url), 'utf8');
 test('approval is disabled by default, origin-bound and admin-only', () => {
   assert.match(api, /authorize\(request, denied\)/);
   assert.match(api, /SIDEWORLD_CHARACTER_APPROVAL_WRITES/);
