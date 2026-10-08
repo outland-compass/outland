@@ -28,14 +28,24 @@ export default function CharacterMediaReview() {
     try {
       const raw: unknown = JSON.parse(await file.text());
       if (!raw || typeof raw !== 'object' || !('images' in raw) || !Array.isArray(raw.images) ||
+          !('source' in raw) || typeof raw.source !== 'string' ||
           !('sourceSha256' in raw) || typeof raw.sourceSha256 !== 'string' ||
+          !('extractionVersion' in raw) || !Number.isInteger(raw.extractionVersion) ||
           !raw.images.every((image: unknown) => image && typeof image === 'object' &&
-            'file' in image && typeof image.file === 'string' &&
-            'sha256' in image && typeof image.sha256 === 'string' &&
-            'nearbyText' in image && Array.isArray(image.nearbyText))) {
+            'file' in image && typeof image.file === 'string' && /^image[0-9]+\\.(png|jpe?g|webp)$/i.test(image.file) &&
+            'sha256' in image && typeof image.sha256 === 'string' && /^[a-f0-9]{64}$/.test(image.sha256) &&
+            (!('nearbyText' in image) || (Array.isArray(image.nearbyText) && image.nearbyText.every((value: unknown) => typeof value === 'string'))))) {
         throw new Error('Invalid extraction report');
       }
-      setReport(raw as Report);
+      const source = raw as Report;
+      setReport({ ...source, images: source.images.map(image => ({
+        ...image,
+        nearbyText: Array.isArray(image.nearbyText) ? image.nearbyText : [],
+        possibleCharacters: Array.isArray(image.possibleCharacters) ? image.possibleCharacters : [],
+        sourcePart: typeof image.sourcePart === 'string' ? image.sourcePart : '',
+        reviewStatus: typeof image.reviewStatus === 'string' ? image.reviewStatus : 'unreviewed',
+        approved: image.approved === true
+      })) });
       setPreviews({});
       setAssignments({});
       setError('');
@@ -113,7 +123,7 @@ export default function CharacterMediaReview() {
   }
   return <section className="panel">
     <h2>Original illustration review</h2>
-    <p className="muted">Load the extraction-report.json produced from the original Word document. Files stay in this browser; this screen never uploads or approves artwork.</p>
+    <p className="muted">Load the extraction-report.json produced from the original Word document. Review and SHA-256 verification happen in your browser. Explicit admin upload stores a draft in private staging storage; editorial approval remains separate.</p>
     <label>Extraction report (JSON) <input type="file" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0]; if (file) void load(file); }} /></label>
     {error && <p role="alert">{error}</p>}
     {report && <>
