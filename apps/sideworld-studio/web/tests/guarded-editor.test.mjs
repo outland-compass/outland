@@ -10,7 +10,7 @@ test('draft editor only renders behind guarded write feature flag', () => {
   assert.match(page, /enabled && selected \? <GuardedEditor/);
 });
 test('draft editor sends canonical universe identity and selected slug to guarded API', () => {
-  assert.match(editor, /universeId, slug, name, status: 'draft'/);
+  assert.match(editor, /universeId, slug: slug\.trim\(\)\.toLowerCase\(\), name: name\.trim\(\), status: 'draft'/);
   assert.match(editor, /\/api\/studio\/write\?universe=/);
   assert.match(editor, /encodeURIComponent\(universeSlug\)/);
 });
