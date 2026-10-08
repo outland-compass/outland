@@ -14,7 +14,9 @@ export function StudioSidebar({ universeSlug }: { universeSlug?: string }) {
   const pathname = usePathname();
   const currentUniverse = universeSlug ?? searchParams.get('universe') ?? undefined;
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ Authoring: true, Explore: true });
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
   useEffect(() => {
     try {
       setCollapsed(window.localStorage.getItem('sideworld.studio.sidebar.collapsed') === 'true');
@@ -29,7 +31,10 @@ export function StudioSidebar({ universeSlug }: { universeSlug?: string }) {
   }
   const scoped = (path: string) => currentUniverse ? path + '?universe=' + encodeURIComponent(currentUniverse) : path;
 
-  return <aside className={collapsed ? 'studioSidebar collapsed' : 'studioSidebar'}>
+  return <>
+    <div className="studioMobileBar"><Link href={scoped('/studio')} className="brand small">SIDE<span>WORLD</span></Link><button type="button" className="studioHamburger" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileOpen} aria-controls="studio-navigation-drawer" onClick={() => setMobileOpen(value => !value)}>{mobileOpen ? '✕' : '☰'}<span>Menu</span></button></div>
+    {mobileOpen && <button type="button" className="studioMobileBackdrop" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
+    <aside id="studio-navigation-drawer" className={(collapsed ? 'studioSidebar collapsed' : 'studioSidebar') + (mobileOpen ? ' mobileOpen' : '')}>
     <div className="sidebarTop">
       {!collapsed && <Link href={scoped('/studio')} className="brand small">SIDE<span>WORLD</span></Link>}
       <button type="button" className="sidebarToggle" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} onClick={toggleCollapsed}>{collapsed ? '»' : '«'}</button>
@@ -44,5 +49,6 @@ export function StudioSidebar({ universeSlug }: { universeSlug?: string }) {
         {!collapsed && expanded[section.label] && <div className="sidebarLinks">{section.links.map(link => <Link key={link.path} href={scoped(link.path)} aria-current={pathname === link.path ? 'page' : undefined}>{link.label}</Link>)}</div>}
       </div>)}
     </nav>
-  </aside>;
+  </aside>
+  </>;
 }
