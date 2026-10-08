@@ -1,3 +1,5 @@
+import { resolveStudioUniverse } from '@/lib/studio/universes';
+import { UniverseSelector } from '../universe-selector';
 import Link from 'next/link';
 
 import { getStudioReadModel } from '@/lib/studio/read-model';
@@ -8,8 +10,10 @@ function badge(value: string) {
   return <span className="status">{value.replaceAll('_', ' ')}</span>;
 }
 
-export default async function CanonInspectorPage() {
-  const model = await getStudioReadModel();
+export default async function CanonInspectorPage({ searchParams }: { searchParams: Promise<{ universe?: string }> }) {
+  const params = await searchParams;
+  const { universes, selected } = await resolveStudioUniverse(params.universe);
+  const model = await getStudioReadModel(selected?.slug);
 
   return (
     <main className="work">
@@ -18,7 +22,7 @@ export default async function CanonInspectorPage() {
           <p className="eyebrow">Studio V0-D2</p>
           <h1>Canon Inspector</h1>
         </div>
-        <b>READ CONTRACT</b>
+        {selected && <UniverseSelector universes={universes} selected={selected.slug} />}<b>READ CONTRACT</b>
       </header>
 
       <p className="muted">
