@@ -115,10 +115,10 @@ export function reviewPuzzleGenerationOutputV1(
         !Array.isArray(candidate.hints) || !candidate.hints.every(x => typeof x === 'string')) {
       issues.push('Candidate schema is invalid');
     } else {
-      issues.push(...validatePuzzleCandidateV1(candidate as PuzzleCandidateV1, allowed));
+      issues.push(...validatePuzzleCandidateV1(candidate as unknown as PuzzleCandidateV1, allowed));
     }
     if (issues.length) rejected.push({ index, issues });
-    else accepted.push(candidate as PuzzleCandidateV1);
+    else accepted.push(candidate as unknown as PuzzleCandidateV1);
   }
   return { status: 'draft_requires_review', accepted, rejected };
 }
