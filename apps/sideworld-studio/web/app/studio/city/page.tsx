@@ -1,3 +1,5 @@
+import { resolveStudioUniverse } from '@/lib/studio/universes';
+import { UniverseSelector } from '../universe-selector';
 import Link from 'next/link';
 
 import { getCityKnowledge } from '../../../lib/studio/city-knowledge';
@@ -13,8 +15,9 @@ export default async function CityKnowledgePage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const model = await getStudioReadModel();
   const params = await searchParams;
+  const { universes, selected } = await resolveStudioUniverse(typeof params.universe === 'string' ? params.universe : undefined);
+  const model = await getStudioReadModel(selected?.slug);
   const requested = typeof params.city === 'string' ? params.city : undefined;
   const city = model.cities.find((item) => item.slug === requested) ?? model.cities[0];
 
@@ -37,7 +40,7 @@ export default async function CityKnowledgePage({
           <p className="eyebrow">City Knowledge Base V0</p>
           <h1>{city.name}</h1>
         </div>
-        <b>{city.verificationStatus}</b>
+        {selected && <UniverseSelector universes={universes} selected={selected.slug} />}<b>{city.verificationStatus}</b>
       </header>
 
       <article className="hero">
