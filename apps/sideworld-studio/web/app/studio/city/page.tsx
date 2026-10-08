@@ -4,7 +4,6 @@ import Link from 'next/link';
 
 import { getCityKnowledge } from '../../../lib/studio/city-knowledge';
 import { getStudioReadModel } from '../../../lib/studio/read-model';
-import { CityKnowledgeEditor } from './city-knowledge-editor';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,7 +56,7 @@ export default async function CityKnowledgePage({
         <article><em>Sources</em><h3>{knowledge.sources.length}</h3><p>Evidence linked to facts with support semantics.</p></article>
       </section>
 
-      <CityKnowledgeEditor cityId={city.id} />
+      <p className="muted">City Knowledge editing is temporarily disabled pending server-side universe ownership validation.</p>
 
       <section className="inspector-stack">
         <article className="panel">
