@@ -1,0 +1,4 @@
+# Migration SQL must stay byte-identical to the SQL recorded in the Supabase
+# migration ledgers (verified by SHA-256). Keep LF on every platform, including
+# Windows checkouts with core.autocrlf=true, and never convert encodings.
+supabase/**/*.sql text eol=lf
