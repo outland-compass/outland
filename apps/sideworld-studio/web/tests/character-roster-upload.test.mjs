@@ -7,8 +7,8 @@ const review = readFileSync(new URL('../app/studio/characters/character-media-re
 
 test('roster requires admin session and scopes to canonical franchise', () => {
   assert.match(roster, /authorize\(request, response\)/);
-  assert.match(roster, /eq\.beyond-the-atlas/);
-  assert.match(roster, /franchise_id/);
+  assert.match(roster, /p_franchise_slug: 'beyond-the-atlas'/);
+  assert.match(roster, /sideworld_character_media_gallery/);
   assert.match(roster, /Cache-Control.*private, no-store/);
 });
 test('portrait upload requires integrity-verified original and real character ID', () => {
