@@ -29,7 +29,7 @@ test('gallery requires explicit confirmation, justification and exact hash', () 
 
 test('approval re-verifies private Storage bytes before invoking the canonical approval RPC', () => {
   assert.match(api, /verifyStoredCharacterOriginal\(asset\.storage_path, expectedSha256\)/);
-  assert.match(api, /asset\.approval_status === 'draft'/);
-  assert.match(api, /asset\.asset_role === 'canonical_portrait'/);
+  assert.match(api, /a.approval_status === 'draft'/);
+  assert.match(api, /a.asset_role === 'canonical_portrait'/);
   assert.ok(api.indexOf('await verifyStoredCharacterOriginal(asset.storage_path, expectedSha256)') < api.indexOf('const result = await fetch(`${base}/rest/v1/rpc/sideworld_character_media_approve`'));
 });
