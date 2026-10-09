@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
-const sql = readFileSync(new URL('../../../../supabase/migrations/202610080008_fix_guarded_faction_dispatch.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('../../../../supabase/migrations/20261008135838_fix_guarded_faction_dispatch.sql', import.meta.url), 'utf8');
 const route = readFileSync(new URL('../app/api/studio/write/route.ts', import.meta.url), 'utf8');
 
 test('faction is explicitly dispatched, not passed to canon rule fallback', () => {

@@ -21,7 +21,7 @@ test('selector persists selection and clears cross-universe context', () => {
   assert.match(source, /p.delete\(key\)/);
 });
 test('catalog RPC is restricted to service_role', () => {
-  const source = read('../../../../supabase/migrations/202610080005_sideworld_studio_universe_catalog.sql');
+  const source = read('../../../../supabase/migrations/20261008130544_sideworld_studio_universe_catalog.sql');
   assert.match(source, /from universe.universes/);
   assert.match(source, /revoke all/);
   assert.match(source, /grant execute.*service_role/);

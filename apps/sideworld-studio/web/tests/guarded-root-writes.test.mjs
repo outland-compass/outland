@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
-const migration = readFileSync(new URL('../../../../supabase/migrations/202610080006_sideworld_studio_guarded_root_writes.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../supabase/migrations/20261008130547_sideworld_studio_guarded_root_writes.sql', import.meta.url), 'utf8');
 const route = readFileSync(new URL('../app/api/studio/write/route.ts', import.meta.url), 'utf8');
 
 test('root writes validate canonical universe and existing entity inside same transaction', () => {

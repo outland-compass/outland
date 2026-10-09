@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
-const sql = readFileSync(new URL('../../../../supabase/migrations/202610080007_sideworld_studio_guarded_canon_writes.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('../../../../supabase/migrations/20261008130549_sideworld_studio_guarded_canon_writes.sql', import.meta.url), 'utf8');
 
 test('canon writes check universe, franchise and existing entity atomically', () => {
   assert.match(sql, /from universe\.universes where slug=p_universe_slug for update/);
