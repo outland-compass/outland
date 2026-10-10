@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { STUDIO_SESSION_COOKIE, verifyStudioSession } from '@/lib/session';
+import { authorize } from '@/lib/studio/auth';
 import { callStudioRpc } from '@/lib/studio/rpc';
 
 export const runtime = 'nodejs';
@@ -300,12 +300,11 @@ function buildRpc(entity: Entity, input: Record<string, unknown>) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    if (!verifyStudioSession(request.cookies.get(STUDIO_SESSION_COOKIE)?.value)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  } catch {
-    return NextResponse.json({ error: 'Studio session unavailable' }, { status: 503 });
+  if (request.headers.get('origin') !== request.nextUrl.origin) {
+    return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
+  }
+  if (!await authorize(request, NextResponse.next())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const contentLength = Number(request.headers.get('content-length') ?? '0');
@@ -316,7 +315,14 @@ export async function POST(request: NextRequest) {
   let body: { entity?: unknown; input?: unknown };
 
   try {
-    body = await request.json();
+    const raw = await request.text();
+    if (new TextEncoder().encode(raw).byteLength > 24_000) {
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
+    body = JSON.parse(raw);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'JSON object required' }, { status: 400 });
+    }
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
@@ -330,12 +336,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'input is required' }, { status: 400 });
   }
 
+  // The guarded RPC validates ownership and performs the mutation atomically.
+  // Keep disabled until migrations, staging integration tests, and env setup pass.
+  if (process.env.SIDEWORLD_STUDIO_GUARDED_WRITES !== 'enabled') {
+    return NextResponse.json({ error: 'Studio writes temporarily disabled pending universe ownership validation' }, { status: 503 });
+  }
+
+  const selectedUniverse = text(request.nextUrl.searchParams.get('universe'), 120);
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(selectedUniverse)) {
+    return NextResponse.json({ error: 'A valid selected universe is required' }, { status: 400 });
+  }
+
+  const rootEntities = ['world', 'theme', 'franchise'];
+  const canonEntities = ['series', 'character', 'faction', 'lore', 'rule'];
+  if (!rootEntities.includes(entity) && !canonEntities.includes(entity)) {
+    // Geo records are shared, and universe creation is a separate admin workflow.
+    return NextResponse.json({ error: 'Entity is not supported by guarded writes' }, { status: 403 });
+  }
+
   try {
     const rpc = buildRpc(entity, body.input as Record<string, unknown>);
-    const id = await callStudioRpc<string>(rpc.name, rpc.body);
+    const guardedName = rootEntities.includes(entity)
+      ? 'sideworld_studio_guarded_save_root'
+      : 'sideworld_studio_guarded_save_canon';
+    const id = await callStudioRpc<string>(guardedName, {
+      p_universe_slug: selectedUniverse,
+      p_entity: entity,
+      p_input: rpc.body
+    });
     return NextResponse.json({ id });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Authoring failed';
-    return NextResponse.json({ error: message }, { status: 400 });
+    console.error('Guarded Studio write failed', error);
+    return NextResponse.json({ error: 'Authoring failed. Check server logs.' }, { status: 400 });
   }
 }

@@ -1,8 +1,9 @@
+import { resolveStudioUniverse } from '@/lib/studio/universes';
+import { UniverseSelector } from '../universe-selector';
 import Link from 'next/link';
 
 import { getCityKnowledge } from '../../../lib/studio/city-knowledge';
 import { getStudioReadModel } from '../../../lib/studio/read-model';
-import { CityKnowledgeEditor } from './city-knowledge-editor';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +14,9 @@ export default async function CityKnowledgePage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const model = await getStudioReadModel();
   const params = await searchParams;
+  const { universes, selected } = await resolveStudioUniverse(typeof params.universe === 'string' ? params.universe : undefined);
+  const model = await getStudioReadModel(selected?.slug);
   const requested = typeof params.city === 'string' ? params.city : undefined;
   const city = model.cities.find((item) => item.slug === requested) ?? model.cities[0];
 
@@ -37,7 +39,7 @@ export default async function CityKnowledgePage({
           <p className="eyebrow">City Knowledge Base V0</p>
           <h1>{city.name}</h1>
         </div>
-        <b>{city.verificationStatus}</b>
+        {selected && <UniverseSelector universes={universes} selected={selected.slug} />}<b>{city.verificationStatus}</b>
       </header>
 
       <article className="hero">
@@ -54,7 +56,7 @@ export default async function CityKnowledgePage({
         <article><em>Sources</em><h3>{knowledge.sources.length}</h3><p>Evidence linked to facts with support semantics.</p></article>
       </section>
 
-      <CityKnowledgeEditor cityId={city.id} />
+      <p className="muted">City Knowledge editing is temporarily disabled pending server-side universe ownership validation.</p>
 
       <section className="inspector-stack">
         <article className="panel">

@@ -1,28 +1,20 @@
 import 'server-only';
 
-import { studioReadContractFixture } from './fixture';
 import type { CanonReadModel } from './types';
+import { resolveStudioUniverse } from './universes';
 
-type StudioDataSource = 'fixture' | 'supabase';
-
-function dataSource(): StudioDataSource {
-  const value = process.env.STUDIO_DATA_SOURCE ?? 'fixture';
-  if (value !== 'fixture' && value !== 'supabase') {
-    throw new Error('STUDIO_DATA_SOURCE must be fixture or supabase');
-  }
-  return value;
-}
-
-function requiredServerEnv(name: 'SUPABASE_URL' | 'SUPABASE_SERVICE_ROLE_KEY' | 'STUDIO_UNIVERSE_SLUG') {
+function requiredServerEnv(name: 'SUPABASE_URL' | 'SUPABASE_SERVICE_ROLE_KEY') {
   const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} is required when STUDIO_DATA_SOURCE=supabase`);
+  if (!value) throw new Error(`${name} is required`);
   return value;
 }
 
-async function readFromSupabase(): Promise<CanonReadModel> {
+async function readFromSupabase(requestedSlug?: string): Promise<CanonReadModel> {
   const baseUrl = requiredServerEnv('SUPABASE_URL').replace(/\/$/, '');
   const serviceRoleKey = requiredServerEnv('SUPABASE_SERVICE_ROLE_KEY');
-  const universeSlug = requiredServerEnv('STUDIO_UNIVERSE_SLUG');
+  const { selected } = await resolveStudioUniverse(requestedSlug);
+  if (!selected) throw new Error('No universes available in Studio');
+  const universeSlug = selected.slug;
 
   const response = await fetch(`${baseUrl}/rest/v1/rpc/sideworld_studio_read_model`, {
     method: 'POST',
@@ -48,10 +40,6 @@ async function readFromSupabase(): Promise<CanonReadModel> {
   return model;
 }
 
-export async function getStudioReadModel(): Promise<CanonReadModel> {
-  if (dataSource() === 'fixture') {
-    return structuredClone(studioReadContractFixture);
-  }
-
-  return readFromSupabase();
+export async function getStudioReadModel(universeSlug?: string): Promise<CanonReadModel> {
+  return readFromSupabase(universeSlug);
 }

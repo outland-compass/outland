@@ -1,3 +1,7 @@
+import { resolveStudioUniverse } from '@/lib/studio/universes';
+import { UniverseSelector } from './universe-selector';
+
+
 import Link from 'next/link';
 
 const spaces = [
@@ -8,21 +12,13 @@ const spaces = [
   ['Cities', 'Real-world geographic truth']
 ];
 
-export default function Studio() {
+export const dynamic = 'force-dynamic';
+export default async function Studio({ searchParams }: { searchParams: Promise<{ universe?: string }> }) {
+  const params = await searchParams;
+  const { universes, selected } = await resolveStudioUniverse(params.universe);
+  const scoped = (path: string) => selected ? `${path}?universe=${encodeURIComponent(selected.slug)}` : path;
   return (
-    <main className="shell">
-      <aside>
-        <p className="brand small">SIDE<span>WORLD</span></p>
-        <p className="eyebrow">Studio V0-E / Context Builder</p>
-        <nav>
-          <Link href="/studio/canon">Canon Editor</Link>
-          <Link href="/studio/inspector">Canon Inspector</Link>
-          <Link href="/studio/context">Canon Context</Link>
-          <Link href="/studio/city">City Knowledge</Link>
-          {spaces.filter(([name]) => name !== 'Canon').map(([name]) => <span key={name}>{name}</span>)}
-        </nav>
-        <p className="phase">PRIVATE AUTHORING<br/>SERVER-ONLY WRITES</p>
-      </aside>
+    <main className="studioDashboard">
 
       <section className="work">
         <header>
@@ -30,23 +26,23 @@ export default function Studio() {
             <p className="eyebrow">Canon Editor</p>
             <h1>Studio foundation</h1>
           </div>
-          <b>PRIVATE</b>
+          <div>{selected && <UniverseSelector universes={universes} selected={selected.slug} />}</div><b>PRIVATE</b>
         </header>
 
         <article className="hero">
           <p className="eyebrow">FOLLOW THE SIGNAL.</p>
           <h2>Structure canon first. Then let AI build from approved context.</h2>
           <p className="muted">
-            The canonical authoring foundation is now ready to compile deterministic AI context from approved records.
+            Review canonical data and compile deterministic AI context. Draft writes are available only when explicitly enabled for the staging preview.
           </p>
-          <Link className="button" href="/studio/canon">Open Canon Editor</Link>
+          <Link className="button" href={scoped('/studio/canon')}>Open Canon Editor</Link>
         </article>
 
         <section className="grid">
           <article>
             <em>Available now</em>
             <h3>Foundation Editor</h3>
-            <p>Bootstrap Universe → World/Theme → Canon → City through validated server-only writes.</p>
+            <p>Review canonical universe, world, theme and canon data. Guarded draft creation is feature-flagged and disabled by default.</p>
           </article>
           <article>
             <em>Available now</em>
