@@ -1,6 +1,7 @@
 # SIDEWORLD Studio V0 — Implementation Blueprint
 
 **Status:** Active implementation blueprint, updated 2026-10-08.  
+**Repository note (2026-10-13):** the Studio application moved to `outland-compass/sideworld_studio`, and `apps/sideworld-studio/web`, the `*:studio` root scripts and `studio-ci.yml` were removed from OUTLAND. Paths below are historical. Studio DB migrations and their SQL verification stay in OUTLAND.  
 **Scope:** Studio V0 / Canon Editor only. This document does not authorize production database writes.  
 **Baseline:** SIDEWORLD Schema V3.2 is deployed to production; Studio V0-C/D1/D2 boundaries are implemented in the repository and deployed to staging only.  
 **Product/canon source of truth:** `SIDEWORLD_CANONICAL_UNIVERSE_FRANCHISE_ARCHITECTURE_V3_1.md`.  
