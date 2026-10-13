@@ -185,19 +185,36 @@ begin
     where actor_id=p_actor and release_id=p_release_id and start_request_id=p_request_id;
   end if;
   return jsonb_build_object('kind','started','runId',v.id,'versionId',v.release_id,
-    'actorId',v.actor_id,'status',v.status,'sequence',v.sequence,'progress',v.progress);
-end $$;
+    'actorId',v.actor_id,'accessMode',r.visibility,'status',v.status,'sequence',v.sequence,'progress',v.progress);
+end $;
 
 -- Actor-scoped trusted run lookup, not accessible to browser roles.
 create function public.sideworld_player_run_get_v1(p_actor uuid,p_run_id uuid)
 returns jsonb language plpgsql stable security definer set search_path='' as $$
-declare v player.quest_runs;
+declare v player.quest_runs; current_mode text;
 begin
   select * into v from player.quest_runs where id=p_run_id and actor_id=p_actor;
   if v.id is null or not player.can_use_release_v1(p_actor,v.release_id) then return null; end if;
+  select visibility into current_mode from canon.quest_releases where id=v.release_id;
   return jsonb_build_object('runId',v.id,'versionId',v.release_id,
-    'actorId',v.actor_id,'status',v.status,'sequence',v.sequence,'progress',v.progress);
-end $$;
+    'actorId',v.actor_id,'accessMode',current_mode,'status',v.status,
+    'sequence',v.sequence,'progress',v.progress);
+end $;
+
+-- Actor-scoped receipt lookup before attempting a possibly stale replay.
+create function public.sideworld_player_run_receipt_get_v1(
+  p_actor uuid,p_run_id uuid,p_request_id uuid
+) returns jsonb language plpgsql stable security definer set search_path='' as $
+declare v player.quest_runs; receipt player.run_receipts;
+begin
+  select * into v from player.quest_runs where id=p_run_id and actor_id=p_actor;
+  if v.id is null or not player.can_use_release_v1(p_actor,v.release_id) then return null; end if;
+  select * into receipt from player.run_receipts
+    where run_id=p_run_id and request_id=p_request_id;
+  if receipt.run_id is null then return null; end if;
+  return jsonb_build_object('fingerprint',receipt.fingerprint,
+    'progress',receipt.result_progress);
+end $;
 
 -- Lock, receipt lookup, compare, append and receipt write in ONE DB transaction.
 -- The server validates the deterministic Player transition before calling this RPC.
@@ -205,7 +222,7 @@ create function public.sideworld_player_run_apply_v1(
   p_actor uuid,p_run_id uuid,p_request_id uuid,p_fingerprint text,
   p_expected_sequence integer,p_next_progress jsonb
 ) returns jsonb language plpgsql security definer set search_path='' as $$
-declare v player.quest_runs; prior player.run_receipts;
+declare v player.quest_runs; prior player.run_receipts; current_mode text;
 begin
   if p_actor is null or p_run_id is null or p_request_id is null
      or p_fingerprint is null or p_fingerprint !~ '^[0-9a-f]{64}$'
@@ -217,6 +234,7 @@ begin
   if v.id is null or not player.can_use_release_v1(p_actor,v.release_id) then
     return jsonb_build_object('kind','unavailable');
   end if;
+  select visibility into current_mode from canon.quest_releases where id=v.release_id;
   select * into prior from player.run_receipts
     where run_id=p_run_id and request_id=p_request_id;
   if prior.run_id is not null then
@@ -224,7 +242,7 @@ begin
       return jsonb_build_object('kind','conflict');
     end if;
     return jsonb_build_object('kind','duplicate','runId',v.id,'versionId',v.release_id,
-      'actorId',v.actor_id,'status',v.status,'sequence',prior.result_sequence,
+      'actorId',v.actor_id,'accessMode',current_mode,'status',v.status,'sequence',prior.result_sequence,
       'progress',prior.result_progress);
   end if;
   if v.status <> 'in_progress' or p_expected_sequence <> v.sequence or v.sequence>=10000 then
@@ -255,7 +273,7 @@ begin
     order by result_sequence desc offset 16
   );
   return jsonb_build_object('kind','saved','runId',v.id,'versionId',v.release_id,
-    'actorId',v.actor_id,'status',v.status,'sequence',p_expected_sequence+1,
+    'actorId',v.actor_id,'accessMode',current_mode,'status',v.status,'sequence',p_expected_sequence+1,
     'progress',p_next_progress);
 end $$;
 
@@ -263,11 +281,13 @@ end $$;
 revoke all on function public.sideworld_player_release_get_v1(uuid,uuid),
   public.sideworld_player_run_start_v1(uuid,uuid,uuid,jsonb),
   public.sideworld_player_run_get_v1(uuid,uuid),
+  public.sideworld_player_run_receipt_get_v1(uuid,uuid,uuid),
   public.sideworld_player_run_apply_v1(uuid,uuid,uuid,text,integer,jsonb)
   from public,anon,authenticated,service_role;
 grant execute on function public.sideworld_player_release_get_v1(uuid,uuid),
   public.sideworld_player_run_start_v1(uuid,uuid,uuid,jsonb),
   public.sideworld_player_run_get_v1(uuid,uuid),
+  public.sideworld_player_run_receipt_get_v1(uuid,uuid,uuid),
   public.sideworld_player_run_apply_v1(uuid,uuid,uuid,text,integer,jsonb)
   to service_role;
 
