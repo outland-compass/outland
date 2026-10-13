@@ -21,7 +21,7 @@
 | `player.quest_runs` | Trusted actor-owned version-bound progress, sequence and private engine event history, not an OUTLAND Passport journey. |
 | `player.run_receipts` | Bounded, transactional idempotency receipt for the 16 most recent commands per run; prevents double-unlock and duplicate progression. |
 
-New `public.sideworld_player_*` RPC functions are **service-role-only** (full content fetch, start, read, atomic compare-and-save). Table RLS is ON with no client policies and no direct role grants. A non-exposed `player.can_use_release_v1` helper enforces active QA grants or approved published visibility.
+New `public.sideworld_player_*` RPC functions are **service-role-only** (full content fetch, start, run read, actor-scoped receipt read, atomic compare-and-save). Table RLS is ON with no client policies and no direct role grants. A non-exposed `player.can_use_release_v1` helper enforces active QA grants or approved published visibility.
 
 The migration creates **zero releases, zero QA grants and zero runs**. It deliberately does **not** add a publish/approve, grant/revoke or reset API. That follow-on layer must be authorized separately. Do not consider this migration alone sufficient to make a quest playable.
 
