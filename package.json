@@ -17,9 +17,6 @@
     "db:reset": "npx --yes supabase db reset",
     "db:types": "node scripts/generate-db-types.mjs",
     "db:verify:schema": "npx --yes supabase db query --local --file supabase/tests/verify-schema.sql",
-    "db:verify:workflow-security": "npx --yes supabase db query --local --file supabase/tests/verify-workflow-security.sql",
-    "build:studio": "npm run build --workspace=@sideworld/studio-web",
-    "typecheck:studio": "npm run typecheck --workspace=@sideworld/studio-web",
-    "test:studio": "npm run test --workspace=@sideworld/studio-web"
+    "db:verify:workflow-security": "npx --yes supabase db query --local --file supabase/tests/verify-workflow-security.sql"
   }
 }

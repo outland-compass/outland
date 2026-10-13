@@ -1,7 +1,7 @@
 # Claude Code instructions — OUTLAND repository / SIDEWORLD work
 
 ## Scope and authority
-This repository currently hosts OUTLAND OS and COMPASS. SIDEWORLD is a NEW independent consumer platform for location-based adventures; OUTLAND is ONE optional universe on SIDEWORLD, not SIDEWORLD's parent. SIGNAL is a gameplay/lore trigger; The Parallel is a deeper narrative concept. Never rename the existing OUTLAND OS operational product to SIDEWORLD or assume the existing OUTLAND Platform Master Plan describes the new cross-universe SIDEWORLD ownership model.
+This repository currently hosts OUTLAND OS and COMPASS. SIDEWORLD Studio lives in `outland-compass/sideworld_studio`; do not re-add a Studio app here. This repository keeps the shared Supabase migrations the Studio relies on. SIDEWORLD is a NEW independent consumer platform for location-based adventures; OUTLAND is ONE optional universe on SIDEWORLD, not SIDEWORLD's parent. SIGNAL is a gameplay/lore trigger; The Parallel is a deeper narrative concept. Never rename the existing OUTLAND OS operational product to SIDEWORLD or assume the existing OUTLAND Platform Master Plan describes the new cross-universe SIDEWORLD ownership model.
 
 For existing OUTLAND OS code, preserve working operational boundaries. For new SIDEWORLD features, use the SIDEWORLD decisions here and the reviewed SIDEWORLD architecture documents. If documents conflict, explicitly report the conflict rather than silently replacing historical decisions.
 

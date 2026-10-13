@@ -11,7 +11,7 @@ This directory contains both current architecture and historical plans. When doc
    Current canonical database ownership/boundaries for `universe`, `geo`, `canon` and their relationship to existing OUTLAND operational data.
 
 3. `SIDEWORLD_STUDIO_V0_IMPLEMENTATION_BLUEPRINT.md`  
-   Current Studio/Canon Editor scope, implemented V0 boundaries and next implementation steps.
+   Studio V0 scope and DB boundaries as designed in this repository. The Studio application now lives in `outland-compass/sideworld_studio`; the embedded `apps/sideworld-studio/web` was removed from OUTLAND. OUTLAND still owns the Supabase migrations the Studio uses.
 
 ## Important current decisions
 
