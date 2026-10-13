@@ -260,7 +260,7 @@ begin
     return jsonb_build_object('kind','invalid');
   end if;
   if jsonb_array_length(p_next_progress->'events') <> p_expected_sequence+1
-     or (p_next_progress->'events' - p_expected_sequence)
+     or ((p_next_progress->'events') - p_expected_sequence)
           is distinct from (v.progress->'events') then
     return jsonb_build_object('kind','invalid');
   end if;
