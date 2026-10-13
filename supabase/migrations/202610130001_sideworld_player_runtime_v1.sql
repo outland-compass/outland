@@ -204,7 +204,7 @@ end $$;
 -- Actor-scoped receipt lookup before attempting a possibly stale replay.
 create function public.sideworld_player_run_receipt_get_v1(
   p_actor uuid,p_run_id uuid,p_request_id uuid
-) returns jsonb language plpgsql stable security definer set search_path='' as $
+) returns jsonb language plpgsql stable security definer set search_path='' as $$
 declare v player.quest_runs; receipt player.run_receipts;
 begin
   select * into v from player.quest_runs where id=p_run_id and actor_id=p_actor;
