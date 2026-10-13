@@ -65,6 +65,9 @@ jobs:
           test -n "$db_container"
           docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
             < supabase/tests/verify-sideworld-player-runtime-transactions.sql
+      - name: Verify concurrent Player writes across separate PostgreSQL sessions
+        shell: bash
+        run: bash supabase/tests/verify-sideworld-player-runtime-concurrency.sh
       - name: Stop disposable stack
         if: always()
         run: supabase stop --no-backup
