@@ -65,6 +65,14 @@ jobs:
           test -n "$db_container"
           docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
             < supabase/tests/verify-sideworld-player-runtime-transactions.sql
+      - name: Verify anon and authenticated users cannot read or mutate Player secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < supabase/tests/verify-sideworld-player-client-denials.sql
       - name: Verify concurrent Player writes across separate PostgreSQL sessions
         shell: bash
         run: bash supabase/tests/verify-sideworld-player-runtime-concurrency.sh
