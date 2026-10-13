@@ -147,8 +147,9 @@ begin
     raise exception 'History prefix tampering accepted';
   end if;
 
-  update player.qa_access set revoked_at=now()
-  where release_id=release_id and actor_id=actor_id;
+  update player.qa_access q set revoked_at=now()
+  where q.release_id='dd800000-0000-4000-8000-000000000001'::uuid
+    and q.actor_id='dd100000-0000-4000-8000-000000000001'::uuid;
   if public.sideworld_player_run_get_v1(actor_id,run_id) is not null then
     raise exception 'Revoked QA can still load trusted run';
   end if;
