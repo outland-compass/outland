@@ -186,7 +186,7 @@ begin
   end if;
   return jsonb_build_object('kind','started','runId',v.id,'versionId',v.release_id,
     'actorId',v.actor_id,'accessMode',r.visibility,'status',v.status,'sequence',v.sequence,'progress',v.progress);
-end $;
+end $$;
 
 -- Actor-scoped trusted run lookup, not accessible to browser roles.
 create function public.sideworld_player_run_get_v1(p_actor uuid,p_run_id uuid)
@@ -199,7 +199,7 @@ begin
   return jsonb_build_object('runId',v.id,'versionId',v.release_id,
     'actorId',v.actor_id,'accessMode',current_mode,'status',v.status,
     'sequence',v.sequence,'progress',v.progress);
-end $;
+end $$;
 
 -- Actor-scoped receipt lookup before attempting a possibly stale replay.
 create function public.sideworld_player_run_receipt_get_v1(
@@ -214,7 +214,7 @@ begin
   if receipt.run_id is null then return null; end if;
   return jsonb_build_object('fingerprint',receipt.fingerprint,
     'progress',receipt.result_progress);
-end $;
+end $$;
 
 -- Lock, receipt lookup, compare, append and receipt write in ONE DB transaction.
 -- The server validates the deterministic Player transition before calling this RPC.
