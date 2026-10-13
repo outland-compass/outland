@@ -35,8 +35,13 @@ begin
     or has_function_privilege('authenticated','public.sideworld_player_run_apply_v1(uuid,uuid,uuid,text,integer,jsonb)','EXECUTE') then
     raise exception 'Player private RPC exposed to client roles';
   end if;
+  if has_function_privilege('anon','public.sideworld_player_run_receipt_get_v1(uuid,uuid,uuid)','EXECUTE')
+    or has_function_privilege('authenticated','public.sideworld_player_run_receipt_get_v1(uuid,uuid,uuid)','EXECUTE') then
+    raise exception 'Receipt RPC incorrectly exposed';
+  end if;
   if not has_function_privilege('service_role','public.sideworld_player_release_get_v1(uuid,uuid)','EXECUTE')
-    or not has_function_privilege('service_role','public.sideworld_player_run_apply_v1(uuid,uuid,uuid,text,integer,jsonb)','EXECUTE') then
+    or not has_function_privilege('service_role','public.sideworld_player_run_apply_v1(uuid,uuid,uuid,text,integer,jsonb)','EXECUTE')
+    or not has_function_privilege('service_role','public.sideworld_player_run_receipt_get_v1(uuid,uuid,uuid)','EXECUTE') then
     raise exception 'Expected backend RPC grants missing';
   end if;
 end $$;
