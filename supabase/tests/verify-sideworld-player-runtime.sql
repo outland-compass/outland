@@ -44,5 +44,32 @@ begin
     or not has_function_privilege('service_role','public.sideworld_player_run_receipt_get_v1(uuid,uuid,uuid)','EXECUTE') then
     raise exception 'Expected backend RPC grants missing';
   end if;
-end $$;
+  -- Proposed management endpoints must never be callable through a browser role.
+  if has_function_privilege('anon',
+       'public.sideworld_player_qa_release_create_v1(uuid,uuid,integer,text)','EXECUTE')
+     or has_function_privilege('authenticated',
+       'public.sideworld_player_qa_release_create_v1(uuid,uuid,integer,text)','EXECUTE')
+     or has_function_privilege('anon',
+       'public.sideworld_player_qa_grant_v1(uuid,uuid,uuid,timestamptz)','EXECUTE')
+     or has_function_privilege('authenticated',
+       'public.sideworld_player_qa_grant_v1(uuid,uuid,uuid,timestamptz)','EXECUTE')
+     or has_function_privilege('anon',
+       'public.sideworld_player_qa_revoke_v1(uuid,uuid,uuid)','EXECUTE')
+     or has_function_privilege('authenticated',
+       'public.sideworld_player_qa_revoke_v1(uuid,uuid,uuid)','EXECUTE') then
+    raise exception 'Studio QA management RPC exposed to client roles';
+  end if;
+  if not has_function_privilege('service_role',
+       'public.sideworld_player_qa_release_create_v1(uuid,uuid,integer,text)','EXECUTE')
+     or not has_function_privilege('service_role',
+       'public.sideworld_player_qa_grant_v1(uuid,uuid,uuid,timestamptz)','EXECUTE')
+     or not has_function_privilege('service_role',
+       'public.sideworld_player_qa_revoke_v1(uuid,uuid,uuid)','EXECUTE') then
+    raise exception 'Required backend Studio QA operator grants missing';
+  end if;
+  if has_function_privilege('service_role',
+       'player.is_qa_operator_v1(uuid)','EXECUTE') then
+    raise exception 'Internal QA role helper exposed to client backend role';
+  end if;
+end $;
 select 'Player V1 read-only schema/security assertions passed' as result;
