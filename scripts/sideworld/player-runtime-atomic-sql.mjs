@@ -45,10 +45,11 @@ ${sql}
 
 -- Supabase's migration history is updated in the SAME transaction as the DDL.
 -- Never rewrite or delete existing history, including the 3 older timestamp differences.
-INSERT INTO supabase_migrations.schema_migrations(version,name,statements,created_by)
+-- The version/name/statements columns are common to hosted and disposable
+-- Supabase migration ledgers. Avoid optional `created_by` (not on older local CLI).
+INSERT INTO supabase_migrations.schema_migrations(version,name,statements)
 VALUES('${MIGRATION_VERSION}','${MIGRATION_NAME}',
-       ARRAY[${contentTag}${sql}${contentTag}]::text[],
-       'sideworld-player-reviewed-runner-v1');
+       ARRAY[${contentTag}${sql}${contentTag}]::text[]);
 
 DO $sideworld_player_postflight$
 BEGIN
