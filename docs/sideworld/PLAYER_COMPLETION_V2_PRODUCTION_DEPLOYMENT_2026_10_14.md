@@ -57,13 +57,17 @@ Production read-only postflight:
 
 ## Ledger reconciliation
 
-The migration management API generated the staging version
-`20261014215424` for exactly the same SQL. Production version above is
-the source-of-truth for the repository filename. A separate, verified
-staging-only migration-history reconciliation is required before running
-future `supabase migration up` from this canonical repository against
-staging; do not reapply the migration under another timestamp.
-Never modify historical production ledger rows.
+The migration management API generated staging version
+`20261014215424` for the same SQL. A staging-only, guarded atomic
+ledger reconciliation then changed **only** that version to the canonical
+production version `20261014220543`. Before this metadata correction,
+read-only checks proved both databases had the same one-statement migration
+fingerprint `76d22bbbd4a3a6312e14cab613bc35df` and the same V2 function
+definition MD5 `a2429e349bbafce4e517648a688e9411`; the update required
+exactly one staging ledger row and rejected collisions/content drift.
+Postflight re-verified version, name and SQL fingerprint matched in both
+databases. No SQL replay, data changes or production history edits occurred.
+Do not reapply the migration under another timestamp.
 
 ## Player activation
 
