@@ -71,5 +71,5 @@ begin
        'player.is_qa_operator_v1(uuid)','EXECUTE') then
     raise exception 'Internal QA role helper exposed to client backend role';
   end if;
-end $;
+end $$;
 select 'Player V1 read-only schema/security assertions passed' as result;
