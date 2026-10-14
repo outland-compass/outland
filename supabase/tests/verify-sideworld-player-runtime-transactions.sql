@@ -249,4 +249,45 @@ begin
   end if;
 end $qa$;
 
+-- Audit migration is optional in the historical manual Player V1 ledger rehearsal,
+-- but mandatory in the full-migration replay. Keep these checks transactional.
+do $qa_audit$
+declare owner_id uuid := 'dd100000-0000-4000-8000-000000000001';
+        second_release uuid;
+begin
+  if to_regclass('player.qa_operator_audit') is null then return; end if;
+  if (select count(*) from player.qa_operator_audit where event_type='release_created')<>2
+     or (select count(*) from player.qa_operator_audit where event_type='access_granted')<>2
+     or (select count(*) from player.qa_operator_audit where event_type='access_revoked')<>2
+     or (select count(*) from player.qa_operator_audit where event_type='access_reenabled')<>1
+     or (select count(*) from player.qa_operator_audit)<>7 then
+    raise exception 'QA operator audit event ledger does not match real SQL transactions';
+  end if;
+  select id into second_release from canon.quest_releases
+  where source_draft_id='dd600000-0000-4000-8000-000000000001'
+    and source_revision=2;
+  if (select count(*) from player.qa_operator_audit
+      where event_type='access_revoked' and release_id=second_release
+        and operator_id=owner_id
+        and tester_id='dd100000-0000-4000-8000-000000000002')<>1 then
+    raise exception 'Verified operator revocation attribution is lost';
+  end if;
+  if (select count(*) from player.qa_operator_audit
+      where event_type='access_revoked' and operator_id is null)<>1 then
+    raise exception 'Direct/manual revocation must remain unattributed, never forged';
+  end if;
+  if (select revoked_by from player.qa_access
+      where release_id=second_release
+        and actor_id='dd100000-0000-4000-8000-000000000002') is not null then
+    raise exception 'Re-granted tester must not retain stale revoker ID';
+  end if;
+  begin
+    update player.qa_operator_audit set operator_id=owner_id where id=(
+      select min(id) from player.qa_operator_audit);
+    raise exception 'Expected append-only audit guard';
+  exception when raise_exception then
+    if sqlerrm <> 'QA operator audit history cannot be changed' then raise; end if;
+  end;
+end $qa_audit$;
+
 rollback;

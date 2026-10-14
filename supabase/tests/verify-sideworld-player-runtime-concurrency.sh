@@ -11,7 +11,8 @@ test -f "$fixture"
 
 # Reuse the reviewed synthetic fixture INSERT statements, WITHOUT its outer
 # BEGIN/ROLLBACK or DO assertions. Never source production data.
-awk '/^insert into auth.users\(/ {copy=1} /^do \$test\$/ {copy=0} copy {print}' "$fixture" |
+# Avoid executing the later audit-only assertions in this separately committed concurrency fixture.
+awk '/^insert into auth.users\(/ {copy=1} /^do \$test\$/ {copy=0} /^-- Audit migration is optional/ {copy=0} copy {print}' "$fixture" |
   docker exec -i "$db_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres
 
 actor="'dd100000-0000-4000-8000-000000000001'::uuid"
