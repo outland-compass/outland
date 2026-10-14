@@ -295,3 +295,114 @@ comment on schema player is 'SIDEWORLD consumer gameplay runtime, separate from 
 comment on table player.quest_runs is 'Actor-owned private event history and immutable quest-version binding.';
 comment on table player.run_receipts is 'Bounded atomic idempotency receipts for gameplay.';
 comment on table player.qa_access is 'Expiring field-test entitlement independent of Studio roles.';
+
+
+-- PRIVATE QA OPERATIONS V1.
+-- Distinct from publication: no public release approval path is exposed here.
+-- Studio must verify operator JWT/admin and compute the engine content hash from
+-- the exact persisted draft revision using the canonical Player engine.
+-- These server-only RPCs additionally verify the operator's canonical admin role.
+create function player.is_qa_operator_v1(p_operator uuid)
+returns boolean language sql stable security definer set search_path='' as $$
+  select coalesce(p_operator is not null and exists (
+    select 1 from shared.user_roles ur
+    where ur.user_id=p_operator and ur.role::text in ('OWNER','ADMIN')
+  ), false);
+$$;
+revoke all on function player.is_qa_operator_v1(uuid) from public,anon,authenticated,service_role;
+
+create function public.sideworld_player_qa_release_create_v1(
+  p_operator uuid, p_draft_id uuid, p_revision integer, p_engine_content_hash text
+) returns jsonb language plpgsql security definer set search_path='' as $$
+declare doc jsonb; diagnostics jsonb; row_status text;
+        stored canon.quest_releases; new_id uuid;
+begin
+  if p_draft_id is null or p_revision is null or p_revision<=0 or
+     p_engine_content_hash is null or p_engine_content_hash !~ '^[0-9a-f]{64}$' then
+    return jsonb_build_object('kind','invalid');
+  end if;
+  if not player.is_qa_operator_v1(p_operator) then
+    return jsonb_build_object('kind','unavailable');
+  end if;
+  select r.document,r.diagnostics,d.status into doc,diagnostics,row_status
+  from canon.quest_drafts d join canon.quest_draft_revisions r on r.draft_id=d.id
+  where d.id=p_draft_id and r.revision=p_revision and d.revision>=p_revision;
+  if doc is null or row_status<>'draft'
+     or jsonb_typeof(diagnostics) is distinct from 'array'
+     or exists (select 1 from jsonb_array_elements(diagnostics) err
+                where err->>'severity'='error') then
+    return jsonb_build_object('kind','unavailable');
+  end if;
+  insert into canon.quest_releases(source_draft_id,source_revision,document,
+                                   engine_content_hash,visibility,created_by)
+  values(p_draft_id,p_revision,doc,p_engine_content_hash,'private_qa',p_operator)
+  on conflict(source_draft_id,source_revision) do nothing
+  returning id into new_id;
+  if new_id is not null then
+    return jsonb_build_object('kind','created','releaseId',new_id);
+  end if;
+  select * into stored from canon.quest_releases
+  where source_draft_id=p_draft_id and source_revision=p_revision;
+  if stored.id is null or stored.visibility<>'private_qa'
+     or stored.engine_content_hash<>p_engine_content_hash
+     or stored.document is distinct from doc then
+    return jsonb_build_object('kind','conflict');
+  end if;
+  return jsonb_build_object('kind','existing','releaseId',stored.id);
+end $$;
+
+create function public.sideworld_player_qa_grant_v1(
+  p_operator uuid,p_release_id uuid,p_tester_id uuid,p_expires_at timestamptz
+) returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+  if p_release_id is null or p_tester_id is null or p_expires_at is null or
+     p_expires_at<=now()+interval '5 minutes' or
+     p_expires_at>now()+interval '14 days' then
+    return jsonb_build_object('kind','invalid');
+  end if;
+  if not player.is_qa_operator_v1(p_operator) then
+    return jsonb_build_object('kind','unavailable');
+  end if;
+  if not exists(select 1 from canon.quest_releases
+                where id=p_release_id and visibility='private_qa')
+     or not exists(select 1 from auth.users where id=p_tester_id) then
+    return jsonb_build_object('kind','unavailable');
+  end if;
+  insert into player.qa_access(release_id,actor_id,expires_at,granted_by)
+  values(p_release_id,p_tester_id,p_expires_at,p_operator)
+  on conflict(release_id,actor_id) do update
+     set expires_at=excluded.expires_at,revoked_at=null,
+         granted_by=excluded.granted_by;
+  return jsonb_build_object('kind','granted','releaseId',p_release_id,
+                            'testerId',p_tester_id,'expiresAt',p_expires_at);
+end $$;
+
+create function public.sideworld_player_qa_revoke_v1(
+  p_operator uuid,p_release_id uuid,p_tester_id uuid
+) returns jsonb language plpgsql security definer set search_path='' as $$
+declare access_row player.qa_access;
+begin
+  if p_release_id is null or p_tester_id is null then
+    return jsonb_build_object('kind','invalid');
+  end if;
+  if not player.is_qa_operator_v1(p_operator) then
+    return jsonb_build_object('kind','unavailable');
+  end if;
+  update player.qa_access set revoked_at=coalesce(revoked_at,now())
+  where release_id=p_release_id and actor_id=p_tester_id returning * into access_row;
+  if access_row.release_id is null then
+    return jsonb_build_object('kind','unavailable');
+  end if;
+  return jsonb_build_object('kind','revoked','releaseId',p_release_id,
+                            'testerId',p_tester_id);
+end $$;
+
+-- New functions have default PUBLIC EXECUTE in PostgreSQL; revoke explicitly.
+revoke all on function public.sideworld_player_qa_release_create_v1(uuid,uuid,integer,text),
+  public.sideworld_player_qa_grant_v1(uuid,uuid,uuid,timestamptz),
+  public.sideworld_player_qa_revoke_v1(uuid,uuid,uuid)
+  from public,anon,authenticated,service_role;
+grant execute on function public.sideworld_player_qa_release_create_v1(uuid,uuid,integer,text),
+  public.sideworld_player_qa_grant_v1(uuid,uuid,uuid,timestamptz),
+  public.sideworld_player_qa_revoke_v1(uuid,uuid,uuid)
+  to service_role;
