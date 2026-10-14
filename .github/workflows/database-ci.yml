@@ -8,6 +8,7 @@ on:
       - 'scripts/legacy-cleanup/**'
       - '.github/workflows/database-ci.yml'
       - 'scripts/generate-db-types.mjs'
+      - 'scripts/sideworld/player-runtime-*.mjs'
   workflow_dispatch:
 
 permissions:
@@ -32,6 +33,11 @@ jobs:
         run: supabase start
       - name: Full clean migration replay
         run: supabase db reset --local
+      - name: Verify pinned SIDEWORLD Player production preflight is read-only
+        run: |
+          node --version
+          node --test scripts/sideworld/player-runtime-preflight.test.mjs scripts/sideworld/player-runtime-atomic-sql.test.mjs
+          node scripts/sideworld/player-runtime-preflight.mjs --check-file
       - name: Verify SIDEWORLD Data API exposure contract
         shell: bash
         run: |
@@ -46,7 +52,7 @@ jobs:
           set -uo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           failures=0
-          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql; do
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql; do
             echo "::group::$script"
             if docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
               echo "PASS: $script"
@@ -57,9 +63,83 @@ jobs:
             echo '::endgroup::'
           done
           exit "$failures"
+      - name: Exercise SIDEWORLD Player V1 transactional SQL in rollback-only fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < supabase/tests/verify-sideworld-player-runtime-transactions.sql
+      - name: Verify anon and authenticated users cannot read or mutate Player secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < supabase/tests/verify-sideworld-player-client-denials.sql
+      - name: Verify concurrent Player writes across separate PostgreSQL sessions
+        shell: bash
+        run: bash supabase/tests/verify-sideworld-player-runtime-concurrency.sh
       - name: Stop disposable stack
         if: always()
         run: supabase stop --no-backup
+
+
+  controlled-transaction-disposable-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Create baseline without Player V1 and rehearse exact atomic version ledger insert
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/sideworld-controlled-deployment
+          mv supabase/migrations/*_sideworld_player_runtime_v1.sql /tmp/sideworld-controlled-deployment/
+          supabase db reset --local --no-seed
+          mv /tmp/sideworld-controlled-deployment/*_sideworld_player_runtime_v1.sql supabase/migrations/
+          node --test scripts/sideworld/player-runtime-preflight.test.mjs scripts/sideworld/player-runtime-atomic-sql.test.mjs
+          node scripts/sideworld/player-runtime-atomic-sql.mjs --render-for-review > /tmp/sideworld-controlled-deployment/plan.sql
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < /tmp/sideworld-controlled-deployment/plan.sql
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < supabase/tests/verify-sideworld-player-runtime.sql
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < supabase/tests/verify-sideworld-player-client-denials.sql
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < supabase/tests/verify-sideworld-player-runtime-transactions.sql
+          # Must fail closed if the version is already in the ledger (no double apply).
+          if docker exec -i "$db_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < /tmp/sideworld-controlled-deployment/plan.sql > /dev/null 2>&1; then
+            echo "::error::Double application unexpectedly succeeded"
+            exit 1
+          fi
+          ledger_count=$(docker exec "$db_container" psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            -c "SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version='20261014104136' AND name='sideworld_player_runtime_v1'")
+          release_count=$(docker exec "$db_container" psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            -c "SELECT count(*) FROM canon.quest_releases")
+          test "$ledger_count" = "1"
+          test "$release_count" = "0"
+          echo "PASS: exact version stamped atomically, security verified, rollback fixtures clean, duplicate deploy rejected"
+      - name: Stop disposable stack and remove generated plan
+        if: always()
+        run: |
+          supabase stop --no-backup >/dev/null 2>&1 || true
+          rm -rf /tmp/sideworld-controlled-deployment
 
   existing-data-upgrade:
     runs-on: ubuntu-latest
@@ -77,12 +157,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/sideworld-pending /tmp/v32-pending /tmp/studio-v0c-pending /tmp/studio-d3-pending
+          mkdir -p /tmp/sideworld-pending /tmp/v32-pending /tmp/studio-v0c-pending /tmp/studio-d3-pending /tmp/player-runtime-pending
           mv supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql /tmp/sideworld-pending/
           # SIDEWORLD Schema V3.2 is newer than 1B and the cleanup: apply it before Studio V0-C.
           mv supabase/migrations/20261006000*_sideworld_*.sql /tmp/v32-pending/
           mv supabase/migrations/20261007000*_sideworld_studio_*.sql /tmp/studio-v0c-pending/
-          mv supabase/migrations/20261008000*_sideworld_studio_*.sql supabase/migrations/*_sideworld_faction_media*.sql supabase/migrations/*_sideworld_quest_drafts*.sql /tmp/studio-d3-pending/
+          mv supabase/migrations/20261008000*_sideworld_studio_*.sql supabase/migrations/20261008130544_*.sql supabase/migrations/20261008130547_*.sql supabase/migrations/20261008130549_*.sql supabase/migrations/20261008135838_*.sql supabase/migrations/20261008184928_*.sql supabase/migrations/20261009052334_*.sql supabase/migrations/*_sideworld_faction_media*.sql supabase/migrations/*_sideworld_quest_drafts*.sql /tmp/studio-d3-pending/
+          mv supabase/migrations/*_sideworld_player_runtime*.sql /tmp/player-runtime-pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           git show 05105f7:supabase/seed.sql | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
@@ -98,12 +179,14 @@ jobs:
           supabase migration up --local
           mv /tmp/studio-d3-pending/*.sql supabase/migrations/
           supabase migration up --local
+          mv /tmp/player-runtime-pending/*.sql supabase/migrations/
+          supabase migration up --local
       - name: Verify SIDEWORLD upgrade with pre-existing data
         shell: bash
         run: |
           set -euo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
-          for script in supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql; do
+          for script in supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql; do
             docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"
             echo "PASS: $script"
           done
@@ -127,12 +210,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/staging-history /tmp/sideworld-pending /tmp/v32-pending /tmp/studio-v0c-pending /tmp/studio-d3-pending
+          mkdir -p /tmp/staging-history /tmp/sideworld-pending /tmp/v32-pending /tmp/studio-v0c-pending /tmp/studio-d3-pending /tmp/player-runtime-pending
           mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql /tmp/staging-history/
           mv supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql /tmp/sideworld-pending/
           mv supabase/migrations/20261006000*_sideworld_*.sql /tmp/v32-pending/
           mv supabase/migrations/20261007000*_sideworld_studio_*.sql /tmp/studio-v0c-pending/
-          mv supabase/migrations/20261008000*_sideworld_studio_*.sql supabase/migrations/*_sideworld_faction_media*.sql supabase/migrations/*_sideworld_quest_drafts*.sql /tmp/studio-d3-pending/
+          mv supabase/migrations/20261008000*_sideworld_studio_*.sql supabase/migrations/20261008130544_*.sql supabase/migrations/20261008130547_*.sql supabase/migrations/20261008130549_*.sql supabase/migrations/20261008135838_*.sql supabase/migrations/20261008184928_*.sql supabase/migrations/20261009052334_*.sql supabase/migrations/*_sideworld_faction_media*.sql supabase/migrations/*_sideworld_quest_drafts*.sql /tmp/studio-d3-pending/
+          mv supabase/migrations/*_sideworld_player_runtime*.sql /tmp/player-runtime-pending/
           # The actual staging has eight recorded migrations. Start with precisely
           # those eight on an EMPTY disposable local database, without final seed.
           supabase db reset --local --no-seed
@@ -155,7 +239,9 @@ jobs:
           supabase migration up --local
           mv /tmp/studio-d3-pending/*.sql supabase/migrations/
           supabase migration up --local
-          for script in supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql; do
+          mv /tmp/player-runtime-pending/*.sql supabase/migrations/
+          supabase migration up --local
+          for script in supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql; do
             docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"
             echo "PASS: $script"
           done
@@ -183,7 +269,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/pending
-          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql supabase/migrations/20261006000*_sideworld_*.sql supabase/migrations/20261007000*_sideworld_studio_*.sql supabase/migrations/20261008000*_sideworld_studio_*.sql supabase/migrations/*_sideworld_faction_media*.sql supabase/migrations/*_sideworld_quest_drafts*.sql /tmp/pending/
+          mv supabase/migrations/20260912*.sql supabase/migrations/20260913*.sql supabase/migrations/20260917*.sql supabase/migrations/20260919*.sql supabase/migrations/20261002000*_sideworld_*.sql supabase/migrations/*_retire_legacy_universe_v0.sql supabase/migrations/20261006000*_sideworld_*.sql supabase/migrations/20261007000*_sideworld_studio_*.sql supabase/migrations/20261008000*_sideworld_studio_*.sql supabase/migrations/20261008130544_*.sql supabase/migrations/20261008130547_*.sql supabase/migrations/20261008130549_*.sql supabase/migrations/20261008135838_*.sql supabase/migrations/20261008184928_*.sql supabase/migrations/20261009052334_*.sql supabase/migrations/*_sideworld_faction_media*.sql supabase/migrations/*_sideworld_quest_drafts*.sql /tmp/pending/
+          mv supabase/migrations/*_sideworld_player_runtime*.sql /tmp/pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           # Seed exactly as staging was seeded: seed.sql as it was before #27 (26eb571) renamed RIVERKEEPER.
@@ -199,7 +286,7 @@ jobs:
           set -uo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           failures=0
-          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql; do
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql; do
             echo "::group::$script (legacy_compatible)"
             if docker exec -i -e PGOPTIONS='-c outland.world_canon=legacy_compatible' "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
               echo "PASS: $script"
