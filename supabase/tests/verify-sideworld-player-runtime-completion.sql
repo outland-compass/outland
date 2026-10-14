@@ -9,8 +9,6 @@ begin
       'public.sideworld_player_run_apply_v2(uuid,uuid,uuid,text,integer,jsonb,boolean)','EXECUTE')
      or has_function_privilege('authenticated',
       'public.sideworld_player_run_apply_v2(uuid,uuid,uuid,text,integer,jsonb,boolean)','EXECUTE')
-     or has_function_privilege('PUBLIC',
-      'public.sideworld_player_run_apply_v2(uuid,uuid,uuid,text,integer,jsonb,boolean)','EXECUTE')
      or not has_function_privilege('service_role',
       'public.sideworld_player_run_apply_v2(uuid,uuid,uuid,text,integer,jsonb,boolean)','EXECUTE') then
     raise exception 'Player completion V2 RPC must be service-role-only';
