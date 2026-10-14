@@ -160,4 +160,92 @@ begin
 end
 $test$;
 
+
+-- Additional private-QA operator/release/grant lifecycle checks.
+-- This is a second Studio revision in the same synthetic, rolled-back fixture.
+insert into auth.users(id,instance_id,aud,role,email,raw_app_meta_data,
+                       raw_user_meta_data,created_at,updated_at)
+values ('dd100000-0000-4000-8000-000000000002',
+        '00000000-0000-0000-0000-000000000000','authenticated',
+        'authenticated','sideworld-player-ordinary-fixture@example.invalid',
+        '{}'::jsonb,'{}'::jsonb,now(),now());
+insert into shared.user_roles(user_id,role,created_by)
+values('dd100000-0000-4000-8000-000000000001','OWNER',
+       'dd100000-0000-4000-8000-000000000001');
+
+insert into canon.quest_draft_revisions(draft_id,revision,document,diagnostics,edited_by)
+values('dd600000-0000-4000-8000-000000000001',2,
+       '{"contractVersion":1,"testOnly":true,"secondRevision":true}'::jsonb,
+       '[]'::jsonb,'dd100000-0000-4000-8000-000000000001');
+update canon.quest_drafts set revision=2,status='draft'
+where id='dd600000-0000-4000-8000-000000000001';
+
+do $qa$
+declare
+  owner_id uuid:='dd100000-0000-4000-8000-000000000001';
+  tester_id uuid:='dd100000-0000-4000-8000-000000000002';
+  draft_id uuid:='dd600000-0000-4000-8000-000000000001';
+  result jsonb;
+  release_id uuid;
+begin
+  if player.is_qa_operator_v1(tester_id) then
+    raise exception 'Ordinary tester recognized as Studio admin';
+  end if;
+  if public.sideworld_player_qa_release_create_v1(
+      tester_id,draft_id,2,repeat('c',64))->>'kind'<>'unavailable' then
+    raise exception 'Non-admin operator created release';
+  end if;
+  result:=public.sideworld_player_qa_release_create_v1(
+      owner_id,draft_id,2,repeat('c',64));
+  if result->>'kind'<>'created' then
+    raise exception 'Expected new immutable QA release: %',result;
+  end if;
+  release_id:=(result->>'releaseId')::uuid;
+  if release_id is null or not exists(
+      select 1 from canon.quest_releases
+      where id=release_id and source_revision=2 and visibility='private_qa'
+        and document='{"contractVersion":1,"testOnly":true,"secondRevision":true}'::jsonb) then
+    raise exception 'QA release was not a frozen Studio revision';
+  end if;
+  if public.sideworld_player_qa_release_create_v1(
+      owner_id,draft_id,2,repeat('c',64))->>'kind'<>'existing' then
+    raise exception 'Identical repeated release was not idempotent';
+  end if;
+  if public.sideworld_player_qa_release_create_v1(
+      owner_id,draft_id,2,repeat('d',64))->>'kind'<>'conflict' then
+    raise exception 'Release accepted a different content checksum';
+  end if;
+  if public.sideworld_player_qa_grant_v1(
+      owner_id,release_id,tester_id,now()+interval '16 days')->>'kind'<>'invalid' then
+    raise exception 'Overlong QA entitlement was accepted';
+  end if;
+  if public.sideworld_player_qa_grant_v1(
+      tester_id,release_id,tester_id,now()+interval '1 hour')->>'kind'<>'unavailable' then
+    raise exception 'Ordinary tester granted themselves access';
+  end if;
+  if public.sideworld_player_qa_grant_v1(
+      owner_id,release_id,tester_id,now()+interval '1 hour')->>'kind'<>'granted'
+     or not player.can_use_release_v1(tester_id,release_id) then
+    raise exception 'Non-admin QA grant failed';
+  end if;
+  if public.sideworld_player_qa_revoke_v1(
+      tester_id,release_id,tester_id)->>'kind'<>'unavailable' then
+    raise exception 'Non-admin tester revoked their own grant';
+  end if;
+  if public.sideworld_player_qa_revoke_v1(
+      owner_id,release_id,tester_id)->>'kind'<>'revoked'
+     or player.can_use_release_v1(tester_id,release_id) then
+    raise exception 'Admin revocation failed to disable QA access';
+  end if;
+  if public.sideworld_player_qa_revoke_v1(
+      owner_id,release_id,tester_id)->>'kind'<>'revoked' then
+    raise exception 'Repeated revocation must be idempotent';
+  end if;
+  if public.sideworld_player_qa_grant_v1(
+      owner_id,release_id,tester_id,now()+interval '90 minutes')->>'kind'<>'granted'
+     or not player.can_use_release_v1(tester_id,release_id) then
+    raise exception 'Renewing a revoked QA grant failed';
+  end if;
+end $qa$;
+
 rollback;
