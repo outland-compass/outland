@@ -1,6 +1,6 @@
 # SIDEWORLD Player V1 — controlled production cutover checklist
 
-**Status:** PREPARATION ONLY — production SQL NOT authorized or applied. Draft [OUTLAND PR #70](https://github.com/outland-compass/outland/pull/70). The 2026-10-14 migration has already passed staging and CI. SIDEWORLD is the consumer platform; OUTLAND owns this shared Supabase migration, not the SIDEWORLD brand or universe catalog.
+**Status (updated 2026-10-14):** Production SQL **authorized, applied once and independently verified**; Player gameplay and Studio QA access remain **OFF**. This is an archived execution plan with historical pre-application steps, **NOT an instruction to rerun** the migration. See [Production deployment evidence](PLAYER_RUNTIME_PRODUCTION_DEPLOYMENT_2026_10_14.md). SIDEWORLD is the consumer platform; OUTLAND owns this shared Supabase migration, not the SIDEWORLD brand or universe catalog.
 
 ## Immutable change scope
 
@@ -17,7 +17,7 @@
 | Backup artifact expiry | 2026-10-21 10:34:35 UTC |
 | Studio QA interface | Merged Studio PRs #38/#39, *code only and flag OFF* |
 
-## 1 — No-write readiness gate
+## 1 — Historical no-write readiness gate (completed before first apply)
 
 Run from the reviewed OUTLAND PR #70 tree with Node.js (and `psql` when performing a live read-only check):
 
@@ -29,11 +29,11 @@ node scripts/sideworld/player-runtime-preflight.mjs --check-file
 node scripts/sideworld/player-runtime-preflight.mjs --db-preflight
 ```
 
-The script has **no write/apply mode**, verifies the audited SQL Git blob SHA, rejects non-production connection targets, checks PG17, 38 prior migrations, exact prior version `20261012151318`, no existing Player runtime objects or matching RPCs, and compares all existing four referenced tables' constraint/index/trigger/RLS fingerprints against the 2026-10-14 production read-only audit. It uses `default_transaction_read_only=on`, a short statement timeout and never prints credentials.
+The script has **no write/apply mode**. Before the authorized application it verified the audited SQL Git blob SHA, production project, PostgreSQL 17, **38 historical migrations**, missing Player objects and four referenced source schema fingerprints. **It must now intentionally FAIL against production, which correctly has 39 migrations and four Player tables. Do not bypass or weaken the checks to rerun it.**
 
 **STOP** if SQL fingerprint, migration inventory, schema dependencies, project reference, restore evidence or feature flags differ. Any legitimate later database change requires a fresh review of this pinned preflight rather than bypassing it.
 
-## 2 — Recovery and approval gate
+## 2 — Historical recovery and approval gate (completed for original cutover)
 
 Before any actual DDL:
 - Retain a **fresh, encrypted** application-level production dump off GitHub before artifact expiry; record verified SHA256. Keep the encryption key in a separate protected vault. Successful local application-data fingerprint restore of Oct 14 is evidence of this subset only, not a complete managed Supabase Auth/Storage disaster recovery drill. Explicitly record what managed services and object bytes are excluded.
@@ -41,7 +41,7 @@ Before any actual DDL:
 - Agree a short maintenance/low-traffic window; leave all Studio and Player QA/gameplay flags **OFF**. Verify current production backup is still valid if operations occur after Oct 14.
 - Confirm the application service role is server-only and production Auth/session/WAF/audit environment is not enabled accidentally. The Vercel firewall config was NOT independently verified as active, so rate limiting is still a gating item for activation.
 
-## 3 — Version-preserving production application method — NOT YET APPROVED
+## 3 — Version-preserving production application method — COMPLETED ONCE
 
 **Do not use `supabase db push` blindly.** Production and staging have three existing history timestamps that differ even though matched canonical table schemas and selected functions align. `supabase apply_migration` via the connector generated a new timestamp on staging; the production audit requires preserving the canonical `20261014104136` version.
 
@@ -53,7 +53,7 @@ A controlled execution implementation must be code-reviewed and exercised agains
 4. Re-query the ledger plus four tables, RLS/policies, eight service-only RPC grants and empty runtime data. Independently verify the Client-denial and rollback-only synthetic functional tests before calling the cutover successful.
 5. Record the actual transaction result and change identifier in the private operations log without secrets or any authoring content.
 
-**This version-preserving writer is NOT implemented or verified yet.** Do not attempt hand-entered production SQL to fill this gap, and do not mark this checklist ready for cutover until the reviewed runner exists and is tested. This is deliberately a stop condition.
+The version-preserving SQL renderer and disposable PostgreSQL test were implemented and passed Database CI [#38558777175](https://github.com/outland-compass/outland/actions/runs/38558777175). The **exact reviewed transaction was subsequently executed once after founder approval**, and independent production SQL confirmed the requested ledger version and empty, deny-by-default runtime tables. **Never execute this one-time transaction again.**
 
 ## 4 — Abort, rollback and forward-fix strategy
 
@@ -78,4 +78,15 @@ Before enabling real gameplay: verify Studio operator Auth and OWNER/ADMIN bindi
 - Founder authorization for exact production DDL and target.
 - Production postflight (migration version, zero player rows, RLS/grants verified) and next, separately authorized, protected real QA run.
 
-**Current decision:** stay production-first, but do not confuse an inert schema preparation with permission to execute high-risk RLS/SECURITY DEFINER changes on the live database.
+**Current decision:** The specifically approved production schema application is complete; no rerun. Future work is restricted to version-controlled reconciliation, secure operator audit/rate limits, live Auth integration, QA and independently approved gameplay activation. Production-first does not mean staging is mandatory for small safe code changes.
+
+## 7 — Actual production postflight
+
+Confirmed after the user-authorized one-time transaction on 2026-10-14:
+- Production migration version `20261014104136`, name `sideworld_player_runtime_v1`, total history entries **39**.
+- Staging and production ledger SQL MD5 both `6c6e1316567539d03e70ea5688ffca6b`, matching 21415 bytes. Original migration blob remains `8fcca2a8a0eec82f4dd899412e14848d279b9295`.
+- Four RLS-enabled tables, zero client policies/direct grants; eight `service_role`-only RPCs with restrictive `search_path`; **zero** live releases, grants, runs and receipts.
+- OUTLAND PR #70 was initially still Draft after schema application and required source-control reconciliation. Deploying/merging code is distinct from deploying SQL.
+- No verified new SIDEWORLD Studio or Player production application deployment, and **no gameplay enablement**.
+
+Further details: [Production deployment record](PLAYER_RUNTIME_PRODUCTION_DEPLOYMENT_2026_10_14.md). The earlier sections are preserved as a historical plan only.
