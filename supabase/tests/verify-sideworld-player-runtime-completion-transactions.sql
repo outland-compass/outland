@@ -63,7 +63,7 @@ declare
   nonterminal_id uuid := 'ed900000-0000-4000-8000-000000000002';
   terminal_id uuid := 'ed900000-0000-4000-8000-000000000003';
   extra_id uuid := 'ed900000-0000-4000-8000-000000000004';
-  run_id uuid;
+  v_run_id uuid;
   initial_progress jsonb;
   first_progress jsonb;
   final_progress jsonb;
@@ -76,16 +76,16 @@ begin
   if out->>'kind'<>'started' or out->>'status'<>'in_progress' then
     raise exception 'Completion fixture start failed: %',out;
   end if;
-  run_id:=(out->>'runId')::uuid;
+  v_run_id:=(out->>'runId')::uuid;
 
   first_progress:=initial_progress ||
     jsonb_build_object('sequence',1,'events',
       jsonb_build_array(jsonb_build_object('type','arrive')));
-  if public.sideworld_player_run_apply_v2(actor_id,run_id,nonterminal_id,
+  if public.sideworld_player_run_apply_v2(actor_id,v_run_id,nonterminal_id,
       repeat('b',64),0,first_progress,null)->>'kind'<>'invalid' then
     raise exception 'Null terminal bit must fail closed';
   end if;
-  out:=public.sideworld_player_run_apply_v2(actor_id,run_id,nonterminal_id,
+  out:=public.sideworld_player_run_apply_v2(actor_id,v_run_id,nonterminal_id,
     repeat('b',64),0,first_progress,false);
   if out->>'kind'<>'saved' or out->>'status'<>'in_progress' then
     raise exception 'Nonterminal V2 command failed: %',out;
@@ -95,38 +95,38 @@ begin
     jsonb_build_object('sequence',2,'events',
       jsonb_build_array(jsonb_build_object('type','arrive'),
         jsonb_build_object('type','continue')));
-  out:=public.sideworld_player_run_apply_v2(actor_id,run_id,terminal_id,
+  out:=public.sideworld_player_run_apply_v2(actor_id,v_run_id,terminal_id,
     repeat('c',64),1,final_progress,true);
   if out->>'kind'<>'saved' or out->>'status'<>'completed'
     or out->'sequence' <> '2'::jsonb then
     raise exception 'Atomic terminal V2 command failed: %',out;
   end if;
-  if not exists(select 1 from player.quest_runs where id=run_id
+  if not exists(select 1 from player.quest_runs where id=v_run_id
       and status='completed' and sequence=2 and progress=final_progress) then
     raise exception 'Terminal status not persisted with progress';
   end if;
 
-  out:=public.sideworld_player_run_apply_v2(actor_id,run_id,terminal_id,
+  out:=public.sideworld_player_run_apply_v2(actor_id,v_run_id,terminal_id,
     repeat('c',64),1,final_progress,true);
   if out->>'kind'<>'duplicate' or out->>'status'<>'completed' then
     raise exception 'Retry after completion must remain idempotent: %',out;
   end if;
-  if public.sideworld_player_run_apply_v2(actor_id,run_id,terminal_id,
+  if public.sideworld_player_run_apply_v2(actor_id,v_run_id,terminal_id,
       repeat('d',64),1,final_progress,true)->>'kind'<>'conflict' then
     raise exception 'RequestId reused with different fingerprint';
   end if;
-  if public.sideworld_player_run_apply_v1(actor_id,run_id,extra_id,
+  if public.sideworld_player_run_apply_v1(actor_id,v_run_id,extra_id,
       repeat('e',64),2,final_progress)->>'kind'<>'conflict' then
     raise exception 'Legacy V1 must not advance a completed run';
   end if;
-  if public.sideworld_player_run_apply_v2(other_id,run_id,extra_id,
+  if public.sideworld_player_run_apply_v2(other_id,v_run_id,extra_id,
       repeat('e',64),2,final_progress,true)->>'kind'<>'unavailable' then
     raise exception 'Other actor must not complete this run';
   end if;
-  if (select count(*) from player.run_receipts where run_id=run_id)<>2 then
+  if (select count(*) from player.run_receipts where run_id=v_run_id)<>2 then
     raise exception 'Completion retry generated an extra receipt';
   end if;
-  if public.sideworld_player_run_get_v1(actor_id,run_id)->>'status'<>'completed' then
+  if public.sideworld_player_run_get_v1(actor_id,v_run_id)->>'status'<>'completed' then
     raise exception 'Existing V1 read must expose completed status to trusted server';
   end if;
 end $completion$;
