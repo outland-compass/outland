@@ -128,8 +128,12 @@ jobs:
             echo "::error::Double application unexpectedly succeeded"
             exit 1
           fi
-          docker exec "$db_container" psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres \
-            -c "DO \\\$\\\$ BEGIN IF (SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version='20261014104136' AND name='sideworld_player_runtime_v1')<>1 OR (SELECT count(*) FROM canon.quest_releases)<>0 THEN RAISE EXCEPTION 'Controlled rehearsal ledger/data mismatch'; END IF; END \\\$\\\$;"
+          ledger_count=$(docker exec "$db_container" psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            -c "SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version='20261014104136' AND name='sideworld_player_runtime_v1'")
+          release_count=$(docker exec "$db_container" psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            -c "SELECT count(*) FROM canon.quest_releases")
+          test "$ledger_count" = "1"
+          test "$release_count" = "0"
           echo "PASS: exact version stamped atomically, security verified, rollback fixtures clean, duplicate deploy rejected"
       - name: Stop disposable stack and remove generated plan
         if: always()
