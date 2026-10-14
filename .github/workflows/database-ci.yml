@@ -8,6 +8,7 @@ on:
       - 'scripts/legacy-cleanup/**'
       - '.github/workflows/database-ci.yml'
       - 'scripts/generate-db-types.mjs'
+      - 'scripts/sideworld/player-runtime-preflight*.mjs'
   workflow_dispatch:
 
 permissions:
@@ -32,6 +33,11 @@ jobs:
         run: supabase start
       - name: Full clean migration replay
         run: supabase db reset --local
+      - name: Verify pinned SIDEWORLD Player production preflight is read-only
+        run: |
+          node --version
+          node --test scripts/sideworld/player-runtime-preflight.test.mjs
+          node scripts/sideworld/player-runtime-preflight.mjs --check-file
       - name: Verify SIDEWORLD Data API exposure contract
         shell: bash
         run: |
