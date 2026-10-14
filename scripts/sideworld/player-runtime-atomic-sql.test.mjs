@@ -15,7 +15,7 @@ test('renders reviewed migration, explicit BEGIN/COMMIT, preflight lock and EXAC
   assert.match(p,new RegExp("VALUES\\('"+MIGRATION_VERSION+"'"));
   assert.match(p,/BEGIN;/);assert.match(p,/COMMIT;\s*$/);
   assert.match(p,/ARRAY\[\$sideworld_player_sql_source\$/);
-  assert.match(p,/select.*dummy-never-matches/i.test(p)?/Dummy/:/sideworld_player_qa_revoke_v1/);
+  assert.match(p,/sideworld_player_qa_revoke_v1/);
   assert.ok(p.indexOf('create table canon.quest_releases')<p.indexOf('INSERT INTO supabase_migrations.schema_migrations'));
   assert.ok(p.indexOf('INSERT INTO supabase_migrations.schema_migrations')<p.indexOf('END $sideworld_player_postflight$'));
   assert.ok(!p.includes('DROP SCHEMA'));
