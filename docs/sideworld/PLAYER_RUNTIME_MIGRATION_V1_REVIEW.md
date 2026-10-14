@@ -1,6 +1,6 @@
 # SIDEWORLD Player Runtime V1 — migration review and rollback
 
-**Status:** APPLIED ONLY TO STAGING on 2026-10-14, NOT APPLIED TO PRODUCTION. Draft PR; not authorized to merge/deploy or enable gameplay. Tracking: [OUTLAND #69](https://github.com/outland-compass/outland/issues/69), [Player #12](https://github.com/outland-compass/sideworld_app/issues/12).
+**Status (updated 2026-10-14):** APPLIED to both staging and production **exactly once**, under separate founder authorization. Production ledger version `20261014104136` verified, RLS and RPC roles checked, 0 data. **Gameplay and private QA activation remain OFF.** Full independent evidence: [Production deployment record](PLAYER_RUNTIME_PRODUCTION_DEPLOYMENT_2026_10_14.md). This document retains earlier pre-application checklists as historical audit records. Tracking: [OUTLAND #69](https://github.com/outland-compass/outland/issues/69), [Player #12](https://github.com/outland-compass/sideworld_app/issues/12).
 
 ## Read-only evidence, 2026-10-13
 
@@ -10,7 +10,7 @@
 - Canonical `universe.universes`, `canon.franchises`, `canon.series`, `geo.cities` exist; this migration creates no duplicate registry. `canon.quest_draft_revisions` already has primary key (`draft_id,revision`).
 - Player main now contains the generic engine, server-owned RPC adapter, separate QA identity, gated HTTP API and mobile renderer (merged Player PRs #15/#18/#19). Live gameplay remains OFF. Existing Studio editorial login requires OWNER/ADMIN; ordinary testers must never inherit that role.
 - Three older same-name migrations use different timestamps across production/staging. Key seven table-column schemas and eleven Studio/admin function definitions were identical in read-only comparisons; staging-only rehearsal occurred without rewriting any historical ledger.
-- Fresh encrypted production backup and isolated **application-table restore fingerprints** verified in Studio Actions [#38550055892](https://github.com/outland-compass/sideworld_studio/actions/runs/38550055892), 2026-10-14. Off-site custody and full managed Auth/Storage disaster recovery remain unverified. Production DDL still needs explicit approval.
+- Fresh encrypted production backup and isolated **application-table restore fingerprints** verified in Studio Actions [#38550055892](https://github.com/outland-compass/sideworld_studio/actions/runs/38550055892), 2026-10-14. Founder attested off-site encrypted backup custody and separate key storage; external checksum/decryption were not independently inspected. Full managed Auth/Storage recovery remains unverified. The exact SQL subsequently received approval and was applied.
 
 ## Proposed additive structure
 
@@ -23,7 +23,7 @@
 
 Eight proposed `public.sideworld_player_*` RPC functions are **service-role-only**: five runtime functions (release read, start, run read, receipt read, atomic compare-and-save) plus three private QA operations (release create, grant, revoke). Table RLS is ON with no client policies and no direct role grants. Internal helpers enforce QA eligibility and Studio operator roles.
 
-The migration creates **zero releases, zero QA grants and zero runs**. It now proposes narrowly authorized create/grant/revoke RPCs **for private QA only**; it does **not** include a public publish/approve, reset API, Studio admin HTTP workflow or automatic tester invitation. An authenticated Studio server route must derive the operator UUID from verified Auth, check OWNER/ADMIN and call the privileged RPC with explicit operator approval. The SQL also checks `shared.user_roles`. The new Player-only manifest helper (Draft PR #20) computes the actual engine hash; it performs no writes. Do not treat this migration alone as an invitation to play.
+The migration creates **zero releases, zero QA grants and zero runs**. It now proposes narrowly authorized create/grant/revoke RPCs **for private QA only**; it does **not** include a public publish/approve, reset API, Studio admin HTTP workflow or automatic tester invitation. An authenticated Studio server route must derive the operator UUID from verified Auth, check OWNER/ADMIN and call the privileged RPC with explicit operator approval. The SQL also checks `shared.user_roles`. The Player-only manifest helper (merged Player PR #20) computes the actual engine hash; it performs no writes. Do not treat this migration alone as an invitation to play.
 
 ### Trust boundary — important
 
@@ -38,7 +38,7 @@ For `run_apply`, a row-level `FOR UPDATE` lock serializes commands. Existing rec
 - Storing a progress event history in every receipt is acceptable for private MVP **only** with bounds. Revisit data growth, replay cost, retention and event compaction before multi-city scale.
 - `quest_runs.status` is initially `in_progress`; completion/abandon and reset must have future trusted, engine-validated RPC logic.
 - User experience, public catalog, browser session, source/media licensing, verified physical stops and payment entitlements are not implemented.
-- The SQL including QA operator RPCs passed disposable PostgreSQL 17 replay, synthetic SQL and two-connection CAS at source head `0eaea1f`; it was also applied to the authorized staging database and passed role/functional rollback tests. The file was renamed with identical blob content to match staging's generated migration version. **Final renamed PR head must pass fresh CI.** Live browser Auth, actual Studio V2 source and field QA are unverified.
+- The SQL including QA operator RPCs passed disposable PostgreSQL 17 replay, synthetic SQL and two-connection CAS at source head `0eaea1f`; it was also applied to the authorized staging database and passed role/functional rollback tests. The file was renamed with identical blob content to match staging's generated migration version. **Final PR head `ba15306` passed all five Database CI and Web CI checks.** Live browser Auth, actual Studio V2 source and field QA are unverified.
 
 ## Mandatory checks before considering database application
 
@@ -52,7 +52,7 @@ For `run_apply`, a row-level `FOR UPDATE` lock serializes commands. Existing rec
 - [ ] GitHub PR and automated checks must pass. Obtain explicit founder approval of the exact SQL, backup/restore evidence and deployment window before any production migration. High-risk RLS/auth changes warrant staging rehearsal; staging otherwise remains optional.
 
 
-## Private QA operator workflow — proposal only
+## Private QA operator workflow — schema deployed, activation pending
 
 1. An authenticated **Studio OWNER/ADMIN** explicitly chooses a stored `draft_id` and exact revision, reads the complete authoring document from a trusted server-only path, and checks editorial diagnostics. Never trust an actor UUID or authoring document submitted by the browser.
 2. The Player's server-only `preparePrivateQaRelease` calculates `engineContentHash` with the actual generic engine and emits an **answer-free** manifest. It is not an approval, signature, publication or database update.
@@ -60,11 +60,11 @@ For `run_apply`, a row-level `FOR UPDATE` lock serializes commands. Existing rec
 4. A privileged operator calls `sideworld_player_qa_grant_v1(operator,release,tester,expires_at)`, only for existing Supabase Auth users, with 5-minute minimum and 14-day maximum expiry. Testers do not receive Studio admin privileges. `sideworld_player_qa_revoke_v1` revokes access immediately at the release entitlement check; a conscious future re-grant can reactivate it.
 5. The Player loader **independently** validates the release content and recomputes the hash before game start, resume or action; neither the manifest nor Studio admin credentials reach the browser.
 
-The RPCs alone are insufficient for production: **no authenticated operator HTTP action, audit log, approval UX or rate limiter is wired**. Create those behind default-OFF Studio flags in a separate code PR and test before allowing real access. Do not auto-mark any source, field or media as approved.
+The RPCs alone are insufficient for gameplay activation. Studio PRs #38 and #39 merged the feature-gated admin API and confirmation UI into Studio `main` but the verified Vercel Studio production deployment remained on an older commit. Persistent tamper-evident operator audit and verified distributed rate limiting are **not yet operational**. Both Stage and Production remain with zero authorized Player content/user runs; do not activate gameplay or auto-mark sources, field safety or media as approved.
 
 ## Backup and restore evidence — mandatory operational gate
 
-The Supabase connector does not expose managed backups, but the independent GitHub Actions [run #38550055892](https://github.com/outland-compass/sideworld_studio/actions/runs/38550055892) confirmed a fresh encrypted production export and isolated application-table restore. Encrypted artifact `production-backup-38550055892` (ID 11886865484, 480770 bytes) expires **2026-10-21T10:34:35Z**. Managed recovery completeness, off-site preservation and billing tier remain unverified.
+The Supabase connector does not expose managed backups, but the independent GitHub Actions [run #38550055892](https://github.com/outland-compass/sideworld_studio/actions/runs/38550055892) confirmed a fresh encrypted production export and isolated application-table restore. Encrypted artifact `production-backup-38550055892` (ID 11886865484, 480770 bytes) expires **2026-10-21T10:34:35Z**. Managed recovery completeness and billing tier remain unverified; founder attested off-GitHub encrypted-copy custody with key stored separately, but external checksum and decryption not independently checked.
 
 Current Supabase [Database Backups](https://supabase.com/docs/guides/platform/backups) guidance: daily managed backups are available on paid plans; Free projects should maintain external logical dumps through `supabase db dump`. See [Backup/Restore CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore) for role, schema and data export/restore instructions.
 
@@ -82,9 +82,9 @@ The exact SQL blob from source head `0eaea1fbed5a81a9275f29a00477f39ac143e17a` w
 
 **Executed on actual staging:** `verify-sideworld-player-runtime.sql` PASS; `verify-sideworld-player-client-denials.sql` as `anon` and `authenticated` PASS; complete `verify-sideworld-player-runtime-transactions.sql` synthetic release/QA/atomic progress/grant/revoke lifecycle PASS inside BEGIN/ROLLBACK; separate `SET LOCAL ROLE service_role` nonexistent-run query returned null. Post-test query confirmed zero synthetic users/drafts/releases and **zero** runtime rows. Two concurrent PostgreSQL sessions were separately tested only in disposable Database CI, **not** on live staging.
 
-Supabase Security Advisor reports `rls_enabled_no_policy` INFO for four new tables, **intentional private deny-by-default**, not an accidental public exposure. Other advisor WARN items concern pre-existing Auth/functions and are not silently marked as fixed. Production read-only verification confirmed the new release/run tables do NOT exist.
+Supabase Security Advisor reports `rls_enabled_no_policy` INFO for four new tables, **intentional private deny-by-default**, not an accidental public exposure. Other advisor WARN items concern pre-existing Auth/functions and are not silently marked as fixed. At staging-test time production did not yet have those tables. **Later production postflight confirms all four exist with RLS ON and zero rows.**
 
-**Operational boundary:** Staging has the new schema; this is NOT production approval. Do not merge/apply PR #70 to production or enable gameplay without final CI, validated encrypted backup custody, complete security/operator workflow review and explicit founder authorization.
+**Historical staging boundary:** The staging-only approval did not authorize production. A later explicit founder authorization was given and **this exact migration was applied once to production**. This is not authorization to rerun it or enable gameplay. See the independent production postflight record linked above.
 
 
 ## Rollback / abort plan (manual; no execution)
@@ -93,4 +93,4 @@ Supabase Security Advisor reports `rls_enabled_no_policy` INFO for four new tabl
 2. **After a zero-data isolated apply:** disable gameplay flags, drain requests and confirm all new tables contain **zero** user data. Revoke/drop all **eight** new public RPCs (five runtime plus three QA operator endpoints), both internal access/operator helpers, then the new tables in dependency order: `player.run_receipts`, `player.quest_runs`, `player.qa_access`, `canon.quest_releases`. Drop the newly added release guard function and the `player` schema only if empty. Do not use `CASCADE`; do not touch `canon.quest_drafts`, `canon.quest_draft_revisions`, canonical universes or Passport.
 3. **If any releases, grants or runs exist:** **do not drop tables**. Disable the feature and apply a reviewed forward fix after exporting/preserving data. Restore only from a verified recovery point with explicit authorization.
 
-**Verified vs proposed:** The unchanged proposed SQL was executed on actual staging after explicit authorization, and both client-role and synthetic rollback-only lifecycle tests passed. Production remains unmodified/unauthorized. GitHub CI of the *renamed filename* must still pass; full Auth/Storage recovery, real Studio operator UI, rate limiting, live gameplay and field QA remain outstanding.
+**Verified vs proposed (final state):** The exact approved SQL was applied once to production after staging replay, source reconciliation and founder authorization. Production postflight and matching staging/production ledger MD5 are recorded separately. Source CI fully passed. Operator UI code exists in Studio `main` but is not in the verified deployed Studio build. Full managed Auth/Storage recovery, distributed rate limits, durable audit, actual Player/Studio Auth handshake, live gameplay and field QA remain outstanding.
