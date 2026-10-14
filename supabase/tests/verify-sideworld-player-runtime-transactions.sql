@@ -223,28 +223,29 @@ begin
       tester_id,release_id,tester_id,now()+interval '1 hour')->>'kind'<>'unavailable' then
     raise exception 'Ordinary tester granted themselves access';
   end if;
-  if public.sideworld_player_qa_grant_v1(
-      owner_id,release_id,tester_id,now()+interval '1 hour')->>'kind'<>'granted'
-     or not player.can_use_release_v1(tester_id,release_id) then
-    raise exception 'Non-admin QA grant failed';
+  -- Calls that mutate data must be completed in their own SQL statement:
+  -- STABLE eligibility functions use the statement snapshot.
+  result := public.sideworld_player_qa_grant_v1(
+    owner_id,release_id,tester_id,now()+interval '1 hour');
+  if result->>'kind'<>'granted' or not player.can_use_release_v1(tester_id,release_id) then
+    raise exception 'Non-admin QA grant failed: %',result;
   end if;
   if public.sideworld_player_qa_revoke_v1(
       tester_id,release_id,tester_id)->>'kind'<>'unavailable' then
     raise exception 'Non-admin tester revoked their own grant';
   end if;
-  if public.sideworld_player_qa_revoke_v1(
-      owner_id,release_id,tester_id)->>'kind'<>'revoked'
-     or player.can_use_release_v1(tester_id,release_id) then
-    raise exception 'Admin revocation failed to disable QA access';
+  result := public.sideworld_player_qa_revoke_v1(owner_id,release_id,tester_id);
+  if result->>'kind'<>'revoked' or player.can_use_release_v1(tester_id,release_id) then
+    raise exception 'Admin revocation failed to disable QA access: %',result;
   end if;
   if public.sideworld_player_qa_revoke_v1(
       owner_id,release_id,tester_id)->>'kind'<>'revoked' then
     raise exception 'Repeated revocation must be idempotent';
   end if;
-  if public.sideworld_player_qa_grant_v1(
-      owner_id,release_id,tester_id,now()+interval '90 minutes')->>'kind'<>'granted'
-     or not player.can_use_release_v1(tester_id,release_id) then
-    raise exception 'Renewing a revoked QA grant failed';
+  result := public.sideworld_player_qa_grant_v1(
+    owner_id,release_id,tester_id,now()+interval '90 minutes');
+  if result->>'kind'<>'granted' or not player.can_use_release_v1(tester_id,release_id) then
+    raise exception 'Renewing a revoked QA grant failed: %',result;
   end if;
 end $qa$;
 
