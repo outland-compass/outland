@@ -19,7 +19,10 @@ begin
   if not exists (
     select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and p.proname='sideworld_player_run_apply_v2'
-      and p.prosecdef and p.proconfig @> array['search_path=']
+      and p.prosecdef and exists (
+        select 1 from unnest(p.proconfig) as setting(value)
+        where setting.value in ('search_path=', 'search_path=""')
+      )
   ) then
     raise exception 'Completion V2 must be SECURITY DEFINER with pinned empty search_path';
   end if;
