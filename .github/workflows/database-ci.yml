@@ -8,7 +8,7 @@ on:
       - 'scripts/legacy-cleanup/**'
       - '.github/workflows/database-ci.yml'
       - 'scripts/generate-db-types.mjs'
-      - 'scripts/sideworld/player-runtime-preflight*.mjs'
+      - 'scripts/sideworld/player-runtime-*.mjs'
   workflow_dispatch:
 
 permissions:
@@ -36,7 +36,7 @@ jobs:
       - name: Verify pinned SIDEWORLD Player production preflight is read-only
         run: |
           node --version
-          node --test scripts/sideworld/player-runtime-preflight.test.mjs
+          node --test scripts/sideworld/player-runtime-preflight.test.mjs scripts/sideworld/player-runtime-atomic-sql.test.mjs
           node scripts/sideworld/player-runtime-preflight.mjs --check-file
       - name: Verify SIDEWORLD Data API exposure contract
         shell: bash
@@ -85,6 +85,57 @@ jobs:
       - name: Stop disposable stack
         if: always()
         run: supabase stop --no-backup
+
+
+  controlled-transaction-disposable-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Create baseline without Player V1 and rehearse exact atomic version ledger insert
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/sideworld-controlled-deployment
+          mv supabase/migrations/*_sideworld_player_runtime_v1.sql /tmp/sideworld-controlled-deployment/
+          supabase db reset --local --no-seed
+          mv /tmp/sideworld-controlled-deployment/*_sideworld_player_runtime_v1.sql supabase/migrations/
+          node --test scripts/sideworld/player-runtime-preflight.test.mjs scripts/sideworld/player-runtime-atomic-sql.test.mjs
+          node scripts/sideworld/player-runtime-atomic-sql.mjs --render-for-review > /tmp/sideworld-controlled-deployment/plan.sql
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          test -n "$db_container"
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < /tmp/sideworld-controlled-deployment/plan.sql
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < supabase/tests/verify-sideworld-player-runtime.sql
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < supabase/tests/verify-sideworld-player-client-denials.sql
+          docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < supabase/tests/verify-sideworld-player-runtime-transactions.sql
+          # Must fail closed if the version is already in the ledger (no double apply).
+          if docker exec -i "$db_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            < /tmp/sideworld-controlled-deployment/plan.sql > /dev/null 2>&1; then
+            echo "::error::Double application unexpectedly succeeded"
+            exit 1
+          fi
+          docker exec "$db_container" psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres \
+            -c "DO \\\$\\\$ BEGIN IF (SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version='20261014104136' AND name='sideworld_player_runtime_v1')<>1 OR (SELECT count(*) FROM canon.quest_releases)<>0 THEN RAISE EXCEPTION 'Controlled rehearsal ledger/data mismatch'; END IF; END \\\$\\\$;"
+          echo "PASS: exact version stamped atomically, security verified, rollback fixtures clean, duplicate deploy rejected"
+      - name: Stop disposable stack and remove generated plan
+        if: always()
+        run: |
+          supabase stop --no-backup >/dev/null 2>&1 || true
+          rm -rf /tmp/sideworld-controlled-deployment
 
   existing-data-upgrade:
     runs-on: ubuntu-latest
