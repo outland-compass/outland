@@ -215,7 +215,7 @@ create function public.sideworld_quest_visual_complete(
  p_actor uuid,p_job uuid,p_sha256 text,p_mime text,p_width integer,p_height integer,
  p_role text,p_kind text,p_rights text,p_source_ref text,p_provenance jsonb,
  p_cost_usd numeric
-) returns uuid language plpgsql security definer set search_path='' as $
+) returns uuid language plpgsql security definer set search_path='' as $$
 declare j canon.quest_visual_jobs; v_path text; v_asset uuid; v_version integer; v_ext text;
 begin
  if not exists(select 1 from shared.user_roles where user_id=p_actor and role::text in ('OWNER','ADMIN'))
@@ -289,11 +289,11 @@ comment on table canon.quest_visual_jobs is
    actual_cost_usd=p_cost_usd,usage=coalesce(p_provenance->'usage','{}'::jsonb),
    finished_at=now() where id=j.id;
  return v_asset;
-end $;
+end $$;
 
 create function public.sideworld_quest_visual_fail(
  p_actor uuid,p_job uuid,p_error_code text
-) returns boolean language plpgsql security definer set search_path='' as $
+) returns boolean language plpgsql security definer set search_path='' as $$
 declare v_id uuid;
 begin
  if not exists(select 1 from shared.user_roles where user_id=p_actor and role::text in ('OWNER','ADMIN'))
@@ -328,11 +328,11 @@ comment on table canon.quest_visual_jobs is
    finished_at=now()
  where id=p_job and actor_id=p_actor and status='reserved' returning id into v_id;
  return v_id is not null;
-end $;
+end $$;
 
 -- Admin-only lookup for server-side image preview bytes. No storage path is returned to browsers.
 create function public.sideworld_quest_visual_private_asset(p_actor uuid,p_asset uuid)
-returns jsonb language plpgsql stable security definer set search_path='' as $
+returns jsonb language plpgsql stable security definer set search_path='' as $$
 declare a canon.quest_visual_assets;
 begin
  if not exists(select 1 from shared.user_roles where user_id=p_actor and role::text in ('OWNER','ADMIN'))
@@ -342,7 +342,7 @@ begin
  return jsonb_build_object('id',a.id,'draftId',a.draft_id,'revision',a.revision,
   'storagePath',a.storage_path,'sha256',a.source_sha256,'mimeType',a.mime_type,
   'approval',a.approval_status);
-end $;
+end $$;
 
 -- Guarded write APIs are intentionally incomplete until Storage byte verification
 -- and durable job completion are implemented in Studio. NEVER flip the write flag
