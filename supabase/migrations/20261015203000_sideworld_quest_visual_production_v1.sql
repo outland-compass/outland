@@ -204,7 +204,7 @@ begin
  if p_scene='' and p_slot not in ('cover','finale') then raise exception 'Scene binding required'; end if;
  if not (
    (p_slot='cover' and p_scene='' and v_asset.visual_role='cover') or
-   (p_slot='scene' and p_scene<>'' and v_asset.visual_role in ('scene_backdrop','sketchbook','atlas')) or
+   (p_slot='scene' and p_scene<>'' and v_asset.visual_role in ('scene_backdrop','sketchbook','atlas','location_photo')) or
    (p_slot='evidence' and p_scene<>'' and v_asset.visual_role='puzzle_evidence') or
    (p_slot='notebook' and p_scene<>'' and v_asset.visual_role='notebook_artifact') or
    (p_slot='finale' and p_scene='' and v_asset.visual_role='finale_art')
@@ -322,7 +322,7 @@ create function public.sideworld_quest_visual_for_release(
    a.storage_bucket='sideworld-quest-media' and
    (
      (b.slot='cover' and b.scene_id='' and a.visual_role='cover') or
-     (b.slot='scene' and a.visual_role in ('scene_backdrop','sketchbook','atlas')) or
+     (b.slot='scene' and a.visual_role in ('scene_backdrop','sketchbook','atlas','location_photo')) or
      (b.slot='evidence' and a.visual_role='puzzle_evidence') or
      (b.slot='notebook' and a.visual_role='notebook_artifact') or
      (b.slot='finale' and b.scene_id='' and a.visual_role='finale_art')
