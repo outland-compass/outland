@@ -63,8 +63,14 @@ create table canon.quest_visual_assets (
     or (approval_status in ('candidate','rejected') and approved_by is null and approved_at is null)
   ),
   constraint quest_visual_real_media_provenance check (
-    (source_kind='ai_illustration' and visual_role not in ('historical_source','location_photo'))
-    or source_kind<>'ai_illustration'
+    (visual_role='location_photo' and source_kind='real_photo') or
+    (visual_role='historical_source' and source_kind='historical_source') or
+    (visual_role not in ('historical_source','location_photo') and
+      source_kind in ('ai_illustration','manual_illustration'))
+  ),
+  constraint quest_visual_private_content_path check (
+    storage_path = draft_id::text || '/r' || revision::text || '/' || source_sha256 ||
+      case mime_type when 'image/png' then '.png' when 'image/jpeg' then '.jpg' else '.webp' end
   )
 );
 create index quest_visual_assets_draft on canon.quest_visual_assets(draft_id,revision,created_at desc);
@@ -166,6 +172,7 @@ begin
    approved_by=case when p_decision='approved' then p_actor else null end,
    approved_at=case when p_decision='approved' then now() else null end
  where id=p_asset and source_sha256=p_expected_sha256 and approval_status='candidate'
+   and exists(select 1 from storage.objects obj where obj.bucket_id=storage_bucket and obj.name=storage_path)
  returning id into v_id;
  return v_id is not null;
 end $$;
