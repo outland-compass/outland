@@ -155,7 +155,15 @@ begin
     'id',j.id,'briefId',j.brief_id,'status',j.status,'provider',j.provider,
     'model',j.model,'maxCostUsd',j.max_cost_usd,'actualCostUsd',j.actual_cost_usd,
     'createdAt',j.created_at) order by j.created_at desc)
-    from canon.quest_visual_jobs j where j.draft_id=p_draft and j.revision=p_revision),'[]'::jsonb)
+    from canon.quest_visual_jobs j where j.draft_id=p_draft and j.revision=p_revision),'[]'::jsonb),
+  'releases',coalesce((select jsonb_agg(jsonb_build_object(
+    'id',r.id,'visibility',r.visibility,'revision',r.source_revision) order by r.created_at desc)
+    from canon.quest_releases r where r.source_draft_id=p_draft and
+      r.source_revision=p_revision and r.visibility='private_qa'),'[]'::jsonb),
+  'bindings',coalesce((select jsonb_agg(jsonb_build_object(
+    'releaseId',b.release_id,'assetId',b.asset_id,'sceneId',b.scene_id,'slot',b.slot))
+    from canon.quest_visual_bindings b join canon.quest_releases r on r.id=b.release_id
+    where r.source_draft_id=p_draft and r.source_revision=p_revision),'[]'::jsonb)
  );
 end $$;
 
