@@ -241,6 +241,10 @@ grant execute on function public.sideworld_quest_visual_complete(uuid,uuid,text,
  to service_role;
 grant execute on function public.sideworld_quest_visual_fail(uuid,uuid,text)
  to service_role;
+revoke all on function public.sideworld_quest_visual_private_asset(uuid,uuid)
+ from public,anon,authenticated;
+grant execute on function public.sideworld_quest_visual_private_asset(uuid,uuid)
+ to service_role;
 
 comment on table canon.quest_visual_assets is
  'Quest-scoped approved/candidate artwork metadata. Immutable source SHA and private storage. No public image URLs.';
@@ -258,7 +262,7 @@ comment on table canon.quest_visual_jobs is
     (p_role='location_photo' and p_kind<>'real_photo') or
     length(btrim(p_rights)) not between 20 and 1000 or
     jsonb_typeof(p_provenance)<>'object' or pg_column_size(p_provenance)>16000 or
-    p_cost_usd is null or p_cost_usd<0 or p_cost_usd>10 then raise exception 'Invalid asset metadata'; end if;
+    (p_cost_usd is not null and (p_cost_usd<0 or p_cost_usd>10)) then raise exception 'Invalid asset metadata'; end if;
  v_ext=case p_mime when 'image/png' then '.png' when 'image/jpeg' then '.jpg' else '.webp' end;
  v_path=j.draft_id::text||'/r'||j.revision::text||'/'||p_sha256||v_ext;
  if not exists(select 1 from storage.objects where bucket_id='sideworld-quest-media' and name=v_path)
@@ -316,6 +320,20 @@ comment on table canon.quest_visual_jobs is
    finished_at=now()
  where id=p_job and actor_id=p_actor and status='reserved' returning id into v_id;
  return v_id is not null;
+end $;
+
+-- Admin-only lookup for server-side image preview bytes. No storage path is returned to browsers.
+create function public.sideworld_quest_visual_private_asset(p_actor uuid,p_asset uuid)
+returns jsonb language plpgsql stable security definer set search_path='' as $
+declare a canon.quest_visual_assets;
+begin
+ if not exists(select 1 from shared.user_roles where user_id=p_actor and role::text in ('OWNER','ADMIN'))
+ then raise exception 'Admin required'; end if;
+ select * into a from canon.quest_visual_assets where id=p_asset;
+ if a.id is null then return null; end if;
+ return jsonb_build_object('id',a.id,'draftId',a.draft_id,'revision',a.revision,
+  'storagePath',a.storage_path,'sha256',a.source_sha256,'mimeType',a.mime_type,
+  'approval',a.approval_status);
 end $;
 
 -- Guarded write APIs are intentionally incomplete until Storage byte verification
