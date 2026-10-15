@@ -23,15 +23,14 @@ Owner: OUTLAND migrations. Consumers: existing SIDEWORLD Studio + Player.
 
 Scoped service-role RPCs prepare reservations, read metadata, record approval/rejection and bind approved media to the existing release. Each verifies existing Studio OWNER/ADMIN roles. The browser never receives private bucket paths or privileged credentials.
 
-The migration is **not** an activated system: no browser Storage policies, no job-completion RPC or raw candidate-file uploader is included until server-side SHA and actual-byte readback are verified. Existing Studio Visual Production PR exposes only local candidate review and provider abstraction, with AI spending OFF by default.
+The migration is **not an activated system**. It now includes service-only job completion/failure RPCs, SHA/version-scoped inventory, approval/binding and a release-visual read RPC. Companion Studio PR #50 includes gated upload/readback and private gallery endpoints. **None has been deployed or enabled**, and there are still no browser Storage policies. Feature flags and OpenAI paid generation stay OFF.
 
-## Required remaining implementation after schema approval
+## Remaining activation and verification work
 
-- Trusted Studio Storage upload + readback with SHA-256, format sniffing, 10 MiB cap, no upsert, cleanup on failed registration.
-- Service-role-only completion RPC that validates the reserved job and inserts a candidate asset in the same logical flow. Failed jobs must be explicitly closed; never blindly retry a charged provider call with a new key.
-- Guarded Studio REST endpoints for generation, upload, review, selection and immutable binding; response includes only safe metadata.
-- Display persisted candidate gallery/history/cost from the read RPC, not browser session state.
-- Update existing Player art source adapter to read private Storage by **authorized current actor, version and scene** with exact hash verification. No new renderer, universe table or game logic changes.
+- Studio PR #50 implements gated Storage byte upload/readback, SHA-256, format validation, image-provider calls, durable job/asset registrations and persisted candidate gallery. **CI passed; no production writes executed.**
+- Player Draft PR #49, stacked on #48, implements generic registered private media reads for the *current* actor-authorized release/scene/sequence with exact SHA verification, while preserving the Novi Sad bundle fallback. Its Storage flag remains OFF.
+- Run database migration CI and isolated security/restore rehearsal; verify costs, provider access, actor-entitlement smoke and mobile illustrations; obtain separate explicit production migration approval.
+- Do not turn on image spending, private Storage writes or Player registered media flags until authorized and validated.
 
 ## Risk and deployment policy
 
@@ -47,7 +46,7 @@ Before applying to production:
 ## Rollback (only with confirmed absence of persisted user content)
 
 Reverse in dependency order:
-- Revoke/remove \`sideworld_quest_visual_bind\`, \`sideworld_quest_visual_review\`, \`sideworld_quest_visual_inventory\`, \`sideworld_quest_visual_reserve\`.
+- Revoke/remove all quest visual RPCs (reserve, inventory, review, bind, complete, fail, private_asset, for_release).
 - Drop \`canon.quest_visual_bindings\`, \`canon.quest_visual_assets\`, \`canon.quest_visual_jobs\` **only after checking they are empty and documenting any generated/published assets**.
 - Remove \`sideworld-quest-media\` bucket only when it is empty; never delete media bytes automatically.
 - If content exists, use forward-fix migrations, not destructive rollback. No preexisting quest/character/universe rows are touched by this migration.
