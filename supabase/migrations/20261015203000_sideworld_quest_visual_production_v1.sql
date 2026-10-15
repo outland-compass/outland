@@ -201,6 +201,123 @@ begin
   and scene_id=p_scene and slot=p_slot and asset_id=p_asset);
 end $$;
 
+-- Only the Studio server may call completion, and ONLY AFTER byte-level Storage
+-- upload/readback SHA-256 verification. This RPC checks metadata and ownership.
+create function public.sideworld_quest_visual_complete(
+ p_actor uuid,p_job uuid,p_sha256 text,p_mime text,p_width integer,p_height integer,
+ p_role text,p_kind text,p_rights text,p_source_ref text,p_provenance jsonb,
+ p_cost_usd numeric
+) returns uuid language plpgsql security definer set search_path='' as $
+declare j canon.quest_visual_jobs; v_path text; v_asset uuid; v_version integer; v_ext text;
+begin
+ if not exists(select 1 from shared.user_roles where user_id=p_actor and role::text in ('OWNER','ADMIN'))
+ then raise exception 'Admin required'; end if;
+ select * into j from canon.quest_visual_jobs where id=p_job and actor_id=p_actor and status='reserved' for update;
+ if j.id is null then raise exception 'No reserved visual generation job'; end if;
+ if p_sha256 !~ '^[a-f0-9]{64}
+-- is implemented in Studio. NEVER flip the write flag
+-- based only on the existence of these tables/RPCs.
+revoke all on function public.sideworld_quest_visual_reserve(uuid,uuid,integer,text,uuid,text,text,numeric)
+ from public,anon,authenticated;
+revoke all on function public.sideworld_quest_visual_inventory(uuid,uuid,integer)
+ from public,anon,authenticated;
+revoke all on function public.sideworld_quest_visual_review(uuid,uuid,text,text)
+ from public,anon,authenticated;
+revoke all on function public.sideworld_quest_visual_bind(uuid,uuid,text,text,uuid)
+ from public,anon,authenticated;
+grant execute on function public.sideworld_quest_visual_reserve(uuid,uuid,integer,text,uuid,text,text,numeric)
+ to service_role;
+grant execute on function public.sideworld_quest_visual_inventory(uuid,uuid,integer)
+ to service_role;
+grant execute on function public.sideworld_quest_visual_review(uuid,uuid,text,text)
+ to service_role;
+grant execute on function public.sideworld_quest_visual_bind(uuid,uuid,text,text,uuid)
+ to service_role;
+revoke all on function public.sideworld_quest_visual_complete(uuid,uuid,text,text,integer,integer,text,text,text,text,jsonb,numeric)
+ from public,anon,authenticated;
+revoke all on function public.sideworld_quest_visual_fail(uuid,uuid,text)
+ from public,anon,authenticated;
+grant execute on function public.sideworld_quest_visual_complete(uuid,uuid,text,text,integer,integer,text,text,text,text,jsonb,numeric)
+ to service_role;
+grant execute on function public.sideworld_quest_visual_fail(uuid,uuid,text)
+ to service_role;
+
+comment on table canon.quest_visual_assets is
+ 'Quest-scoped approved/candidate artwork metadata. Immutable source SHA and private storage. No public image URLs.';
+comment on table canon.quest_visual_jobs is
+ 'Single-request visual production budget reservations; no implicit AI calls. Requires server verified completion.';
+ or p_mime not in ('image/png','image/jpeg','image/webp') or
+    p_width not between 128 and 4096 or p_height not between 128 and 4096 or
+    p_role not in ('cover','scene_backdrop','sketchbook','atlas','puzzle_evidence',
+      'notebook_artifact','finale_art','historical_source','location_photo') or
+    p_kind not in ('ai_illustration','manual_illustration','historical_source','real_photo') or
+    (j.provider='openai' and p_kind<>'ai_illustration') or
+    (j.provider='manual' and p_kind='ai_illustration') or
+    (p_kind='ai_illustration' and p_role in ('historical_source','location_photo')) or
+    (p_role='historical_source' and p_kind<>'historical_source') or
+    (p_role='location_photo' and p_kind<>'real_photo') or
+    length(btrim(p_rights)) not between 20 and 1000 or
+    jsonb_typeof(p_provenance)<>'object' or pg_column_size(p_provenance)>16000 or
+    p_cost_usd is null or p_cost_usd<0 or p_cost_usd>10 then raise exception 'Invalid asset metadata'; end if;
+ v_ext=case p_mime when 'image/png' then '.png' when 'image/jpeg' then '.jpg' else '.webp' end;
+ v_path=j.draft_id::text||'/r'||j.revision::text||'/'||p_sha256||v_ext;
+ if not exists(select 1 from storage.objects where bucket_id='sideworld-quest-media' and name=v_path)
+ then raise exception 'Verified private object not present'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(j.draft_id::text||':'||j.revision::text||':'||j.brief_id,8));
+ select coalesce(max(asset_version),0)+1 into v_version from canon.quest_visual_assets
+ where draft_id=j.draft_id and revision=j.revision and brief_id=j.brief_id;
+ insert into canon.quest_visual_assets(draft_id,revision,brief_id,job_id,asset_version,
+   visual_role,source_kind,storage_path,source_sha256,mime_type,width,height,
+   source_ref,provenance,prompt_version,rights_note)
+ values(j.draft_id,j.revision,j.brief_id,j.id,v_version,p_role,p_kind,
+   v_path,p_sha256,p_mime,p_width,p_height,p_source_ref,p_provenance,
+   nullif(p_provenance->>'promptVersion',''),p_rights)
+ returning id into v_asset;
+ update canon.quest_visual_jobs set status='completed',
+   actual_cost_usd=p_cost_usd,usage=coalesce(p_provenance->'usage','{}'::jsonb),
+   finished_at=now() where id=j.id;
+ return v_asset;
+end $;
+
+create function public.sideworld_quest_visual_fail(
+ p_actor uuid,p_job uuid,p_error_code text
+) returns boolean language plpgsql security definer set search_path='' as $
+declare v_id uuid;
+begin
+ if not exists(select 1 from shared.user_roles where user_id=p_actor and role::text in ('OWNER','ADMIN'))
+ then raise exception 'Admin required'; end if;
+ if p_error_code is null or p_error_code !~ '^[A-Z0-9_]{3,64}
+-- and durable job completion are implemented in Studio. NEVER flip the write flag
+-- based only on the existence of these tables/RPCs.
+revoke all on function public.sideworld_quest_visual_reserve(uuid,uuid,integer,text,uuid,text,text,numeric)
+ from public,anon,authenticated;
+revoke all on function public.sideworld_quest_visual_inventory(uuid,uuid,integer)
+ from public,anon,authenticated;
+revoke all on function public.sideworld_quest_visual_review(uuid,uuid,text,text)
+ from public,anon,authenticated;
+revoke all on function public.sideworld_quest_visual_bind(uuid,uuid,text,text,uuid)
+ from public,anon,authenticated;
+grant execute on function public.sideworld_quest_visual_reserve(uuid,uuid,integer,text,uuid,text,text,numeric)
+ to service_role;
+grant execute on function public.sideworld_quest_visual_inventory(uuid,uuid,integer)
+ to service_role;
+grant execute on function public.sideworld_quest_visual_review(uuid,uuid,text,text)
+ to service_role;
+grant execute on function public.sideworld_quest_visual_bind(uuid,uuid,text,text,uuid)
+ to service_role;
+
+comment on table canon.quest_visual_assets is
+ 'Quest-scoped approved/candidate artwork metadata. Immutable source SHA and private storage. No public image URLs.';
+comment on table canon.quest_visual_jobs is
+ 'Single-request visual production budget reservations; no implicit AI calls. Requires server verified completion.';
+
+ then raise exception 'Invalid error code'; end if;
+ update canon.quest_visual_jobs set status='failed',error_code=p_error_code,
+   finished_at=now()
+ where id=p_job and actor_id=p_actor and status='reserved' returning id into v_id;
+ return v_id is not null;
+end $;
+
 -- Guarded write APIs are intentionally incomplete until Storage byte verification
 -- and durable job completion are implemented in Studio. NEVER flip the write flag
 -- based only on the existence of these tables/RPCs.
