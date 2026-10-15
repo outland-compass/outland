@@ -294,7 +294,40 @@ begin
    'approval',a.approval_status);
 end $$;
 
+-- Player calls this ONLY after separately confirming the actor's owned run,
+-- current sequence, release entitlement and currently visible scene.
+-- This RPC accepts no arbitrary asset ID or storage path from the client.
+create function public.sideworld_quest_visual_for_release(
+ p_release uuid,p_scene text,p_slot text
+) returns jsonb language sql stable security definer set search_path='' as $$
+ select jsonb_build_object(
+   'releaseId',r.id,'sceneId',b.scene_id,'slot',b.slot,
+   'draftId',a.draft_id,'revision',a.revision,'sha256',a.source_sha256,
+   'storageBucket',a.storage_bucket,'storagePath',a.storage_path,
+   'mimeType',a.mime_type,'visualRole',a.visual_role,'sourceKind',a.source_kind
+ )
+ from canon.quest_releases r
+ join canon.quest_visual_bindings b on b.release_id=r.id
+ join canon.quest_visual_assets a on a.id=b.asset_id
+ where r.id=p_release and b.scene_id=p_scene and b.slot=p_slot and
+   a.draft_id=r.source_draft_id and a.revision=r.source_revision and
+   a.approval_status='approved' and a.approved_by is not null and a.approved_at is not null and
+   a.storage_bucket='sideworld-quest-media' and
+   (
+     (b.slot='cover' and b.scene_id='' and a.visual_role='cover') or
+     (b.slot='scene' and a.visual_role in ('scene_backdrop','sketchbook','atlas')) or
+     (b.slot='evidence' and a.visual_role='puzzle_evidence') or
+     (b.slot='notebook' and a.visual_role='notebook_artifact') or
+     (b.slot='finale' and b.scene_id='' and a.visual_role='finale_art')
+   )
+ limit 1;
+$$;
+
 -- No direct canon table access by browser roles; service-only RPCs.
+revoke all on function public.sideworld_quest_visual_for_release(uuid,text,text)
+ from public,anon,authenticated;
+grant execute on function public.sideworld_quest_visual_for_release(uuid,text,text)
+ to service_role;
 revoke all on function public.sideworld_quest_visual_reserve(uuid,uuid,integer,text,uuid,text,text,numeric)
  from public,anon,authenticated;
 revoke all on function public.sideworld_quest_visual_inventory(uuid,uuid,integer)
