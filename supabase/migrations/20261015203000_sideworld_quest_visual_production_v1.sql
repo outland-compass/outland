@@ -202,6 +202,13 @@ begin
    select 1 from jsonb_array_elements(v_release.document->'scenes') s where s->>'id'=p_scene)
  then raise exception 'Unrecognized scene'; end if;
  if p_scene='' and p_slot not in ('cover','finale') then raise exception 'Scene binding required'; end if;
+ if not (
+   (p_slot='cover' and p_scene='' and v_asset.visual_role='cover') or
+   (p_slot='scene' and p_scene<>'' and v_asset.visual_role in ('scene_backdrop','sketchbook','atlas')) or
+   (p_slot='evidence' and p_scene<>'' and v_asset.visual_role='puzzle_evidence') or
+   (p_slot='notebook' and p_scene<>'' and v_asset.visual_role='notebook_artifact') or
+   (p_slot='finale' and p_scene='' and v_asset.visual_role='finale_art')
+ ) then raise exception 'Incompatible approved art role and scene slot'; end if;
  insert into canon.quest_visual_bindings(release_id,scene_id,slot,asset_id,created_by)
  values(p_release,p_scene,p_slot,p_asset,p_actor)
  on conflict do nothing;
