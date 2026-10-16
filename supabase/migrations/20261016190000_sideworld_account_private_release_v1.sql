@@ -128,3 +128,39 @@ grant execute on function public.sideworld_player_private_access_set_v1(uuid,uui
 -- Rollback: revoke these two new functions and remove the private branch
 -- from can_use_release_v1; preserve private_access and 'private' records so
 -- original quest runs/data survive. Never drop private release records.
+
+-- Make both the old pilot and new real-account private releases visible to Studio.
+CREATE OR REPLACE FUNCTION public.sideworld_quest_visual_inventory(p_actor uuid, p_draft uuid, p_revision integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+ if not exists(select 1 from shared.user_roles where user_id=p_actor and role::text in ('OWNER','ADMIN'))
+ then raise exception 'Admin required'; end if;
+ if not exists(select 1 from canon.quest_draft_revisions where draft_id=p_draft and revision=p_revision)
+ then raise exception 'Draft revision unavailable'; end if;
+ return jsonb_build_object(
+  'assets',coalesce((select jsonb_agg(jsonb_build_object(
+    'id',a.id,'briefId',a.brief_id,'version',a.asset_version,'role',a.visual_role,
+    'sha256',a.source_sha256,'mimeType',a.mime_type,'width',a.width,'height',a.height,
+    'status',a.approval_status,'rightsNote',a.rights_note,'createdAt',a.created_at)
+    order by a.created_at desc)
+    from canon.quest_visual_assets a where a.draft_id=p_draft and a.revision=p_revision),'[]'::jsonb),
+  'jobs',coalesce((select jsonb_agg(jsonb_build_object(
+    'id',j.id,'briefId',j.brief_id,'status',j.status,'provider',j.provider,
+    'model',j.model,'maxCostUsd',j.max_cost_usd,'actualCostUsd',j.actual_cost_usd,
+    'createdAt',j.created_at) order by j.created_at desc)
+    from canon.quest_visual_jobs j where j.draft_id=p_draft and j.revision=p_revision),'[]'::jsonb),
+  'releases',coalesce((select jsonb_agg(jsonb_build_object(
+    'id',r.id,'visibility',r.visibility,'revision',r.source_revision) order by r.created_at desc)
+    from canon.quest_releases r where r.source_draft_id=p_draft and
+      r.source_revision=p_revision and r.visibility in ('private','private_qa')),'[]'::jsonb),
+  'bindings',coalesce((select jsonb_agg(jsonb_build_object(
+    'releaseId',b.release_id,'assetId',b.asset_id,'sceneId',b.scene_id,'slot',b.slot))
+    from canon.quest_visual_bindings b join canon.quest_releases r on r.id=b.release_id
+    where r.source_draft_id=p_draft and r.source_revision=p_revision),'[]'::jsonb)
+ );
+end $function$
+;
