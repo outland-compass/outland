@@ -120,7 +120,7 @@ jobs:
           # Keep completion V2 out of the deliberately V1-only atomic ledger rehearsal.
           mv supabase/migrations/*_sideworld_player_runtime_completion_v1.sql /tmp/sideworld-controlled-deployment/
           # Registry V1 depends on the Player release table; exclude it from the intentionally pre-Player baseline.
-          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql /tmp/sideworld-controlled-deployment/
+          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql /tmp/sideworld-controlled-deployment/
           mv supabase/migrations/*_sideworld_account_private_release_v1.sql /tmp/sideworld-controlled-deployment/
           supabase db reset --local --no-seed
           mv /tmp/sideworld-controlled-deployment/*_sideworld_player_runtime_v1.sql supabase/migrations/
@@ -180,7 +180,7 @@ jobs:
           mv supabase/migrations/*_sideworld_player_runtime*.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_qa_operator_audit_v1.sql /tmp/player-runtime-pending/
           # Apply new quest visuals only AFTER the Player release tables exist.
-          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql /tmp/player-runtime-pending/
+          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_account_private_release_v1.sql /tmp/player-runtime-pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
@@ -237,7 +237,7 @@ jobs:
           mv supabase/migrations/*_sideworld_player_runtime*.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_qa_operator_audit_v1.sql /tmp/player-runtime-pending/
           # Apply new quest visuals only AFTER the Player release tables exist.
-          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql /tmp/player-runtime-pending/
+          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_account_private_release_v1.sql /tmp/player-runtime-pending/
           # The actual staging has eight recorded migrations. Start with precisely
           # those eight on an EMPTY disposable local database, without final seed.
@@ -295,7 +295,7 @@ jobs:
           mv supabase/migrations/*_sideworld_player_runtime*.sql /tmp/pending/
           mv supabase/migrations/*_sideworld_qa_operator_audit_v1.sql /tmp/pending/
           # Keep visual releases out of the historical pre-Player baseline.
-          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql /tmp/pending/
+          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql /tmp/pending/
           mv supabase/migrations/*_sideworld_account_private_release_v1.sql /tmp/pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
