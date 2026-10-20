@@ -16,9 +16,12 @@ export class SupabaseService {
       throw new Error('Supabase URL and publishable key must be configured.');
     }
 
+    // Auth redirects (password recovery) are consumed by AuthService, which removes the tokens from
+    // the address bar without leaving them in a history entry.
     this.clientInstance ??= createClient(
       environment.supabaseUrl,
-      environment.supabasePublishableKey
+      environment.supabasePublishableKey,
+      { auth: { detectSessionInUrl: false } }
     );
     return this.clientInstance;
   }
