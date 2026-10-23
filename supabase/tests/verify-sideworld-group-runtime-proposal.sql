@@ -35,15 +35,9 @@ values ('ce600000-0000-4000-8000-000000000001',
   'ce100000-0000-4000-8000-000000000001',
   'ce700000-0000-4000-8000-000000000001',
   '{"testOnly":true}'::jsonb,'draft',1);
-insert into canon.quest_draft_revisions(draft_id,revision,document,diagnostics,edited_by)
-values ('ce600000-0000-4000-8000-000000000001',1,
-  '{"contractVersion":1,"testOnly":true}'::jsonb,'[]'::jsonb,
-  'ce100000-0000-4000-8000-000000000001');
-
-insert into canon.quest_releases(id,source_draft_id,source_revision,document,engine_content_hash,created_by)
-values ('ce800000-0000-4000-8000-000000000001',
-  'ce600000-0000-4000-8000-000000000001',1,
-  jsonb_build_object(
+-- The release guard requires the exact frozen revision document.
+create temp table sw_group_fixture_doc on commit drop as
+select jsonb_build_object(
     'contractVersion',1,'experienceModes',
       jsonb_build_object('version',1,'couple',jsonb_build_object(
         'minPlayers',2,'maxPlayers',2,
@@ -52,7 +46,17 @@ values ('ce800000-0000-4000-8000-000000000001',
           jsonb_build_object('id','decoder','label','Decoder')),
         'roleClues',jsonb_build_array(
           jsonb_build_object('puzzleId','synthetic-puzzle','roleId','observer','text','observer-only'),
-          jsonb_build_object('puzzleId','synthetic-puzzle','roleId','decoder','text','decoder-only'))))),
+          jsonb_build_object('puzzleId','synthetic-puzzle','roleId','decoder','text','decoder-only'))))) as document;
+
+insert into canon.quest_draft_revisions(draft_id,revision,document,diagnostics,edited_by)
+values ('ce600000-0000-4000-8000-000000000001',1,
+  (select document from sw_group_fixture_doc),'[]'::jsonb,
+  'ce100000-0000-4000-8000-000000000001');
+
+insert into canon.quest_releases(id,source_draft_id,source_revision,document,engine_content_hash,created_by)
+values ('ce800000-0000-4000-8000-000000000001',
+  'ce600000-0000-4000-8000-000000000001',1,
+  (select document from sw_group_fixture_doc),
   repeat('a',64),'ce100000-0000-4000-8000-000000000001');
 
 insert into player.qa_access(release_id,actor_id,expires_at,granted_by)
