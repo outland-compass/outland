@@ -1,0 +1,60 @@
+name: SIDEWORLD Group SQL Disposable CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - docs/architecture/SIDEWORLD_GROUP_RUNTIME_V1_SQL_PROPOSAL.sql
+      - supabase/tests/verify-sideworld-group-runtime-proposal.sql
+      - .github/workflows/group-runtime-sql-ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: group-sql-disposable-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  group-sql-disposable:
+    name: Parse and test Group SQL (never production)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+
+      - name: Start disposable local Supabase
+        run: supabase start
+
+      - name: Full baseline migration replay with no fixtures
+        run: supabase db reset --local --no-seed
+
+      - name: Execute proposed SQL and adversarial tests in a ROLLBACK transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
+          test -n "$db_container"
+          {
+            printf 'BEGIN;\n'
+            cat docs/architecture/SIDEWORLD_GROUP_RUNTIME_V1_SQL_PROPOSAL.sql
+            printf '\n'
+            cat supabase/tests/verify-sideworld-group-runtime-proposal.sql
+            printf '\nROLLBACK;\n'
+          } | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
+          # Confirm this was only an in-transaction preview and changed
+          # nothing in the disposable database itself.
+          result=$(docker exec "$db_container" psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U postgres -d postgres \
+            -c "select to_regclass('player.group_sessions') is null and to_regclass('player.quest_runs') is not null")
+          test "$result" = 't'
+          echo 'PASS: Group SQL rolled back cleanly, existing Solo runtime untouched.'
+
+      - name: Destroy disposable stack
+        if: always()
+        run: supabase stop --no-backup
