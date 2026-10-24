@@ -1,0 +1,35 @@
+name: Prepare SIDEWORLD Group Migration Filename
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/sideworld-group-migration-prepare.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cli-migration-name:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Generate genuine Supabase CLI migration filename
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration new --help | head -n 20
+          supabase migration new sideworld_group_runtime_v1
+          file=$(find supabase/migrations -maxdepth 1 -name '*_sideworld_group_runtime_v1.sql' -print | sort | tail -n 1)
+          test -n "$file"
+          test "$(wc -l < "$file")" -le 2
+          echo "CLI_GENERATED_MIGRATION_PATH=$file"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: supabase-group-cli-generated-migration
+          path: supabase/migrations/*_sideworld_group_runtime_v1.sql
+          retention-days: 2
