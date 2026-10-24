@@ -6,6 +6,8 @@ on:
     paths:
       - docs/architecture/SIDEWORLD_GROUP_RUNTIME_V1_SQL_PROPOSAL.sql
       - supabase/tests/verify-sideworld-group-runtime-proposal.sql
+      - supabase/tests/verify-sideworld-group-runtime-concurrency.sh
+      - 'supabase/migrations/*_sideworld_group_runtime_v1.sql'
       - .github/workflows/group-runtime-sql-ci.yml
   workflow_dispatch:
 
@@ -34,26 +36,36 @@ jobs:
       - name: Full baseline migration replay with no fixtures
         run: supabase db reset --local --no-seed
 
-      - name: Execute proposed SQL and adversarial tests in a ROLLBACK transaction
+      - name: Verify CLI migration matches reviewed SQL and run rollback-only tests
         shell: bash
         run: |
           set -euo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           test -n "$db_container"
+          migration='supabase/migrations/20261024040523_sideworld_group_runtime_v1.sql'
+          test -f "$migration"
+          # The immutable proposal is the reviewed source of truth. Compare
+          # executable SQL from the first DDL statement, excluding commentary.
+          diff -u \
+            <(sed -n '/^create table player.group_sessions (/,$p' \
+              docs/architecture/SIDEWORLD_GROUP_RUNTIME_V1_SQL_PROPOSAL.sql |
+              sed '/^-- Manual safety checklist/,$d' | sed '/^[[:space:]]*$/d') \
+            <(sed -n '/^create table player.group_sessions (/,$p' "$migration" |
+              sed '/^[[:space:]]*$/d')
           {
             printf 'BEGIN;\n'
-            cat docs/architecture/SIDEWORLD_GROUP_RUNTIME_V1_SQL_PROPOSAL.sql
-            printf '\n'
             cat supabase/tests/verify-sideworld-group-runtime-proposal.sql
             printf '\nROLLBACK;\n'
           } | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
-          # Confirm this was only an in-transaction preview and changed
-          # nothing in the disposable database itself.
           result=$(docker exec "$db_container" psql -X -qAt -v ON_ERROR_STOP=1 \
             -U postgres -d postgres \
-            -c "select to_regclass('player.group_sessions') is null and to_regclass('player.quest_runs') is not null")
+            -c "select to_regclass('player.group_sessions') is not null and to_regclass('player.quest_runs') is not null")
           test "$result" = 't'
-          echo 'PASS: Group SQL rolled back cleanly, existing Solo runtime untouched.'
+          echo 'PASS: committed migration replays, authorizations verified and synthetic fixture rolled back.'
+
+      - name: Test real concurrent Group SQL sessions in disposable Postgres
+        shell: bash
+        run: bash supabase/tests/verify-sideworld-group-runtime-concurrency.sh
 
       - name: Destroy disposable stack
         if: always()
