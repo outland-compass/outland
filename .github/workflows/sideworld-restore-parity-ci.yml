@@ -89,6 +89,8 @@ jobs:
           & pwsh -NoProfile -File $file -BackupDir $source -RestoreDir $restored -AfterGroupMigration
           if ($LASTEXITCODE -eq 0) { throw 'Changed release canary was not rejected' }
           Write-Host 'PASS: synthetic restore parity and deliberate corruption denials.'
+          # Reset the intentionally nonzero final child process result.
+          exit 0
       - name: Delete synthetic metadata
         if: always()
         shell: bash
