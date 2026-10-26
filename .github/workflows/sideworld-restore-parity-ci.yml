@@ -1,0 +1,97 @@
+name: SIDEWORLD Isolated Restore Parity CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/production/compare-sideworld-restore-canaries.ps1'
+      - '.github/workflows/sideworld-restore-parity-ci.yml'
+      - 'docs/architecture/SIDEWORLD_DB_RECOVERY_FREE_PLAN_RUNBOOK.md'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse script and exercise synthetic before/after Group restore
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $file = (Resolve-Path 'scripts/production/compare-sideworld-restore-canaries.ps1').Path
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors)
+          if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Host $_.Message }; throw 'PowerShell syntax invalid' }
+
+          $source = Join-Path $env:RUNNER_TEMP 'synthetic-source'
+          $restored = Join-Path $env:RUNNER_TEMP 'synthetic-restored'
+          New-Item -ItemType Directory -Force -Path $source,$restored | Out-Null
+          $mock = @{
+            'sideworld-counts.csv' = @'
+          object,n
+          canon.quest_releases,1
+          '@
+            'sideworld-release-canaries.csv' = @'
+          release_id,draft_id,source_revision,visibility,engine_content_hash,document_md5
+          synthetic-release,synthetic-draft,9,private,0123456789abcdef,0123456789abcdef
+          '@
+            'sideworld-extensions.csv' = @'
+          extname,extversion
+          pgcrypto,1
+          '@
+            'sideworld-rls.csv' = @'
+          object,rls_enabled,rls_forced,anon_select,authenticated_select,service_select,policy_count
+          canon.quest_releases,t,f,f,f,f,0
+          '@
+            'sideworld-group-objects.csv' = @'
+          object,present
+          player.group_sessions,f
+          player.group_members,f
+          player.group_receipts,f
+          migration.20261024040523,f
+          '@
+          }
+          foreach ($key in $mock.Keys) {
+            Set-Content -Path (Join-Path $source $key) -Value $mock[$key] -Encoding utf8
+            Set-Content -Path (Join-Path $restored $key) -Value $mock[$key] -Encoding utf8
+          }
+          & pwsh -NoProfile -File $file -BackupDir $source -RestoreDir $restored
+          if ($LASTEXITCODE -ne 0) { throw 'Valid pre-migration parity failed' }
+
+          $groupRows = @(
+            'object,present'
+            'player.group_sessions,t'
+            'player.group_members,t'
+            'player.group_receipts,t'
+            'migration.20261024040523,t'
+            'sideworld_group_create_v1,t'
+            'sideworld_group_join_v1,t'
+            'sideworld_group_get_v1,t'
+            'sideworld_group_receipt_get_v1,t'
+            'sideworld_group_apply_v1,t'
+            'sideworld_group_leave_v1,t'
+          )
+          Set-Content -Path (Join-Path $restored 'sideworld-group-objects.csv') -Value $groupRows -Encoding utf8
+          Add-Content -Path (Join-Path $restored 'sideworld-rls.csv') -Value @(
+            'player.group_sessions,t,f,f,f,f,0'
+            'player.group_members,t,f,f,f,f,0'
+            'player.group_receipts,t,f,f,f,f,0'
+          )
+          & pwsh -NoProfile -File $file -BackupDir $source -RestoreDir $restored -AfterGroupMigration
+          if ($LASTEXITCODE -ne 0) { throw 'Expected Group restore parity failed' }
+
+          # A real existing immutable release's digest mismatch must be NO-GO.
+          Add-Content -Path (Join-Path $restored 'sideworld-release-canaries.csv') -Value 'tampered,synthetic,9,private,0000,0000'
+          & pwsh -NoProfile -File $file -BackupDir $source -RestoreDir $restored -AfterGroupMigration
+          if ($LASTEXITCODE -eq 0) { throw 'Changed release canary was not rejected' }
+          Write-Host 'PASS: synthetic restore parity and deliberate corruption denials.'
+          # Reset the intentionally nonzero final child process result.
+          exit 0
+      - name: Delete synthetic metadata
+        if: always()
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/synthetic-source" "$RUNNER_TEMP/synthetic-restored"

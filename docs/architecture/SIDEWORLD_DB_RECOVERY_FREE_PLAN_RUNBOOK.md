@@ -75,3 +75,25 @@ The `RequireSideworldGroupCanaries` switch deliberately enforces additional chec
 **Neither generating the files nor passing offline SHA/CSV/pg_restore-list checks proves the backup can be successfully restored.** The isolated Supabase/Postgres 17 restore rehearsal with canary parity (including auth, releases, access, run receipts and extensions) remains mandatory, as does separate explicit authorization for Group production DDL and another for feature activation.
 
 An isolated GitHub CI exercises this read-only SQL only against disposable Supabase; no production credential, backup dump, CSV artifact or remote migration is used. That rehearsal proves script compatibility, not current production backup readiness.
+
+## Compare protected backup canaries with a successful isolated restore
+
+A separate offline comparator `scripts/production/compare-sideworld-restore-canaries.ps1` is available for the recovery rehearsal. **It does not perform the restore**, fetch production data, grant any access, apply Group SQL or activate multiplayer. Both input directories must contain the five inventory CSVs produced by `sideworld-group-canaries.sql` on the source and the isolated-restored instance.
+
+From a trusted Windows terminal, after exporting canaries from the isolated restored database:
+
+```powershell
+.\scripts\production\compare-sideworld-restore-canaries.ps1 -BackupDir 'D:\Encrypted\OutlandBackups\production-YYYYMMDD-HHMMSS' -RestoreDir 'D:\Encrypted\IsolatedRestore\canaries-before-group'
+```
+
+This requires exact metadata parity for source/target table counts, immutable release hashes, installed extension versions, all pre-existing `canon`/`player`/`geo` RLS/grants, and the absence of the yet-unapplied Group migration. **Treat any mismatch as a stop condition**, diagnose it privately, and do not weaken checks merely to obtain PASS.
+
+After intentionally applying the reviewed Group migration in the **isolated restored instance only**, export the metadata again into another fresh directory and run:
+
+```powershell
+.\scripts\production\compare-sideworld-restore-canaries.ps1 -BackupDir 'D:\Encrypted\OutlandBackups\production-YYYYMMDD-HHMMSS' -RestoreDir 'D:\Encrypted\IsolatedRestore\canaries-after-group' -AfterGroupMigration
+```
+
+The post-migration comparison requires all prior canonical row counts and immutable hashes to remain unchanged, all prior RLS/grants unchanged, the three new Group tables RLS-enabled with no direct anon/authenticated/service table SELECT, the Group migration recorded, and all six expected RPC names present. **RPC existence does not establish correct privileges, concurrency safety, or permissions**: perform the existing isolated SQL privilege/concurrency test suite separately.
+
+An entirely synthetic offline GitHub CI validates comparator behavior against matching pre-migration snapshots, after-migration Group additions and deliberate corrupted release metadata. It never processes actual production backup files or transmits real canaries. This additional check is not a substitute for whole-database restore tests, storage asset restoration, authorization testing, owner/operator approval, or field QA.
