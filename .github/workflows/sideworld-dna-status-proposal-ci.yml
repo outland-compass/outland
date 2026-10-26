@@ -1,0 +1,53 @@
+name: SIDEWORLD DNA Status Proposal CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/architecture/SIDEWORLD_DNA_METADATA_STATUS_RPC_*.sql'
+      - 'docs/architecture/SIDEWORLD_DNA_METADATA_STATUS_RPC_REVIEW_V1.md'
+      - '.github/workflows/sideworld-dna-status-proposal-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  proposal-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static review of proposed private read-only function and rollback-only fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('docs/architecture')
+          sql = (root/'SIDEWORLD_DNA_METADATA_STATUS_RPC_PROPOSAL_V1.sql').read_text()
+          fixture = (root/'SIDEWORLD_DNA_METADATA_STATUS_RPC_TEST_PROPOSAL_V1.sql').read_text()
+          readme = (root/'SIDEWORLD_DNA_METADATA_STATUS_RPC_REVIEW_V1.md').read_text()
+          lowered = sql.lower()
+          for term in (
+              'returns jsonb', 'security definer', 'set search_path',
+              'universe.universes', 'canon.franchises', 'revoke all',
+              'from public, anon, authenticated, service_role',
+              'grant execute', 'to service_role',
+              'dnaNamespaceState', 'profileVersion'
+          ):
+              assert term.lower() in lowered, 'Missing defensive contract: ' + term
+          for prohibited in (
+              'update canon.', 'update universe.', 'delete from canon.',
+              'insert into canon.', 'insert into universe.',
+              'returning f.metadata', 'to_jsonb(f)',
+              'jsonb_build_object(' + chr(39) + 'metadata' + chr(39),
+          ):
+              assert prohibited not in lowered, 'Read-only proposal violated: ' + prohibited
+          assert sql.count('create or replace function') == 1
+          assert 'begin;' in fixture.lower() and 'rollback;' in fixture.lower()
+          assert 'has_function_privilege' in fixture
+          assert 'sealed_story_arc' in fixture
+          assert 'SEALED_PRIVATE_FRANCHISE_BIBLE_SENTINEL' in fixture
+          assert 'explicit founder approval' in readme.lower()
+          print('PASS: reviewed SQL is proposal-only, scoped and role-restricted.')
+          PY
