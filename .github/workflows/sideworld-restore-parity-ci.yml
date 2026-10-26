@@ -84,6 +84,20 @@ jobs:
           & pwsh -NoProfile -File $file -BackupDir $source -RestoreDir $restored -AfterGroupMigration
           if ($LASTEXITCODE -ne 0) { throw 'Expected Group restore parity failed' }
 
+          # A partial Group migration or rogue Group RPC in either inventory is NO-GO.
+          Add-Content -Path (Join-Path $source 'sideworld-group-objects.csv') -Value 'sideworld_group_create_v1,t'
+          & pwsh -NoProfile -File $file -BackupDir $source -RestoreDir $restored -AfterGroupMigration
+          if ($LASTEXITCODE -eq 0) { throw 'Pre-existing source Group RPC was not rejected' }
+          Set-Content -Path (Join-Path $source 'sideworld-group-objects.csv') -Value $mock['sideworld-group-objects.csv'] -Encoding utf8
+          Add-Content -Path (Join-Path $restored 'sideworld-group-objects.csv') -Value 'sideworld_group_unreviewed_v1,t'
+          & pwsh -NoProfile -File $file -BackupDir $source -RestoreDir $restored -AfterGroupMigration
+          if ($LASTEXITCODE -eq 0) { throw 'Unknown restored Group RPC was not rejected' }
+          Set-Content -Path (Join-Path $restored 'sideworld-group-objects.csv') -Value $groupRows -Encoding utf8
+          Add-Content -Path (Join-Path $restored 'sideworld-group-objects.csv') -Value 'player.group_members,t'
+          & pwsh -NoProfile -File $file -BackupDir $source -RestoreDir $restored -AfterGroupMigration
+          if ($LASTEXITCODE -eq 0) { throw 'Duplicate restored Group inventory key was not rejected' }
+          Set-Content -Path (Join-Path $restored 'sideworld-group-objects.csv') -Value $groupRows -Encoding utf8
+
           # A real existing immutable release's digest mismatch must be NO-GO.
           Add-Content -Path (Join-Path $restored 'sideworld-release-canaries.csv') -Value 'tampered,synthetic,9,private,0000,0000'
           & pwsh -NoProfile -File $file -BackupDir $source -RestoreDir $restored -AfterGroupMigration
