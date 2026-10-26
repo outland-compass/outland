@@ -56,3 +56,22 @@ Only after every gate is proven should the authorized Group DDL be executed on p
 Switch Group HTTP flags OFF; deny Group RPC EXECUTE using a reviewed additive migration; retain Group audit data. Never rewrite immutable quest releases or remove existing Solo tables. An actual database restore is a separately considered incident action, not a substitute for safe feature rollback.
 
 This document does not itself prove backup or restore readiness.
+
+## SIDEWORLD-specific restoration canaries (added 2026-10-26; not yet executed against production)
+
+The existing OUTLAND inventory captures legacy worlds/candidates but not sufficient SIDEWORLD `canon`, `geo`, `player` and release-integrity metadata. A new **read-only** `scripts/production/sideworld-group-canaries.sql` is part of the protected local Windows backup workflow in `scripts/production/backup-production.ps1`.
+
+This produces five local CSVs under the already ACL-restricted backup folder: `sideworld-counts.csv`, `sideworld-release-canaries.csv`, `sideworld-rls.csv`, `sideworld-group-objects.csv`, `sideworld-extensions.csv`. They capture row counts, immutable release hashes (not contents), RLS/role-SELECT status, Group migration/object presence and extension versions. No auth identities, passwords, invitation secrets, scene text or role clues are exported in the canaries. **The database dumps themselves remain highly sensitive and must be stored on an encrypted local volume; ACLs alone do not provide at-rest encryption.**
+
+On the trusted Windows workstation, in a checked-out OUTLAND repository and with Docker running, use the existing password-prompting backup script only when prepared to handle sensitive data:
+
+```powershell
+.\scripts\production\backup-production.ps1 -OutRoot 'D:\Encrypted\OutlandBackups'
+.\scripts\production\verify-production-backup.ps1 -BackupDir 'D:\Encrypted\OutlandBackups\production-YYYYMMDD-HHMMSS' -RequireSideworldGroupCanaries -RequireGroupPreMigrationState
+```
+
+The `RequireSideworldGroupCanaries` switch deliberately enforces additional checks without breaking inspection of historical OUTLAND backups. The separate `RequireGroupPreMigrationState` switch confirms the **pre-migration** condition: the Group objects and applied migration entry are all absent. Do not use this switch for post-migration backups. Re-run all checks on a fresh backup immediately before proposed production DDL.
+
+**Neither generating the files nor passing offline SHA/CSV/pg_restore-list checks proves the backup can be successfully restored.** The isolated Supabase/Postgres 17 restore rehearsal with canary parity (including auth, releases, access, run receipts and extensions) remains mandatory, as does separate explicit authorization for Group production DDL and another for feature activation.
+
+An isolated GitHub CI exercises this read-only SQL only against disposable Supabase; no production credential, backup dump, CSV artifact or remote migration is used. That rehearsal proves script compatibility, not current production backup readiness.
