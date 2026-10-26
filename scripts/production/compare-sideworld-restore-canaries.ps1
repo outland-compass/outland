@@ -48,6 +48,23 @@ try {
     $restoreGroup = @(Load $RestoreDir 'sideworld-group-objects.csv')
     $tables = @('player.group_sessions','player.group_members','player.group_receipts')
     $migration = 'migration.20261024040523'
+    # The protected pre-migration snapshot must not already expose ANY Group RPC.
+    # A database with partial/foreign Group objects is not a clean rollback baseline.
+    $rpcNames = @(
+        'sideworld_group_create_v1','sideworld_group_join_v1',
+        'sideworld_group_get_v1','sideworld_group_receipt_get_v1',
+        'sideworld_group_apply_v1','sideworld_group_leave_v1'
+    )
+    $unexpectedSourceRpc = @($sourceGroup | Where-Object { $_.object -like 'sideworld_group_*' })
+    Check ($unexpectedSourceRpc.Count -eq 0) 'NO pre-existing Group RPCs in protected source'
+    $unexpectedRestoreRpc = @($restoreGroup | Where-Object {
+        $_.object -like 'sideworld_group_*' -and (-not $AfterGroupMigration -or $rpcNames -notcontains $_.object)
+    })
+    Check ($unexpectedRestoreRpc.Count -eq 0) 'NO unexpected Group RPCs in isolated restore'
+    $sourceKeys = @($sourceGroup | ForEach-Object { $_.object })
+    Check ((@($sourceKeys | Select-Object -Unique)).Count -eq $sourceKeys.Count) 'NO duplicate source Group inventory keys'
+    $restoreKeys = @($restoreGroup | ForEach-Object { $_.object })
+    Check ((@($restoreKeys | Select-Object -Unique)).Count -eq $restoreKeys.Count) 'NO duplicate restored Group inventory keys'
     foreach ($key in @($tables) + @($migration)) {
         $original = @(Has $sourceGroup $key)
         Check ($original.Count -eq 1 -and $original[0].present -eq 'f') "PRE-MIGRATION source baseline: $key"
@@ -56,11 +73,6 @@ try {
         Check ($restored.Count -eq 1 -and $restored[0].present -eq $expected) "EXPECTED restored Group state: $key"
     }
     if ($AfterGroupMigration) {
-        $rpcNames = @(
-            'sideworld_group_create_v1','sideworld_group_join_v1',
-            'sideworld_group_get_v1','sideworld_group_receipt_get_v1',
-            'sideworld_group_apply_v1','sideworld_group_leave_v1'
-        )
         foreach ($rpc in $rpcNames) {
             $rows = @(Has $restoreGroup $rpc)
             Check ($rows.Count -eq 1 -and $rows[0].present -eq 't') "Group RPC installed: $rpc"
