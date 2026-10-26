@@ -41,26 +41,31 @@ $inventoryOk = $false
 try {
     if ($ownPassword) { $env:PGPASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
     $dbUrl = "postgresql://${DbUser}@${PoolerHost}:${Port}/postgres?sslmode=$SslMode"
-    Write-Host '[1/5] Supabase roles dump'
+    Write-Host '[1/6] Supabase roles dump'
     npx --yes $SupabaseCli db dump --db-url $dbUrl -f "$Out\roles.sql" --role-only
     if ($LASTEXITCODE -ne 0) { throw 'roles dump failed' }
-    Write-Host '[2/5] Supabase schema dump'
+    Write-Host '[2/6] Supabase schema dump'
     npx --yes $SupabaseCli db dump --db-url $dbUrl -f "$Out\schema.sql"
     if ($LASTEXITCODE -ne 0) { throw 'schema dump failed' }
-    Write-Host '[3/5] Supabase data dump'
+    Write-Host '[3/6] Supabase data dump'
     npx --yes $SupabaseCli db dump --db-url $dbUrl -f "$Out\data.sql" --use-copy --data-only
     if ($LASTEXITCODE -ne 0) { throw 'data dump failed' }
     $stagingDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'staging'
     $dockerArgs = @('run','--rm','-e','PGPASSWORD','-e',"PGSSLMODE=$SslMode",'-v',"${Out}:/out",'-v',"${stagingDir}:/scripts:ro",$PgImage)
-    Write-Host '[4/5] Full pg_dump (custom format, incl. migration history)'
+    Write-Host '[4/6] Full pg_dump (custom format, incl. migration history)'
     docker @dockerArgs pg_dump -h $PoolerHost -p $Port -U $DbUser -d postgres -Fc -f /out/production-full.dump
     if ($LASTEXITCODE -ne 0) {
         if (Test-Path "$Out\production-full.dump") { Rename-Item "$Out\production-full.dump" 'production-full.dump.FAILED' }
         throw 'Full pg_dump failed'
     }
-    Write-Host '[5/5] Read-only inventory'
+    Write-Host '[5/6] Read-only inventory'
     docker @dockerArgs psql -X -h $PoolerHost -p $Port -U $DbUser -d postgres -f /scripts/inventory.sql
-    if ($LASTEXITCODE -eq 0) { $inventoryOk = $true } else { throw 'Inventory failed' }
+    if ($LASTEXITCODE -ne 0) { throw 'OUTLAND inventory failed' }
+    Write-Host '[6/6] Read-only SIDEWORLD recovery and Group migration canaries'
+    $sideworldArgs = @('run','--rm','-e','PGPASSWORD','-e',"PGSSLMODE=$SslMode",'-v',"${Out}:/out",'-v',"${PSScriptRoot}:/production:ro",$PgImage)
+    docker @sideworldArgs psql -X -v ON_ERROR_STOP=1 -h $PoolerHost -p $Port -U $DbUser -d postgres -f /production/sideworld-group-canaries.sql
+    if ($LASTEXITCODE -ne 0) { throw 'SIDEWORLD recovery inventory failed' }
+    $inventoryOk = $true
     if ($FingerprintSql) {
         Write-Host '[+] Read-only fingerprints'
         $fpDir = Split-Path (Resolve-Path $FingerprintSql) -Parent

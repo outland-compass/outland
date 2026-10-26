@@ -1,5 +1,9 @@
 # Offline integrity verification of a production backup folder. Never connects to production.
-param([Parameter(Mandatory)][string]$BackupDir)
+param(
+    [Parameter(Mandatory)][string]$BackupDir,
+    [switch]$RequireSideworldGroupCanaries,
+    [switch]$RequireGroupPreMigrationState
+)
 $ErrorActionPreference = 'Stop'
 $fail = 0
 function Check($ok, $msg) { if ($ok) { Write-Host "PASS  $msg" } else { Write-Host "FAIL  $msg" -ForegroundColor Red; $script:fail++ } }
@@ -30,5 +34,61 @@ $counts = Import-Csv "$BackupDir\inventory-counts.csv"
 $n = ($counts | Where-Object { $_.schema -eq 'land' -and $_.table -eq 'candidates' }).n
 Check ([int]$n -eq $cand.Count) "inventory candidates rows ($($cand.Count)) match count ($n)"
 Write-Host "Candidates in inventory: $($cand.Count); worlds: $((Import-Csv "$BackupDir\inventory-worlds.csv").Count); applied migrations: $((Import-Csv "$BackupDir\inventory-migrations.csv").Count)"
+
+# Optional strict Sideworld/Group canary checks. This never connects to production.
+if ($RequireSideworldGroupCanaries -or $RequireGroupPreMigrationState) {
+    $required = @('sideworld-counts.csv','sideworld-release-canaries.csv',
+        'sideworld-rls.csv','sideworld-group-objects.csv','sideworld-extensions.csv')
+    $all = $true
+    foreach ($name in $required) {
+        $p = Join-Path $BackupDir $name
+        $ok = (Test-Path $p) -and (Get-Item $p).Length -gt 0
+        Check $ok "SIDEWORLD canary exists: $name"
+        if (-not $ok) { $all = $false }
+    }
+    if ($all) {
+        $rows = @(Import-Csv (Join-Path $BackupDir 'sideworld-counts.csv'))
+        $countObjects = @('auth.users','universe.universes','universe.worlds',
+            'geo.locations','canon.quest_drafts','canon.quest_draft_revisions',
+            'canon.quest_releases','player.quest_runs','player.run_receipts',
+            'player.private_access','player.qa_access')
+        foreach ($object in $countObjects) {
+            $matching = @($rows | Where-Object { $_.object -eq $object })
+            $valid = $matching.Count -eq 1
+            if ($valid) { $valid = [string]$matching[0].n -match '^[0-9]+$' }
+            Check $valid "SIDEWORLD row count metadata: $object"
+        }
+        $releaseRows = @($rows | Where-Object { $_.object -eq 'canon.quest_releases' })
+        $releases = @(Import-Csv (Join-Path $BackupDir 'sideworld-release-canaries.csv'))
+        if ($releaseRows.Count -eq 1 -and [string]$releaseRows[0].n -match '^[0-9]+$') {
+            Check ([long]$releaseRows[0].n -eq $releases.Count) 'SIDEWORLD immutable release count parity'
+        } else { Check $false 'SIDEWORLD immutable release count format' }
+        foreach ($row in $releases) {
+            Check (($row.engine_content_hash -match '^[a-f0-9]{64}$') -and
+                ($row.document_md5 -match '^[a-f0-9]{32}$')) 'SIDEWORLD release hash format'
+        }
+        $rls = @(Import-Csv (Join-Path $BackupDir 'sideworld-rls.csv'))
+        foreach ($object in @('canon.quest_releases','player.quest_runs','player.private_access','player.qa_access')) {
+            $matching = @($rls | Where-Object { $_.object -eq $object })
+            $ok = $matching.Count -eq 1
+            if ($ok) { $ok = $matching[0].rls_enabled -eq 't' -and $matching[0].anon_select -eq 'f' }
+            Check $ok "SIDEWORLD RLS boundary: $object"
+        }
+        $groups = @(Import-Csv (Join-Path $BackupDir 'sideworld-group-objects.csv'))
+        foreach ($object in @('player.group_sessions','player.group_members',
+            'player.group_receipts','migration.20261024040523')) {
+            $matching = @($groups | Where-Object { $_.object -eq $object })
+            $ok = $matching.Count -eq 1
+            if ($ok) { $ok = $matching[0].present -match '^[tf]$' }
+            Check $ok "SIDEWORLD Group object inventory: $object"
+            if ($RequireGroupPreMigrationState) {
+                Check ($ok -and $matching[0].present -eq 'f') "Group must be absent before migration: $object"
+            }
+        }
+        $extensions = @(Import-Csv (Join-Path $BackupDir 'sideworld-extensions.csv'))
+        Check ($extensions.Count -gt 0) 'SIDEWORLD extension inventory'
+    }
+}
+Write-Host 'Integrity metadata is not proof of a successful isolated restore.'
 
 if ($fail) { Write-Host "VERIFY: $fail check(s) FAILED" -ForegroundColor Red; exit 1 } else { Write-Host 'VERIFY: ALL CHECKS PASSED' }
