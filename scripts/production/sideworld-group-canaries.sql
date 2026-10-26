@@ -21,7 +21,7 @@ begin transaction isolation level repeatable read read only;
 
 -- Current Group migration and object existence is evidence, not permission
 -- to apply migration or enable multiplayer.
-\copy (select 'player.group_sessions' as object,(to_regclass('player.group_sessions') is not null) as exists union all select 'player.group_members',to_regclass('player.group_members') is not null union all select 'player.group_receipts',to_regclass('player.group_receipts') is not null union all select 'migration.20261024040523',exists(select 1 from supabase_migrations.schema_migrations where version='20261024040523') union all select p.proname,p.oid is not null from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'sideworld_group_%_v1' order by 1) to '/out/sideworld-group-objects.csv' csv header
+\copy (select 'player.group_sessions' as object,(to_regclass('player.group_sessions') is not null) as present union all select 'player.group_members',to_regclass('player.group_members') is not null union all select 'player.group_receipts',to_regclass('player.group_receipts') is not null union all select 'migration.20261024040523',exists(select 1 from supabase_migrations.schema_migrations where version='20261024040523') union all select p.proname,p.oid is not null from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'sideworld_group_%_v1' order by 1) to '/out/sideworld-group-objects.csv' csv header
 
 \copy (select extname,extversion from pg_extension order by extname) to '/out/sideworld-extensions.csv' csv header
 
