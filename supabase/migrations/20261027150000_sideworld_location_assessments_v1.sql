@@ -91,8 +91,8 @@ begin
      jsonb_array_length(p_puzzle_opportunities)>5
     then raise exception 'Invalid scoring review metadata'; end if;
   if exists (
-    select 1 from jsonb_array_elements_text(p_risk_flags) AS flag
-    where flag not in ('access_unknown','restricted_access','unsafe_access',
+    select 1 from jsonb_array_elements_text(p_risk_flags) AS flag(value)
+    where flag.value not in ('access_unknown','restricted_access','unsafe_access',
       'sensitive_site','physical_clue_unconfirmed','coordinates_unconfirmed',
       'hours_unknown','field_qa_pending','needs_research')
   ) then raise exception 'Unrecognized safety flag'; end if;
