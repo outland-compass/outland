@@ -1,8 +1,21 @@
 # SIDEWORLD — Free Plan Database Recovery Gate
 
-**Status: Runbook only; backup and restore are NOT verified.**
+**Status (reconciled 2026-10-28): Previous production backups and isolated APPLICATION-TABLE restores ARE VERIFIED. A fresh, retained and independently recoverable artifact for the next production migration is NOT VERIFIED. This Group-specific full restore/parity test is separate and remains unverified.**
 
-Owner: OUTLAND Supabase. Last checked: 2026-10-24.
+Owner: OUTLAND Supabase. Historical evidence last checked: 2026-10-28.
+
+## LOCKED cross-repository recovery evidence (2026-10-28)
+
+**Do not repeatedly restart backup/restore planning or claim that SIDEWORLD has never been backed up/restored.** The primary, ALREADY IMPLEMENTED process is in [Studio `.github/workflows/production-backup-restore.yml`](https://github.com/outland-compass/sideworld_studio/blob/main/.github/workflows/production-backup-restore.yml). It uses read-only production snapshots, a network-disconnected application restore and fingerprint verification, encrypted archives and 7-day GitHub artifact retention. Studio [recovery runbook](https://github.com/outland-compass/sideworld_studio/blob/main/docs/PRODUCTION_BACKUP_RESTORE.md) owns the detailed, evidence-first protocol.
+
+- Verified local production dumps with SHA256/inventory PASS: **Oct 4, Oct 6 and Oct 7, 2026**, recorded in original ThinkPad operator logs. Existence of these directories **today** has not been rechecked.
+- Verified GitHub production backup plus isolated application restore: [Oct 11 run 38158657515](https://github.com/outland-compass/sideworld_studio/actions/runs/38158657515), [Oct 14 run 38550055892](https://github.com/outland-compass/sideworld_studio/actions/runs/38550055892), **[Oct 19 run 38644178274, attempt 4](https://github.com/outland-compass/sideworld_studio/actions/runs/38644178274)**. Last run logs `PASS: backup encrypted and application restore fingerprints verified`.
+- The Oct 19 GitHub Actions encrypted artifact, retained **7 days**, has **zero downloadable artifacts** as checked 2026-10-28. A historic PASS is real but **does not constitute a current protected recovery point**.
+- The Studio process demonstrates scoped **application-data recovery**, **not** complete Supabase-managed Auth/Storage objects/Edge Functions/Vault/role-semantics recovery. The `outland` Group recovery canary parity and restore validation described below is an additional distinct gate, not a contradiction.
+
+**Operational decision:** First check those runs, currently available encrypted artifacts, and any verified local/off-GitHub copy. If backup is stale or expired, **rerun the existing Studio manual workflow** with its exact reviewed `main` SHA, verify a new PASS and save encrypted archive + digest OFF GitHub before expiration. Do not write a second backup engine. Do not apply Group or Location Intelligence V3 production DDL without separate explicit founder approval. Studio's workflow NEVER applies migrations.
+
+For SIDEWORLD Location Intelligence V3: [OUTLAND PR #95](https://github.com/outland-compass/outland/pull/95) merged at `a63d0e52ebbe420a60e394d7274b4de42f9091a5`; its **production migration was not authorized or applied as of 2026-10-28**.
 
 ## Grounded baseline
 
@@ -41,8 +54,9 @@ Treat output as sensitive: auth records may be included. Do not commit, upload a
 | Check | Status |
 | --- | --- |
 | Read-only production schema and migration audit | Performed earlier; repeat immediately before DDL |
-| Current protected logical backup | **NOT VERIFIED** |
-| Successful isolated restore of that backup | **NOT VERIFIED** |
+| Historical local production backups and scoped application restore | **VERIFIED (Oct 4/6/7; Oct 11/14/19)**; see evidence above |
+| Current fresh protected logical backup | **NOT VERIFIED**; last GitHub artifact expired; check private local copies / rerun existing Studio workflow |
+| Historical isolated application restore | **VERIFIED**, last Oct 19; **fresh restore and Group-specific parity not yet verified** |
 | Group SQL real PostgreSQL disposable CI | Passed in GitHub Actions 2026-10-24 (confirm exact PR SHA) |
 | Group concurrent write and privilege tests | Passed in disposable CI 2026-10-24 (confirm exact PR SHA) |
 | Reviewed CLI-generated additive migration with green CI | PR #87 prepared; merge and full CI status require final verification |
