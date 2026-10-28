@@ -249,3 +249,44 @@ select location_id,franchise_id,fact_id,'hypothesis',
     'not_canon_approval',true)
 from proposed
 on conflict do nothing;
+
+-- Fail atomically rather than silently dropping a source dossier or franchise hypothesis.
+-- On a clean disposable local database with no Novi Sad research, these checks are no-ops.
+do $v3_integrity$ declare
+  archival_count integer;
+  linked_count integer;
+  unresolved_fits integer;
+begin
+  select count(*) into archival_count
+  from geo.location_facts f join geo.cities c on c.id=f.city_id
+  where c.slug='novi-sad' and c.country_code='RS'
+    and f.fact_type='research_candidate'
+    and f.metadata ? 'location_master_v3'
+    and f.metadata ? 'original_v2_record';
+  select count(*) into linked_count
+  from geo.location_facts f join geo.cities c on c.id=f.city_id
+  join geo.location_research_candidates r on r.source_fact_id=f.id
+    and r.city_id=f.city_id and r.location_id is not distinct from f.location_id
+    and r.raw_v2 = f.metadata->'original_v2_record'
+    and r.raw_v3 = f.metadata->'location_master_v3'->'record'
+  where c.slug='novi-sad' and c.country_code='RS'
+    and f.fact_type='research_candidate'
+    and f.metadata ? 'location_master_v3'
+    and f.metadata ? 'original_v2_record';
+  if archival_count <> linked_count then
+    raise exception 'V3 source-preservation failure: % archival records, % exact linked candidates',
+      archival_count, linked_count;
+  end if;
+  select count(*) into unresolved_fits
+  from geo.location_facts f
+  join geo.cities c on c.id=f.city_id and c.slug='novi-sad' and c.country_code='RS'
+  cross join lateral jsonb_array_elements_text(
+    case when jsonb_typeof(f.metadata->'franchise_fit_hypotheses')='array'
+      then f.metadata->'franchise_fit_hypotheses' else '[]'::jsonb end
+  ) as fit(slug)
+  where f.fact_type='research_candidate' and f.metadata ? 'location_master_v3'
+    and (select count(*) from canon.franchises fr where fr.slug=fit.slug) <> 1;
+  if unresolved_fits <> 0 then
+    raise exception 'V3 ambiguous or missing canonical franchise slugs: %',unresolved_fits;
+  end if;
+end $v3_integrity$;
