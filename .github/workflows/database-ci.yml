@@ -249,6 +249,7 @@ jobs:
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/player-runtime-pending/
+          mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/player-runtime-pending/
           # The actual staging has eight recorded migrations. Start with precisely
           # those eight on an EMPTY disposable local database, without final seed.
           supabase db reset --local --no-seed
