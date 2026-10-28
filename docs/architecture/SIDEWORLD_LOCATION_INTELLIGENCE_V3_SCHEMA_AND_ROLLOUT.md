@@ -1,6 +1,6 @@
 # SIDEWORLD Location Intelligence V3 — additive schema / rollout
 
-**Status:** proposed in GitHub PR, not authorized for production execution. **Owner:** `outland-compass/outland` canonical Supabase migration history. **Scope:** one real-world GEO registry with private, reusable intelligence and canon overlays across franchises.
+**Status:** migration code merged into `main` via [PR #95](https://github.com/outland-compass/outland/pull/95); **NOT applied to production and NOT authorized**. **Owner:** `outland-compass/outland` canonical Supabase migration history. **Scope:** one real-world GEO registry with private, reusable intelligence and canon overlays across franchises.
 
 ## Verified preflight (2026-10-28)
 
@@ -9,6 +9,21 @@
 - `canon.franchises`, `canon.series`, `canon.characters`, and `universe.universes` are **canonical**. No new universe/franchise registry.
 - Studio reads `public.sideworld_studio_city_knowledge` (unchanged); the Player uses separate quest release snapshots (unchanged). `geo` and `canon` are outside Data API exposure; RLS enabled in current schema.
 - This PR does not alter Player map pin logic, deploy an API, publish any quest, or override older source quality metadata.
+
+## Repeatable production preflight — verified 2026-10-28 (read-only)
+
+The canonical **non-mutating** audit query is [`supabase/tests/sideworld-location-v3-production-preflight-readonly.sql`](../../supabase/tests/sideworld-location-v3-production-preflight-readonly.sql). It explicitly reports a pre-migration `OVERALL` decision and three baseline counts; it never writes to production. Re-run it immediately before an **explicitly authorized** production migration. It is **not** designed to run after V3 is installed (the absence of V3 objects is an expected PREflight constraint).
+
+Verified by direct read-only execution on production project `huzcukdovavejejwohey` on **2026-10-28**:
+
+- `OVERALL = GO_FOR_APPROVAL_ONLY` (12/12 checked conditions PASS; this **does not authorize DDL**).
+- Existing `geo.locations = 61`, complete Novi Sad source-linked research dossiers `54/54`, and existing `canon.quest_releases = 8`.
+- No unlinked or mismatched-city research candidate, missing or duplicate external ID, invalid V2/V3 object, ambiguous canonical franchise slug, partially created V3 table/column, or applied V3 migration.
+- All existing GEO/Canon relations checked have RLS. No direct `anon`/`authenticated` SELECT or private-schema USAGE; existing Studio's narrowly authorized RPC pathways are unchanged.
+- The already-existing protected [read-only production backup + isolated application restore #40675990043](https://github.com/outland-compass/sideworld_studio/actions/runs/40675990043) succeeded on Oct 28; encrypted artifact ID `12809924602` expires on **2026-11-04 at 11:00 UTC**. This verifies **application-table** restore, not complete managed Supabase recovery; durable off-GitHub retention remains **unverified**.
+- New V3 structures remain absent in production. No migration, published quest, player release, Group activation, or service configuration changed in this preflight.
+
+**Safe next step:** archive the encrypted recovery artifact + digest independently from its decryption key, inspect the immediately-current production schema, migration history, application dependencies, and preflight report, then obtain **separate founder approval** before running `20261028101500_sideworld_location_intelligence_v3.sql`. After authorization, verify the six new tables, RLS/privilege denial, exact 54 source-preserving links, canonical franchise hypotheses, original location/fact/release baselines and all required negative tests. Normal reversible operational action is to leave additive V3 tables unused; never drop or backfill destructively without separate approval.
 
 ## Three layers
 
