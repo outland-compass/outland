@@ -45,7 +45,7 @@ end $verify$;
 
 -- Transactional fixtures: a parent/child must belong to one city; cycles rejected.
 do $fixture$ declare
-  c uuid; a uuid; b uuid; d uuid; f uuid; v text;
+  c uuid; a uuid; b uuid; d uuid; f uuid; v text; clue_id uuid; franchise_id uuid; fit_id uuid;
 begin
   insert into geo.countries(code,name) values('QX','Location V3 Fixture')
      on conflict(code) do update set name=excluded.name;
@@ -74,7 +74,19 @@ begin
     raise exception 'Research candidate navigation policy incorrect';
   end if;
   insert into geo.location_clues(location_id,clue_key,title,clue_kind)
-     values (b,'detail','Historic detail','architectural_detail');
+     values (b,'detail','Historic detail','architectural_detail') returning id into clue_id;
+  -- A canonical franchise overlay cannot borrow a clue from a different place.
+  select id into franchise_id from canon.franchises limit 1;
+  if franchise_id is not null then
+    insert into canon.location_franchise_fits(location_id,franchise_id)
+      values (a,franchise_id) returning id into fit_id;
+    begin
+      insert into canon.location_clue_uses(fit_id,clue_id,location_id,mechanic_key)
+        values (fit_id,clue_id,b,'cross-location-invalid');
+      raise exception 'Cross-location franchise clue incorrectly accepted';
+    exception when foreign_key_violation then null;
+    end;
+  end if;
   begin
     insert into geo.location_clues(location_id,clue_key,title,clue_kind,
       reference_latitude,reference_longitude)
