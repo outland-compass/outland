@@ -6,6 +6,7 @@
 -- Composite reference keys enforce same-city hierarchy and same-franchise series/character uses.
 create unique index geo_locations_id_city_v3_uq on geo.locations(id, city_id);
 create unique index geo_facts_id_location_v3_uq on geo.location_facts(id, location_id);
+create unique index geo_facts_id_city_v3_uq on geo.location_facts(id, city_id);
 create unique index canon_series_id_franchise_v3_uq on canon.series(id, franchise_id);
 create unique index canon_characters_id_franchise_v3_uq on canon.characters(id, franchise_id);
 
@@ -17,7 +18,7 @@ create table geo.location_research_candidates (
   source_key text not null check (length(btrim(source_key)) > 0),
   external_research_id text not null check (length(btrim(external_research_id)) > 0),
   location_id uuid,
-  source_fact_id uuid unique references geo.location_facts(id) on delete restrict,
+  source_fact_id uuid unique,
   display_name text not null check (length(btrim(display_name)) > 0),
   raw_v2 jsonb not null default '{}'::jsonb check (jsonb_typeof(raw_v2) = 'object'),
   raw_v3 jsonb not null default '{}'::jsonb check (jsonb_typeof(raw_v3) = 'object'),
@@ -28,7 +29,9 @@ create table geo.location_research_candidates (
   updated_at timestamptz not null default now(),
   constraint geo_research_unique_external_id_v3 unique (city_id,source_key,external_research_id),
   constraint geo_research_location_city_v3 foreign key (location_id,city_id)
-    references geo.locations(id,city_id) on delete restrict
+    references geo.locations(id,city_id) on delete restrict,
+  constraint geo_research_fact_city_v3 foreign key (source_fact_id,city_id)
+    references geo.location_facts(id,city_id) on delete restrict
 );
 create index geo_research_location_v3_idx on geo.location_research_candidates(location_id);
 create index geo_research_city_v3_idx on geo.location_research_candidates(city_id);
@@ -42,14 +45,16 @@ create table geo.location_hierarchy (
   city_id uuid not null references geo.cities(id) on delete restrict,
   relationship text not null default 'contained_within'
     check (relationship in ('contained_within','part_of_structure')),
-  evidence_fact_id uuid references geo.location_facts(id) on delete restrict,
+  evidence_fact_id uuid,
   note text,
   created_at timestamptz not null default now(),
   constraint geo_hierarchy_distinct_v3 check (child_location_id <> parent_location_id),
   constraint geo_hierarchy_parent_city_v3 foreign key (parent_location_id,city_id)
     references geo.locations(id,city_id) on delete restrict,
   constraint geo_hierarchy_child_city_v3 foreign key (child_location_id,city_id)
-    references geo.locations(id,city_id) on delete restrict
+    references geo.locations(id,city_id) on delete restrict,
+  constraint geo_hierarchy_evidence_city_v3 foreign key (evidence_fact_id,city_id)
+    references geo.location_facts(id,city_id) on delete restrict
 );
 create index geo_hierarchy_parent_v3_idx on geo.location_hierarchy(parent_location_id);
 -- Prevent cyclic tree edges even when written outside Studio.
@@ -123,7 +128,7 @@ create table canon.location_franchise_fits (
   location_id uuid not null references geo.locations(id) on delete restrict,
   franchise_id uuid not null references canon.franchises(id) on delete restrict,
   series_id uuid,
-  source_fact_id uuid references geo.location_facts(id) on delete restrict,
+  source_fact_id uuid,
   status text not null default 'hypothesis'
     check (status in ('hypothesis','canon_aligned','retired')),
   narrative_hook text,
@@ -133,7 +138,9 @@ create table canon.location_franchise_fits (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint canon_location_fit_series_franchise_v3 foreign key (series_id,franchise_id)
-    references canon.series(id,franchise_id) on delete restrict
+    references canon.series(id,franchise_id) on delete restrict,
+  constraint canon_location_fit_fact_location_v3 foreign key (source_fact_id,location_id)
+    references geo.location_facts(id,location_id) on delete restrict
 );
 create unique index canon_location_fit_unscoped_v3_uq
   on canon.location_franchise_fits(location_id,franchise_id) where series_id is null;
@@ -141,6 +148,8 @@ create unique index canon_location_fit_series_v3_uq
   on canon.location_franchise_fits(location_id,franchise_id,series_id) where series_id is not null;
 create unique index canon_location_fit_id_franchise_v3_uq
   on canon.location_franchise_fits(id,franchise_id);
+create unique index canon_location_fit_id_location_v3_uq
+  on canon.location_franchise_fits(id,location_id);
 create index canon_location_fit_franchise_v3_idx on canon.location_franchise_fits(franchise_id,location_id);
 comment on table canon.location_franchise_fits is
   'Canon-scoped storytelling suitability; hypothesis != canonical historical fact or publication approval.';
@@ -163,14 +172,20 @@ create table canon.location_character_uses (
 create index canon_location_character_v3_idx on canon.location_character_uses(character_id);
 
 -- Gameplay is canonical-scoped: same clue can power different puzzles in different universes.
+create unique index geo_location_clues_id_location_v3_uq on geo.location_clues(id,location_id);
 create table canon.location_clue_uses (
-  fit_id uuid not null references canon.location_franchise_fits(id) on delete cascade,
-  clue_id uuid not null references geo.location_clues(id) on delete restrict,
+  fit_id uuid not null,
+  clue_id uuid not null,
+  location_id uuid not null,
   mechanic_key text not null check (length(btrim(mechanic_key)) > 0),
   narrative_hook text,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
-  primary key (fit_id,clue_id,mechanic_key)
+  primary key (fit_id,clue_id,mechanic_key),
+  constraint canon_clue_use_fit_location_v3 foreign key (fit_id,location_id)
+    references canon.location_franchise_fits(id,location_id) on delete cascade,
+  constraint canon_clue_use_clue_location_v3 foreign key (clue_id,location_id)
+    references geo.location_clues(id,location_id) on delete restrict
 );
 create index canon_location_clue_uses_clue_v3_idx on canon.location_clue_uses(clue_id);
 
