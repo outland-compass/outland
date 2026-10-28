@@ -188,6 +188,7 @@ jobs:
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/player-runtime-pending/
+          mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/player-runtime-pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           git show 05105f7:supabase/seed.sql | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
