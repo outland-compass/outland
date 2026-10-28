@@ -1,6 +1,6 @@
 # SIDEWORLD — Free Plan Database Recovery Gate
 
-**Status (reconciled 2026-10-28): Previous production backups and isolated APPLICATION-TABLE restores ARE VERIFIED. A fresh, retained and independently recoverable artifact for the next production migration is NOT VERIFIED. This Group-specific full restore/parity test is separate and remains unverified.**
+**Status (reconciled 2026-10-28): Previous production backups and isolated APPLICATION-TABLE restores ARE VERIFIED. Fresh **application-backup and scoped isolated restore proof is VERIFIED on 2026-10-28**; the encrypted GitHub artifact is available until 2026-11-04, but off-GitHub long-term retention is NOT VERIFIED. This Group-specific full restore/parity test is separate and remains unverified.**
 
 Owner: OUTLAND Supabase. Historical evidence last checked: 2026-10-28.
 
@@ -16,6 +16,13 @@ Owner: OUTLAND Supabase. Historical evidence last checked: 2026-10-28.
 **Operational decision:** First check those runs, currently available encrypted artifacts, and any verified local/off-GitHub copy. If backup is stale or expired, **rerun the existing Studio manual workflow** with its exact reviewed `main` SHA, verify a new PASS and save encrypted archive + digest OFF GitHub before expiration. Do not write a second backup engine. Do not apply Group or Location Intelligence V3 production DDL without separate explicit founder approval. Studio's workflow NEVER applies migrations.
 
 For SIDEWORLD Location Intelligence V3: [OUTLAND PR #95](https://github.com/outland-compass/outland/pull/95) merged at `a63d0e52ebbe420a60e394d7274b4de42f9091a5`; its **production migration was not authorized or applied as of 2026-10-28**.
+
+### FRESH verified recovery point, 2026-10-28 (after prior Oct 19 expiration)
+
+- Protected Studio [run #40675990043](https://github.com/outland-compass/sideworld_studio/actions/runs/40675990043), pinned Studio main SHA `1f8fc59cf3225cb2521b5528b263918aee10173e`, **completed SUCCESS**. Original job log: `PASS: backup encrypted and application restore fingerprints verified`.
+- Encrypted artifact `production-backup-40675990043` (ID `12809924602`) was present and `expired=false` on Oct 28; GitHub expiry **2026-11-04 11:00:21 UTC**.
+- **Off-GitHub archival copy is NOT verified.** Securely download encrypted archive + digest and retain the separate secret before expiry; do not assume GitHub artifacts are permanent.
+- This satisfies the **scoped backup and application restore** evidence, **not** full Supabase managed-service recovery or Group-specific restore parity; production Location Intelligence V3 migration remains explicitly unauthorized.
 
 ## Grounded baseline
 
@@ -55,8 +62,8 @@ Treat output as sensitive: auth records may be included. Do not commit, upload a
 | --- | --- |
 | Read-only production schema and migration audit | Performed earlier; repeat immediately before DDL |
 | Historical local production backups and scoped application restore | **VERIFIED (Oct 4/6/7; Oct 11/14/19)**; see evidence above |
-| Current fresh protected logical backup | **NOT VERIFIED**; last GitHub artifact expired; check private local copies / rerun existing Studio workflow |
-| Historical isolated application restore | **VERIFIED**, last Oct 19; **fresh restore and Group-specific parity not yet verified** |
+| Current protected encrypted logical backup | **VERIFIED in protected Studio run #40675990043 (Oct 28)**; GitHub artifact expires Nov 4; off-GitHub retention pending |
+| Isolated application restore | **VERIFIED Oct 28, run #40675990043**; complete managed-service and Group-specific restore parity NOT verified |
 | Group SQL real PostgreSQL disposable CI | Passed in GitHub Actions 2026-10-24 (confirm exact PR SHA) |
 | Group concurrent write and privilege tests | Passed in disposable CI 2026-10-24 (confirm exact PR SHA) |
 | Reviewed CLI-generated additive migration with green CI | PR #87 prepared; merge and full CI status require final verification |
