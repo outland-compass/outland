@@ -125,6 +125,8 @@ jobs:
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/sideworld-controlled-deployment/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/sideworld-controlled-deployment/
+          # New post-Player V3 is excluded from this precisely pinned 38-version Player V1 baseline.
+          mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/sideworld-controlled-deployment/
           supabase db reset --local --no-seed
           mv /tmp/sideworld-controlled-deployment/*_sideworld_player_runtime_v1.sql supabase/migrations/
           node --test scripts/sideworld/player-runtime-preflight.test.mjs scripts/sideworld/player-runtime-atomic-sql.test.mjs
