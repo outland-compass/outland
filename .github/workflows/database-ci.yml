@@ -52,7 +52,7 @@ jobs:
           set -uo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           failures=0
-          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql supabase/tests/verify-sideworld-qa-audit.sql supabase/tests/verify-sideworld-player-runtime-completion.sql supabase/tests/verify-sideworld-quest-visual-production.sql supabase/tests/verify-sideworld-location-reference-media.sql; do
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-location-intelligence-v3.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql supabase/tests/verify-sideworld-qa-audit.sql supabase/tests/verify-sideworld-player-runtime-completion.sql supabase/tests/verify-sideworld-quest-visual-production.sql supabase/tests/verify-sideworld-location-reference-media.sql; do
             echo "::group::$script"
             if docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
               echo "PASS: $script"
@@ -125,6 +125,8 @@ jobs:
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/sideworld-controlled-deployment/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/sideworld-controlled-deployment/
+          # New post-Player V3 is excluded from this precisely pinned 38-version Player V1 baseline.
+          mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/sideworld-controlled-deployment/
           supabase db reset --local --no-seed
           mv /tmp/sideworld-controlled-deployment/*_sideworld_player_runtime_v1.sql supabase/migrations/
           node --test scripts/sideworld/player-runtime-preflight.test.mjs scripts/sideworld/player-runtime-atomic-sql.test.mjs
@@ -188,6 +190,7 @@ jobs:
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/player-runtime-pending/
+          mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/player-runtime-pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           git show 05105f7:supabase/seed.sql | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
@@ -210,7 +213,7 @@ jobs:
         run: |
           set -euo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
-          for script in supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql supabase/tests/verify-sideworld-qa-audit.sql supabase/tests/verify-sideworld-player-runtime-completion.sql supabase/tests/verify-sideworld-quest-visual-production.sql supabase/tests/verify-sideworld-location-reference-media.sql; do
+          for script in supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-location-intelligence-v3.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql supabase/tests/verify-sideworld-qa-audit.sql supabase/tests/verify-sideworld-player-runtime-completion.sql supabase/tests/verify-sideworld-quest-visual-production.sql supabase/tests/verify-sideworld-location-reference-media.sql; do
             docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"
             echo "PASS: $script"
           done
@@ -248,6 +251,7 @@ jobs:
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/player-runtime-pending/
+          mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/player-runtime-pending/
           # The actual staging has eight recorded migrations. Start with precisely
           # those eight on an EMPTY disposable local database, without final seed.
           supabase db reset --local --no-seed
@@ -272,7 +276,7 @@ jobs:
           supabase migration up --local
           mv /tmp/player-runtime-pending/*.sql supabase/migrations/
           supabase migration up --local
-          for script in supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql supabase/tests/verify-sideworld-qa-audit.sql supabase/tests/verify-sideworld-player-runtime-completion.sql supabase/tests/verify-sideworld-quest-visual-production.sql supabase/tests/verify-sideworld-location-reference-media.sql; do
+          for script in supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-location-intelligence-v3.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql supabase/tests/verify-sideworld-qa-audit.sql supabase/tests/verify-sideworld-player-runtime-completion.sql supabase/tests/verify-sideworld-quest-visual-production.sql supabase/tests/verify-sideworld-location-reference-media.sql; do
             docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"
             echo "PASS: $script"
           done
@@ -309,6 +313,7 @@ jobs:
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/pending/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/pending/
+          mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           # Seed exactly as staging was seeded: seed.sql as it was before #27 (26eb571) renamed RIVERKEEPER.
@@ -324,7 +329,7 @@ jobs:
           set -uo pipefail
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           failures=0
-          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql supabase/tests/verify-sideworld-qa-audit.sql supabase/tests/verify-sideworld-player-runtime-completion.sql supabase/tests/verify-sideworld-quest-visual-production.sql supabase/tests/verify-sideworld-location-reference-media.sql; do
+          for script in supabase/tests/verify-schema.sql supabase/tests/diagnose-compass-promotion.sql supabase/tests/verify-workflow-security.sql supabase/tests/verify-sideworld-bases.sql supabase/tests/verify-sideworld-universe.sql supabase/tests/verify-sideworld-geo.sql supabase/tests/verify-sideworld-location-intelligence-v3.sql supabase/tests/verify-sideworld-canon.sql supabase/tests/verify-sideworld-boundaries.sql supabase/tests/verify-sideworld-studio-read-boundary.sql supabase/tests/verify-sideworld-studio-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d2-authoring-boundary.sql supabase/tests/verify-sideworld-studio-d3-read-model.sql supabase/tests/verify-sideworld-studio-d4-city-catalog.sql supabase/tests/verify-sideworld-studio-city-knowledge.sql supabase/tests/verify-sideworld-faction-media.sql supabase/tests/verify-sideworld-quest-drafts.sql supabase/tests/verify-sideworld-player-runtime.sql supabase/tests/verify-sideworld-qa-audit.sql supabase/tests/verify-sideworld-player-runtime-completion.sql supabase/tests/verify-sideworld-quest-visual-production.sql supabase/tests/verify-sideworld-location-reference-media.sql; do
             echo "::group::$script (legacy_compatible)"
             if docker exec -i -e PGOPTIONS='-c outland.world_canon=legacy_compatible' "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$script"; then
               echo "PASS: $script"
