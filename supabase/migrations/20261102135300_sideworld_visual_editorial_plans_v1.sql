@@ -105,15 +105,18 @@ begin
  end if;
  -- This complete plan contains one entry per dialogue scene and, if
  -- present, exactly one virtual prologue; it cannot quietly omit moments.
- if v_count <> jsonb_array_length(v_document->'scenes') +
-   case when jsonb_typeof(v_document->'narrative'->'prologue')='array' and
-         jsonb_array_length(v_document->'narrative'->'prologue')>0
-        then 1 else 0 end then
+ v_target:=jsonb_array_length(v_document->'scenes');
+ if jsonb_typeof(v_document->'narrative'->'prologue')='array' then
+   if jsonb_array_length(v_document->'narrative'->'prologue')>0 then
+     v_target:=v_target+1;
+   end if;
+ end if;
+ if v_count<>v_target then
    raise exception 'Every dialogue moment must be reviewed';
  end if;
  for v_item in select value from jsonb_array_elements(p_decisions) loop
    if jsonb_typeof(v_item)<>'object' or
-     exists(select 1 from jsonb_object_keys(v_item) k where k not in
+     exists(select 1 from jsonb_object_keys(v_item) as k(key) where k.key not in
         ('momentId','sceneId','action','assetId','sha256','briefId','note')) then
      raise exception 'Unexpected review fields';
    end if;
