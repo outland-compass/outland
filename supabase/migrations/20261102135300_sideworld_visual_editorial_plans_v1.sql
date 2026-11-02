@@ -33,7 +33,7 @@ revoke all on canon.quest_visual_editorial_plans
 
 create function public.sideworld_quest_visual_editorial_get_v1(
  p_actor uuid,p_draft uuid,p_revision integer,p_release uuid)
-returns jsonb language plpgsql stable security definer set search_path='' as $$
+returns jsonb language plpgsql stable security definer set search_path='' as $function$
 declare found_row canon.quest_visual_editorial_plans;
 begin
  if not exists(select 1 from shared.user_roles
@@ -52,12 +52,12 @@ begin
    'reviewedBy',found_row.reviewed_by,
    'decisions',found_row.decisions
  );
-end; $;
+end; $function$;
 
 create function public.sideworld_quest_visual_editorial_save_v1(
  p_actor uuid,p_draft uuid,p_revision integer,p_release uuid,
  p_scope_key text,p_expected_version integer,p_request uuid,p_decisions jsonb)
-returns jsonb language plpgsql security definer set search_path='' as $$
+returns jsonb language plpgsql security definer set search_path='' as $function$
 declare
  v_draft canon.quest_drafts;
  v_document jsonb;
@@ -203,7 +203,7 @@ begin
    'releaseId',v_saved.release_id,'reviewedAt',v_saved.created_at,
    'reviewedBy',v_saved.reviewed_by,'decisions',v_saved.decisions,
    'reused',false);
-end; $;
+end; $function$;
 
 revoke all on function
  public.sideworld_quest_visual_editorial_get_v1(uuid,uuid,integer,uuid),
