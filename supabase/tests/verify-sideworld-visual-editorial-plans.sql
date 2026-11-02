@@ -36,7 +36,8 @@ begin
  end if;
  if not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
    where n.nspname='public' and p.proname='sideworld_quest_visual_editorial_save_v1'
-   and p.prosecdef and p.proconfig @> array['search_path=']) then
+   and p.prosecdef and exists(select 1 from unnest(p.proconfig) as cfg(v)
+    where replace(cfg.v,chr(34),'')='search_path=')) then
    raise exception 'Editorial save RPC must be guarded with empty search_path';
  end if;
 end $verify$;
