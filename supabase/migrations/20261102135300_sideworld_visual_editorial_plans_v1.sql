@@ -52,7 +52,7 @@ begin
    'reviewedBy',found_row.reviewed_by,
    'decisions',found_row.decisions
  );
-end $$;
+end; $;
 
 create function public.sideworld_quest_visual_editorial_save_v1(
  p_actor uuid,p_draft uuid,p_revision integer,p_release uuid,
@@ -203,7 +203,7 @@ begin
    'releaseId',v_saved.release_id,'reviewedAt',v_saved.created_at,
    'reviewedBy',v_saved.reviewed_by,'decisions',v_saved.decisions,
    'reused',false);
-end $$;
+end; $;
 
 revoke all on function
  public.sideworld_quest_visual_editorial_get_v1(uuid,uuid,integer,uuid),
