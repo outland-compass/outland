@@ -84,6 +84,25 @@ begin
     if sqlerrm <> 'Quest release content and source are immutable' then raise; end if;
   end;
 
+  -- Exact same release ID and source revision stay usable after a private QA
+  -- edit, provided document and engine hash change atomically. No new release.
+  update canon.quest_releases
+    set document='{"contractVersion":"1","testOnly":true,"qaEdit":true}'::jsonb,
+        engine_content_hash=repeat('e',64)
+    where id=release_id;
+  if not exists(
+    select 1 from canon.quest_releases
+    where id=release_id and source_revision=1
+      and document->>'qaEdit'='true' and engine_content_hash=repeat('e',64)
+  ) then
+    raise exception 'Private QA edit was not preserved in-place';
+  end if;
+  -- Restore the exact fixture input before the saved Player run/hash tests.
+  update canon.quest_releases
+    set document='{"contractVersion":"1","testOnly":true}'::jsonb,
+        engine_content_hash=repeat('a',64)
+    where id=release_id;
+
   begin
     update canon.quest_releases set visibility='published' where id=release_id;
     raise exception 'Expected publication approval gate';
