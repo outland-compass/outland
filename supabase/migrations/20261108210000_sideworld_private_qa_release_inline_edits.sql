@@ -6,6 +6,15 @@
 -- transaction as a document edit. Running QA sessions with the previous hash
 -- must be restarted; never silently rewrite player progress.
 
+-- Some legacy upgrade rehearsals intentionally do not install SIDEWORLD yet.
+-- Skip those fixtures; production already contains the original function.
+DO $sideworld_private_edit$
+BEGIN
+  IF to_regnamespace('canon') IS NULL
+     OR to_regprocedure('canon.sideworld_guard_release_v1()') IS NULL THEN
+    RAISE NOTICE 'SIDEWORLD release guard not installed; private QA edit unlock skipped';
+  ELSE
+    EXECUTE $ddl$
 CREATE OR REPLACE FUNCTION canon.sideworld_guard_release_v1()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -67,3 +76,7 @@ BEGIN
   RETURN NEW;
 END
 $function$;
+    $ddl$;
+  END IF;
+END
+$sideworld_private_edit$;
