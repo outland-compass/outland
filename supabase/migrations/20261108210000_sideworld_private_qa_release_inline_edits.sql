@@ -41,7 +41,7 @@ BEGIN
     END IF;
 
     IF (OLD.visibility = 'retired' AND NEW.visibility <> 'retired')
-       OR (OLD.visibility = 'published' AND NEW.visibility = 'private_qa') THEN
+       OR (OLD.visibility = 'published' AND NEW.visibility NOT IN ('published', 'retired')) THEN
       RAISE EXCEPTION 'Invalid release lifecycle transition';
     END IF;
 
