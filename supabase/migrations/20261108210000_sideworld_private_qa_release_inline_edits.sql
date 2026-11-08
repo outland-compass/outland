@@ -56,7 +56,7 @@ BEGIN
         RAISE EXCEPTION 'Published or retired release content is immutable';
       END IF;
       IF edited_document IS DISTINCT FROM edited_hash THEN
-        RAISE EXCEPTION 'Private release document and engine hash must be updated together';
+        RAISE EXCEPTION 'Quest release content and source are immutable';
       END IF;
     END IF;
 
