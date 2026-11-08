@@ -55,7 +55,7 @@ declare
   v_previous canon.quest_visual_assets%rowtype;
   v_next canon.quest_visual_assets%rowtype;
 begin
-  if p_actor is null or p_release is null or p_scene is null or p_slot <> 'scene' or
+  if p_actor is null or p_release is null or p_scene is null or p_slot is distinct from 'scene' or
      p_scene !~ '^[a-z0-9][a-z0-9._-]{0,127}$' or
      p_expected_asset is null or p_new_asset is null or
      p_expected_asset = p_new_asset
@@ -103,7 +103,9 @@ begin
      v_next.approved_by is null or v_next.approved_at is null or
      v_next.storage_bucket<>'sideworld-quest-media' or
      v_next.mime_type<>'image/webp' or
-     v_next.storage_path<>v_next.draft_id::text||'/r'||v_next.revision::text||'/'||v_next.source_sha256||'.webp' or
+     (v_next.visual_role='location_photo' and v_next.source_kind<>'real_photo') or
+     (v_next.visual_role<>'location_photo' and v_next.source_kind not in ('ai_illustration','manual_illustration')) or
+     v_next.storage_path<>(v_next.draft_id::text||'/r'||v_next.revision::text||'/'||v_next.source_sha256||'.webp') or
      not exists (
        select 1 from storage.objects o
        where o.bucket_id=v_next.storage_bucket and o.name=v_next.storage_path
