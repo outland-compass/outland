@@ -120,7 +120,7 @@ jobs:
           # Keep completion V2 out of the deliberately V1-only atomic ledger rehearsal.
           mv supabase/migrations/*_sideworld_player_runtime_completion_v1.sql /tmp/sideworld-controlled-deployment/
           # Registry V1 depends on the Player release table; exclude it from the intentionally pre-Player baseline.
-          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql supabase/migrations/*_sideworld_remove_single_approved_visual_per_brief.sql supabase/migrations/*_sideworld_private_scene_art_replacement_v1.sql /tmp/sideworld-controlled-deployment/
+          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql supabase/migrations/*_sideworld_remove_single_approved_visual_per_brief.sql supabase/migrations/*_sideworld_private_scene_art_replacement_v1.sql supabase/migrations/*_sideworld_private_qa_release_inline_edits.sql /tmp/sideworld-controlled-deployment/
           mv supabase/migrations/*_sideworld_account_private_release_v1.sql /tmp/sideworld-controlled-deployment/
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/sideworld-controlled-deployment/
@@ -185,7 +185,7 @@ jobs:
           mv supabase/migrations/*_sideworld_player_runtime*.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_qa_operator_audit_v1.sql /tmp/player-runtime-pending/
           # Apply new quest visuals only AFTER the Player release tables exist.
-          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql supabase/migrations/*_sideworld_remove_single_approved_visual_per_brief.sql supabase/migrations/*_sideworld_private_scene_art_replacement_v1.sql /tmp/player-runtime-pending/
+          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql supabase/migrations/*_sideworld_remove_single_approved_visual_per_brief.sql supabase/migrations/*_sideworld_private_scene_art_replacement_v1.sql supabase/migrations/*_sideworld_private_qa_release_inline_edits.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_account_private_release_v1.sql /tmp/player-runtime-pending/
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/player-runtime-pending/
@@ -246,7 +246,7 @@ jobs:
           mv supabase/migrations/*_sideworld_player_runtime*.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_qa_operator_audit_v1.sql /tmp/player-runtime-pending/
           # Apply new quest visuals only AFTER the Player release tables exist.
-          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql supabase/migrations/*_sideworld_remove_single_approved_visual_per_brief.sql supabase/migrations/*_sideworld_private_scene_art_replacement_v1.sql /tmp/player-runtime-pending/
+          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql supabase/migrations/*_sideworld_remove_single_approved_visual_per_brief.sql supabase/migrations/*_sideworld_private_scene_art_replacement_v1.sql supabase/migrations/*_sideworld_private_qa_release_inline_edits.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_account_private_release_v1.sql /tmp/player-runtime-pending/
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/player-runtime-pending/
@@ -308,7 +308,7 @@ jobs:
           mv supabase/migrations/*_sideworld_player_runtime*.sql /tmp/pending/
           mv supabase/migrations/*_sideworld_qa_operator_audit_v1.sql /tmp/pending/
           # Keep visual releases out of the historical pre-Player baseline.
-          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql supabase/migrations/*_sideworld_remove_single_approved_visual_per_brief.sql supabase/migrations/*_sideworld_private_scene_art_replacement_v1.sql /tmp/pending/
+          mv supabase/migrations/*_sideworld_quest_visual_production_v1.sql supabase/migrations/*_sideworld_separate_manual_media_quota.sql supabase/migrations/*_sideworld_remove_single_approved_visual_per_brief.sql supabase/migrations/*_sideworld_private_scene_art_replacement_v1.sql supabase/migrations/*_sideworld_private_qa_release_inline_edits.sql /tmp/pending/
           mv supabase/migrations/*_sideworld_account_private_release_v1.sql /tmp/pending/
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/pending/
