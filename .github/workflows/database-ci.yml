@@ -133,6 +133,8 @@ jobs:
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/sideworld-controlled-deployment/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/sideworld-controlled-deployment/
+           # Puzzle-option media requires the Player and visual registry; do not replay in pre-Player baseline.
+           mv supabase/migrations/*_sideworld_puzzle_option_media_v1.sql /tmp/sideworld-controlled-deployment/
           # New post-Player V3 is excluded from this precisely pinned 38-version Player V1 baseline.
           mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/sideworld-controlled-deployment/
           supabase db reset --local --no-seed
@@ -199,6 +201,8 @@ jobs:
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/player-runtime-pending/
+           # Puzzle-option media is applied after the canonical Player and visual registry exist.
+           mv supabase/migrations/*_sideworld_puzzle_option_media_v1.sql /tmp/player-runtime-pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
           git show 05105f7:supabase/seed.sql | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
@@ -260,6 +264,8 @@ jobs:
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/player-runtime-pending/
           mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/player-runtime-pending/
+           # Puzzle-option media is applied after the canonical Player and visual registry exist.
+           mv supabase/migrations/*_sideworld_puzzle_option_media_v1.sql /tmp/player-runtime-pending/
           # The actual staging has eight recorded migrations. Start with precisely
           # those eight on an EMPTY disposable local database, without final seed.
           supabase db reset --local --no-seed
@@ -321,6 +327,8 @@ jobs:
           # Add cross-quest location media only after the historical geo schema is present.
           mv supabase/migrations/*_sideworld_location_reference_media_v1.sql /tmp/pending/
           mv supabase/migrations/*_sideworld_group_runtime_v1.sql /tmp/pending/
+           # Keep future visual option mapping out of historical pre-SIDEWORLD baseline.
+           mv supabase/migrations/*_sideworld_puzzle_option_media_v1.sql /tmp/pending/
           mv supabase/migrations/*_sideworld_location_intelligence_v3.sql /tmp/pending/
           supabase db reset --local --no-seed
           db_container=$(docker ps --filter 'name=supabase_db_' --format '{{.ID}}' | head -n 1)
