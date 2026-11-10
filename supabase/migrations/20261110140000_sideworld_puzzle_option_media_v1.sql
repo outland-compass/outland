@@ -83,6 +83,8 @@ CREATE FUNCTION public.sideworld_quest_puzzle_option_media_for_release_v1(
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO ''
 AS $fn$
   SELECT coalesce(jsonb_agg(jsonb_build_object(
+      'releaseId',r.id,'draftId',r.source_draft_id,'revision',r.source_revision,
+      'sceneId',b.scene_id,'puzzleId',b.puzzle_id,
       'optionId',b.option_id,'assetId',a.id,'sha256',a.source_sha256,
       'mimeType',a.mime_type,'width',a.width,'height',a.height,
       'briefId',a.brief_id,'visualRole',a.visual_role,
