@@ -23,7 +23,7 @@ private release remains untouched.
 
 ## Proposed additive change
 Migration:
-`supabase/migrations/20261115220000_sideworld_r17_in_place_editorial_save_v1.sql`.
+`supabase/migrations/20261115213318_20261115220000_sideworld_r17_in_place_editorial_save_v1.sql`.
 
 1. Add `canon.quest_draft_edit_history` with immutable **previous-document
    checkpoints** and author attribution; RLS enabled and no direct role grants.
