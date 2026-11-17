@@ -1,5 +1,10 @@
 # Claude Code instructions — OUTLAND repository / SIDEWORLD work
 
+## SIDEWORLD pre-launch test-session continuity — founder LOCKED 2026-11-17
+
+When performing SIDEWORLD-related work here, **there are no real external SIDEWORLD players** until the founder explicitly announces otherwise. All existing started Player runs are disposable QA; no session migration, backward compatibility, resume preservation, or new quest revision is justified for their sake. QA may restart on fresh runs. Do not use this to weaken existing OUTLAND operational compatibility, change SIDEWORLD canonical content, or authorize production DB/schema/release/media writes/deletes, security bypasses or deployments. Source: the repo-local 2026-11-10 rules in SIDEWORLD Studio/Player and [central ADR-002](https://github.com/outland-compass/sideworld_ops/blob/main/governance/decisions/ADR-002-DISPOSABLE-PRELAUNCH-PLAYER-SESSIONS.md) once merged.
+
+
 ## Scope and authority
 This repository currently hosts OUTLAND OS and COMPASS. SIDEWORLD Studio lives in `outland-compass/sideworld_studio`; do not re-add a Studio app here. This repository keeps the shared Supabase migrations the Studio relies on. SIDEWORLD is a NEW independent consumer platform for location-based adventures; OUTLAND is ONE optional universe on SIDEWORLD, not SIDEWORLD's parent. SIGNAL is a gameplay/lore trigger; The Parallel is a deeper narrative concept. Never rename the existing OUTLAND OS operational product to SIDEWORLD or assume the existing OUTLAND Platform Master Plan describes the new cross-universe SIDEWORLD ownership model.
 
